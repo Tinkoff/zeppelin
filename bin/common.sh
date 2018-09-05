@@ -16,6 +16,14 @@
 # limitations under the License.
 #
 
+if [[ -z "${ZEPPELIN_REMOTE_DEBUG_INITIALISED}" ]]; then
+  export ZEPPELIN_REMOTE_DEBUG_INITIALISED="true"
+  ZEPPELIN_JAVA_PORT=$(python -c 'import socket;s=socket.socket();s.bind(("", 0));print(s.getsockname()[1]);s.close()')
+  export ZEPPELIN_JAVA_OPTS="${ZEPPELIN_JAVA_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=${ZEPPELIN_JAVA_PORT}"
+  ZEPPELIN_INTP_JAVA_PORT=$(python -c 'import socket;s=socket.socket();s.bind(("", 0));print(s.getsockname()[1]);s.close()')
+  export ZEPPELIN_INTP_JAVA_OPTS="${ZEPPELIN_INTP_JAVA_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=${ZEPPELIN_INTP_JAVA_PORT}"
+fi
+
 if [ -L ${BASH_SOURCE-$0} ]; then
   FWDIR=$(dirname $(readlink "${BASH_SOURCE-$0}"))
 else
