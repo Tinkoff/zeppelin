@@ -86,6 +86,7 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
   private String text;  // text is composed of intpText and scriptText.
   private transient String intpText;
   private transient String scriptText;
+  private transient String selectedText;
   private String user;
   private Date dateUpdated;
   // paragraph configs like isOpen, colWidth, etc
@@ -183,6 +184,10 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
     this.text = newText;
     this.dateUpdated = new Date();
     parseText();
+  }
+
+  public void setSelectedText(String text) {
+    this.selectedText = text;
   }
 
   public void parseText() {
@@ -430,10 +435,13 @@ public class Paragraph extends Job implements Cloneable, JsonSerializable {
       script = Input.getSimpleQuery(note.getNoteParams(), scriptBody, true);
       script = Input.getSimpleQuery(settings.getParams(), script, false);
     }
-    logger.debug("RUN : " + script);
+    logger.debug("RUN : " + (selectedText == null ? script : selectedText));
     try {
       InterpreterContext context = getInterpreterContext();
       InterpreterContext.set(context);
+      if (this.selectedText != null && this.selectedText.length() > 0) {
+        script = selectedText;
+      }
       InterpreterResult ret = interpreter.interpret(script, context);
 
       if (interpreter.getFormType() == FormType.NATIVE) {

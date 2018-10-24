@@ -408,8 +408,9 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   };
 
   $scope.runParagraphUsingBackendInterpreter = function(paragraphText) {
+    let selectedText = $scope.editor.getSelectedText();
     websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title,
-      paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params);
+      paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params, selectedText);
   };
 
   $scope.bindBeforeUnload = function() {

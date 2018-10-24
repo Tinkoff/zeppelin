@@ -2155,6 +2155,8 @@ public class NotebookServer extends WebSocketServlet
     Paragraph p = setParagraphUsingMessage(note, fromMessage, paragraphId,
         text, title, params, config);
 
+    String selectedText = (String) fromMessage.get("selectedText");
+    p.setSelectedText(selectedText);
     persistAndExecuteSingleParagraph(conn, note, p, false);
   }
 
