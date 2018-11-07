@@ -122,6 +122,14 @@ public class ManagedInterpreterGroup extends InterpreterGroup {
     for (Interpreter interpreter : interpreters) {
       Scheduler scheduler = interpreter.getScheduler();
       for (Job job : scheduler.getAllJobs()) {
+        if (job.getStatus().isCompleted()) {
+          LOGGER.error(
+                  "Tried to abort job {}, but job status is {}",
+                  job.getJobName(),
+                  job.getStatus().toString()
+          );
+          continue;
+        }
         job.abort();
         job.setStatus(Job.Status.ABORT);
         LOGGER.info("Job " + job.getJobName() + " aborted ");
