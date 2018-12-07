@@ -719,6 +719,9 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   };
 
   $scope.sendPatch = function() {
+    if (!$scope.userHasWritePermission()) {
+      return;
+    }
     $scope.originalText = $scope.originalText ? $scope.originalText : '';
     let patch = $scope.diffMatchPatch.patch_make($scope.originalText, $scope.dirtyText).toString();
     $scope.originalText = $scope.dirtyText;
@@ -1085,6 +1088,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.$on('editorSetting', function(event, data) {
           if (paragraph.id === data.paragraphId) {
             deferred.resolve(data);
+            $scope.editor.setReadOnly(!$scope.userHasWritePermission());
           }
         }
       ), 1000);
@@ -1487,7 +1491,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.paragraph.settings = newPara.settings;
     $scope.paragraph.runtimeInfos = newPara.runtimeInfos;
     if ($scope.editor) {
-      $scope.editor.setReadOnly($scope.isRunning(newPara));
+      let readOnly = $scope.isRunning(newPara) || !$scope.userHasWritePermission();
+      $scope.editor.setReadOnly(readOnly);
     }
 
     if (!$scope.asIframe) {
