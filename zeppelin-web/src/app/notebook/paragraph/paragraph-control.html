@@ -216,6 +216,13 @@ limitations under the License.
           </a>
         </li>
         <li>
+          <a ng-click="beautifySqlCode(paragraph)"
+             ng-if="paragraph.config.editorSetting.language === 'sql'"><span class="fa fa-align-left shortcut-icon"></span>
+            <span class="shortcut-keys">Ctrl+B</span>
+            Beatify code (SQL)
+          </a>
+        </li>
+        <li>
           <!-- remove paragraph -->
           <a ng-click="removeParagraph(paragraph)" ng-if="note.paragraphs.length > 1" ng-class="{'item-disable' : isNoteRunning}">
             <span class="fa fa-times shortcut-icon"></span>

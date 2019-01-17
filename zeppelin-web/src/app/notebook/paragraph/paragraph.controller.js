@@ -14,6 +14,7 @@
 
 import {SpellResult} from '../../spell';
 import {isParagraphRunning, ParagraphStatus} from './paragraph.status';
+import sqlFormatter from 'svl-tin-sql-formatter';
 
 import moment from 'moment';
 import DiffMatchPatch from 'diff-match-patch';
@@ -738,6 +739,17 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   $scope.toggleOutput = function(paragraph) {
     paragraph.config.tableHide = !paragraph.config.tableHide;
     commitParagraph(paragraph);
+  };
+
+  $scope.beautifySqlCode = function() {
+    if ($scope.paragraph.config.editorSetting.language !== 'sql') {
+      return;
+    }
+    $scope.editor.focus();
+    let paragraphText = $scope.editor.getValue();
+    let formattedText = sqlFormatter.format(paragraphText, {maxCharacterPerLine: 128});
+    $scope.editor.setValue(formattedText);
+    $scope.paragraph.text = formattedText;
   };
 
   $scope.aceChanged = function(_, editor) {
@@ -1728,6 +1740,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.clearParagraphOutput($scope.paragraph);
       } else if (keyEvent.ctrlKey && keyEvent.altKey && keyCode === 87) { // Ctrl + Alt + w
         $scope.goToSingleParagraph();
+      } else if (keyEvent.ctrlKey && keyCode === 66) { // Ctrl + b
+        $scope.beautifySqlCode();
       } else if (keyEvent.ctrlKey && keyEvent.altKey && keyCode === 70) { // Ctrl + f
         $scope.$emit('toggleSearchBox');
       } else {
