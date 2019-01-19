@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
-import javax.inject.Provider;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.display.AngularObject;
@@ -314,7 +314,8 @@ public class NotebookServerTest extends AbstractTestRestApi {
             .put("noteId", "noteId")
             .put("paragraphId", "paragraphId"));
 
-    server.getConnectionManager().noteSocketMap.put("noteId", asList(conn, otherConn));
+    server.getConnectionManager().noteSocketMap
+        .put("noteId", new ConcurrentLinkedQueue<>(asList(conn, otherConn)));
 
     // When
     server.angularObjectClientBind(conn, messageReceived);
@@ -362,7 +363,8 @@ public class NotebookServerTest extends AbstractTestRestApi {
             .put("noteId", "noteId")
             .put("paragraphId", "paragraphId"));
 
-    server.getConnectionManager().noteSocketMap.put("noteId", asList(conn, otherConn));
+    server.getConnectionManager().noteSocketMap
+        .put("noteId", new ConcurrentLinkedQueue<>(asList(conn, otherConn)));
 
     // When
     server.angularObjectClientUnbind(conn, messageReceived);
