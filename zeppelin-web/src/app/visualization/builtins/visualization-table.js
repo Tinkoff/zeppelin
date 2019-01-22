@@ -230,6 +230,15 @@ export default class TableVisualization extends Visualization {
     gridOptions.columnDefs.map((colDef) => {
       colDef.menuItems = [
         {
+          title: 'Copy Column Name',
+          action: function() {
+            self.copyStringToClipboard(this.context.col.displayName);
+          },
+          active: function() {
+            return false;
+          },
+        },
+        {
           title: 'Type: String',
           action: function() {
             self.updateColDefType(this.context.col.colDef, TableColumnType.STRING);
