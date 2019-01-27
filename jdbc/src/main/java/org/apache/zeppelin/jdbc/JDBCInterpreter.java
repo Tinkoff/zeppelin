@@ -19,6 +19,7 @@ import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 import static org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod.KERBEROS;
 
+import java.util.Collections;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp2.PoolableConnectionFactory;
@@ -867,6 +868,11 @@ public class JDBCInterpreter extends KerberosInterpreter {
   @Override
   public List<InterpreterCompletion> completion(String buf, int cursor,
       InterpreterContext interpreterContext) throws InterpreterException {
+    if (interpreterContext == null || interpreterContext.getAuthenticationInfo() == null) {
+      // AuthenticationInfo could be null if completion called before paragraph execution
+      return Collections.emptyList();
+    }
+
     List<InterpreterCompletion> candidates = new ArrayList<>();
     String propertyKey = getPropertyKey(interpreterContext);
     String sqlCompleterKey =
@@ -875,11 +881,9 @@ public class JDBCInterpreter extends KerberosInterpreter {
 
     Connection connection = null;
     try {
-      if (interpreterContext != null) {
-        connection = getConnection(propertyKey, interpreterContext);
-      }
+      connection = getConnection(propertyKey, interpreterContext);
     } catch (ClassNotFoundException | SQLException | IOException e) {
-      logger.warn("SQLCompleter will created without use connection");
+      logger.warn("SQLCompleter will created without use connection", e);
     }
 
     sqlCompleter = createOrUpdateSqlCompleter(sqlCompleter, connection, propertyKey, buf, cursor);
