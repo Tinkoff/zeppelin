@@ -440,6 +440,24 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params, selectedText);
   };
 
+  $scope.runExplain = function() {
+    if ($scope.isNoteRunning || $scope.paragraph.config.editorSetting.language !== 'sql') {
+      return;
+    }
+
+    let query = $scope.getEditorValue().toLowerCase();
+    let postfix = query.endsWith(';') ? '' : '; ';
+    let prefix = query.startsWith('explain') ? '' : 'EXPLAIN ';
+
+    if (prefix === '') {
+      websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title, '',
+        $scope.paragraph.config, $scope.paragraph.settings.params, query + postfix);
+    } else {
+      websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title, '',
+        $scope.paragraph.config, $scope.paragraph.settings.params, prefix + query + postfix + query + postfix);
+    }
+  };
+
   $scope.bindBeforeUnload = function() {
     angular.element(window).off('beforeunload');
 
@@ -1927,6 +1945,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.goToSingleParagraph();
       } else if (keyEvent.ctrlKey && keyCode === 66) { // Ctrl + b
         $scope.beautifySqlCode();
+      } else if (keyEvent.ctrlKey && keyCode === 77) { // Ctrl + m
+        $scope.runExplain();
       } else if (keyEvent.ctrlKey && keyEvent.altKey && keyCode === 70) { // Ctrl + f
         $scope.$emit('toggleSearchBox');
       } else {
