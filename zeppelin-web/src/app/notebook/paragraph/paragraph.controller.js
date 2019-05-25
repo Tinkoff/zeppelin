@@ -444,18 +444,12 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     if ($scope.isNoteRunning || $scope.paragraph.config.editorSetting.language !== 'sql') {
       return;
     }
-
+    $scope.commitParagraph($scope.paragraph);
     let query = $scope.getEditorValue().toLowerCase();
-    let postfix = query.endsWith(';') ? '' : '; ';
     let prefix = query.startsWith('explain') ? '' : 'EXPLAIN ';
 
-    if (prefix === '') {
-      websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title, '',
-        $scope.paragraph.config, $scope.paragraph.settings.params, query + postfix);
-    } else {
-      websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title, '',
-        $scope.paragraph.config, $scope.paragraph.settings.params, prefix + query + postfix + query + postfix);
-    }
+    websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title, '',
+      $scope.paragraph.config, $scope.paragraph.settings.params, prefix + query);
   };
 
   $scope.bindBeforeUnload = function() {

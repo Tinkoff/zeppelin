@@ -55,14 +55,14 @@ limitations under the License.
     </div>
   </div>
 
-  <!-- Explain & Run (sql interpreter only) -->
+  <!-- Explain (sql interpreter only) -->
   <div ng-if="paragraph.config.editorSetting.language === 'sql' && !paragraph.config.editorHide && !viewOnly"
        style="display: inline-block; color: black;">
     <span class="icon-speedometer" style="cursor:pointer;color:#6401F7"
-          tooltip-placement="top" uib-tooltip="Explain & Run (Ctrl+M)"
+          tooltip-placement="top" uib-tooltip="Explain (Ctrl+M)"
           ng-click="runExplain()"
           ng-class="{'item-disable' : isNoteRunning}"
-          ng-show="paragraph.status!='RUNNING' && paragraph.status!='PENDING' && paragraph.config.enabled">
+          ng-show="paragraph.status != 'RUNNING' && paragraph.status != 'PENDING' && paragraph.config.enabled">
     </span>
   </div>
 
