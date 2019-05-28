@@ -25,6 +25,8 @@ import org.apache.zeppelin.websocket.ConnectionManager;
 import org.apache.zeppelin.websocket.Operation;
 import org.apache.zeppelin.websocket.SockMessage;
 import org.apache.zeppelin.websocket.dto.NoteDTOConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
@@ -37,6 +39,7 @@ import ru.tinkoff.zeppelin.engine.NoteService;
 public class NoteRevisionHandler extends AbstractHandler {
 
   private final NoteDTOConverter noteDTOConverter;
+  private static final Logger LOGGER = LoggerFactory.getLogger(NoteRevisionHandler.class);
 
   @Autowired
   public NoteRevisionHandler(
@@ -58,9 +61,10 @@ public class NoteRevisionHandler extends AbstractHandler {
         conn
     );
 
-    final String message = fromMessage.getNotNull("commitMessage");
-    noteService.persistRevision(note, message);
 
+    final String message = fromMessage.getNotNull("commitMessage");
+    LOGGER.info("Сохранение текущей версии ноута с сообщением noteId: {}, noteUuid: "+ note.getUuid() + " с сообщением: " + message);
+    noteService.persistRevision(note, message);
     listRevisionHistory(conn, fromMessage);
   }
 
@@ -75,6 +79,7 @@ public class NoteRevisionHandler extends AbstractHandler {
         conn);
 
     final SockMessage message = new SockMessage(Operation.LIST_REVISION_HISTORY);
+    LOGGER.info("Загрузка истории версий ноута noteId: {}, noteUuid: "+ note.getUuid() , note.getId());
     message.put("revisionList", noteService.getRevisions(note));
     conn.sendMessage(message.toSend());
   }
@@ -92,7 +97,7 @@ public class NoteRevisionHandler extends AbstractHandler {
 
     final long revisionId = Long.parseLong(fromMessage.getNotNull("revisionId"));
     NoteRevision noteRevision = getNoteRevision(note, revisionId);
-
+    LOGGER.info("Получение версии revisionId: {} ноута noteId: {}, noteUuid: " + note.getUuid(), revisionId, note.getId());
     note.setRevision(noteRevision);
     NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
 
@@ -121,7 +126,7 @@ public class NoteRevisionHandler extends AbstractHandler {
       NoteRevision noteRevision = getNoteRevision(note, new Double(revisionId).longValue());
       note.setRevision(noteRevision);
     }
-
+    LOGGER.info("Загрузка для сравнения версии  revisionId: {}, revisionMsg: " + note.getRevision().getMessage() + " ноута noteId: {}, noteUuid: " + note.getUuid(), revisionId, note.getId());
     NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
 
     final SockMessage message = new SockMessage(Operation.NOTE_REVISION_FOR_COMPARE);
@@ -152,6 +157,7 @@ public class NoteRevisionHandler extends AbstractHandler {
     final SockMessage message = new SockMessage(Operation.SET_NOTE_REVISION);
     message.put("status", true);
 
+    LOGGER.info("Установка, в качетсве текущей, версии revisionId: {}, revisionMsg: " + note.getRevision().getMessage() + " ноута noteId: {}, noteUuid: " + note.getUuid(), revisionId, note.getId());
     conn.sendMessage(message.toSend());
     connectionManager.broadcast(
         noteDTO.getDatabaseId(),
@@ -160,6 +166,7 @@ public class NoteRevisionHandler extends AbstractHandler {
   }
 
   private NoteRevision getNoteRevision(final Note note, final long revisionId) {
+    LOGGER.info("Поиск версии revisionId: {} ноута noteId: {}, noteUuid: "+ note.getUuid() ,revisionId, note.getId());
     return noteService.getRevisions(note).stream()
         .filter(r -> r.getId() == revisionId)
         .findAny()

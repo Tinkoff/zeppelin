@@ -44,7 +44,7 @@ import ru.tinkoff.zeppelin.engine.NoteService;
 @Component
 public class ParagraphHandler extends AbstractHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ParagraphHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParagraphHandler.class);
 
   @Autowired
   public ParagraphHandler(final NoteService noteService,
@@ -57,6 +57,8 @@ public class ParagraphHandler extends AbstractHandler {
 
     final Note note = safeLoadNote("noteId", fromMessage, Permission.WRITER, authenticationInfo, conn);
     final Paragraph paragraph = safeLoadParagraph("id", fromMessage, note);
+
+    LOGGER.info("Обновление параграфа noteId: {}, noteUuid :" + note.getUuid() + " paragraphId: {} ", note.getId(), paragraph.getId());
 
     //final ParagraphDTO before = fullParagraphDAO.getById(paragraph.getId());
 
@@ -71,7 +73,7 @@ public class ParagraphHandler extends AbstractHandler {
     try {
       patches = dmp.patchMake(paragraph.getText(), text);
     } catch (ClassCastException e) {
-      LOG.error("Failed to parse patches", e);
+      LOGGER.error("Failed to parse patches", e);
     }
 
     final String paragraphText = paragraph.getText() == null
@@ -95,6 +97,7 @@ public class ParagraphHandler extends AbstractHandler {
     final Note note = safeLoadNote("noteId", fromMessage, Permission.WRITER, authenticationInfo, conn);
     final Paragraph p = safeLoadParagraph("id", fromMessage, note);
 
+    LOGGER.info("Удаление параграфа noteId: {}, noteUuid :" + note.getUuid() + " paragraphId: {} ", note.getId(), p.getId());
     noteService.removeParagraph(note, p);
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
     paragraphs.sort(Comparator.comparingInt(Paragraph::getPosition));
@@ -115,6 +118,7 @@ public class ParagraphHandler extends AbstractHandler {
     final Note note = safeLoadNote("noteId", fromMessage, Permission.WRITER, authenticationInfo, conn);
     final Paragraph p = safeLoadParagraph("id", fromMessage, note);
 
+    LOGGER.info("Очистка результата выполнения параграфа noteId: {}, noteUuid :" + note.getUuid() + " paragraphId: {} ", note.getId(), p.getId());
     p.setJobId(null);
     noteService.updateParagraph(note, p);
   }
@@ -127,6 +131,7 @@ public class ParagraphHandler extends AbstractHandler {
     final int indexFrom = paragraphFrom.getPosition();
     final int indexTo = ((Double) fromMessage.getNotNull("index")).intValue();
 
+    LOGGER.info("Перемещение параграфа noteId: {}, noteUuid :" + note.getUuid() + " paragraphId: {} ", note.getId(), paragraphFrom.getId());
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
     if (indexTo < 0 || indexTo > paragraphs.size()) {
       throw new BadRequestException("newIndex " + indexTo + " is out of bounds");
@@ -177,6 +182,7 @@ public class ParagraphHandler extends AbstractHandler {
     paragraph.setJobId(null);
     noteService.persistParagraph(note, paragraph);
 
+    LOGGER.info("Добавление параграфа noteId: {}, noteUuid :" + note.getUuid() + " paragraphId: {} ", note.getId(), paragraph.getId());
     return paragraph.getUuid();
   }
 
@@ -187,7 +193,7 @@ public class ParagraphHandler extends AbstractHandler {
       throw new BadRequestException("paragraphId is not defined");
     }
     fromMessage.put("id", paragraphId);
-
+    LOGGER.info("Копирование параграфа paragraphId: "+ paragraphId + fromMessage.toString());
     updateParagraph(conn, fromMessage);
   }
 }

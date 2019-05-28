@@ -42,6 +42,9 @@ import java.util.*;
 @RequestMapping("api")
 public class CronRestApi extends AbstractRestApi {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CronRestApi.class);
+
+  private final NoteService noteRepository;
   private final SchedulerDAO schedulerDAO;
   private final ConnectionManager connectionManager;
   private final NoteEventService noteEventService;
@@ -81,6 +84,7 @@ public class CronRestApi extends AbstractRestApi {
     final Note note = secureLoadNote(noteId, Permission.OWNER);
     Scheduler scheduler = schedulerDAO.getByNote(note.getId());
 
+    LOGGER.info("Регистрация задания планировщика для ноута noteId: {}, noteUuid: {}  с расписанием {}, флаг включения = {}", note.getId(), note.getUuid(), expression, isEnable);
     if (scheduler == null && expression == null) {
       return new JsonResponse(HttpStatus.BAD_REQUEST,"No expression found").build();
     }
@@ -148,6 +152,7 @@ public class CronRestApi extends AbstractRestApi {
   @GetMapping(value = "/cron/check_valid", produces = "application/json")
   public ResponseEntity checkCronExpression(@RequestParam("cronExpression") final String expression)
       throws IllegalArgumentException {
+    LOGGER.info("Проверка правильности выражения, с помощью которого задается расписание планировщика {}",  expression);
     if (!CronExpression.isValidExpression(expression)) {
       return new JsonResponse(HttpStatus.OK, "invalid").build();
     }
@@ -165,6 +170,7 @@ public class CronRestApi extends AbstractRestApi {
       throws IllegalArgumentException {
     final long noteId = Long.parseLong(noteIdParam);
     final Note note = secureLoadNote(noteId, Permission.READER);
+    LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     final Map<String, Object> response = new HashMap<>();
     response.put("cron", scheduler == null ? null : scheduler.getExpression());

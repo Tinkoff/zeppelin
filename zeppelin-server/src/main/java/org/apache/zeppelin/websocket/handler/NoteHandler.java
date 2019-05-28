@@ -32,6 +32,8 @@ import org.apache.zeppelin.websocket.ConnectionManager;
 import org.apache.zeppelin.websocket.Operation;
 import org.apache.zeppelin.websocket.SockMessage;
 import org.apache.zeppelin.websocket.dto.NoteDTOConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
@@ -49,6 +51,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 
 @Component
 public class NoteHandler extends AbstractHandler {
+  private static final Logger LOGGER = LoggerFactory.getLogger(NoteHandler.class);
 
   private final NoteDTOConverter noteDTOConverter;
   private final SchedulerDAO schedulerDAO;
@@ -80,7 +83,7 @@ public class NoteHandler extends AbstractHandler {
         .filter(this::userHasReaderPermission)
         .map(NoteInfo::new)
         .collect(Collectors.toList());
-
+    LOGGER.info("Загрузка списка ноутов");
     conn.sendMessage(new SockMessage(Operation.NOTES_INFO).put("notes", notesInfo).toSend());
   }
 
@@ -88,13 +91,14 @@ public class NoteHandler extends AbstractHandler {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
 
     final String noteId = Configuration.getHomeNodeId();
-
     checkPermission(0L, Permission.READER, authenticationInfo);
     final Note note = noteService.getNote(noteId);
     if (note != null) {
       connectionManager.addSubscriberToNode(note.getId(), conn);
+      LOGGER.info("Загрузка ноута по умолчанию noteId: {}, noteUuid: " + note.getUuid(), note.getId());
       conn.sendMessage(new SockMessage(Operation.NOTE).put("note", note).toSend());
     } else {
+      LOGGER.info("Загрузка стартовой страницы");
       connectionManager.removeSubscribersFromAllNote(conn);
       conn.sendMessage(new SockMessage(Operation.NOTE).put("note", null).toSend());
     }
@@ -103,6 +107,8 @@ public class NoteHandler extends AbstractHandler {
   public void getNote(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
     final Note note = safeLoadNote("id", fromMessage, Permission.READER, authenticationInfo, conn);
+    LOGGER.info("Загрузка ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
+
     connectionManager.addSubscriberToNode(note.getId(), conn);
     final NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
     conn.sendMessage(new SockMessage(Operation.NOTE).put("note", noteDTO).toSend());
@@ -113,7 +119,7 @@ public class NoteHandler extends AbstractHandler {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
     final Note note = safeLoadNote("id", fromMessage, Permission.READER, authenticationInfo, conn);
     final String path = normalizePath(fromMessage.getNotNull("path"));
-
+    LOGGER.info("Обновление ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
     note.setPath(path);
     noteService.updateNote(note);
     sendListNotesInfo(conn);
@@ -123,6 +129,8 @@ public class NoteHandler extends AbstractHandler {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
 
     final Note note = noteService.getNote((String) fromMessage.getNotNull("id"));
+    LOGGER.info("Удаление ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
+
     if (!userHasOwnerPermission(note)) {
       throw new AccessDeniedException(
           "User " + authenticationInfo.getUser() +
@@ -153,6 +161,7 @@ public class NoteHandler extends AbstractHandler {
       note.getOwners().addAll(Configuration.getDefaultOwners());
       noteService.persistNote(note);
 
+      LOGGER.info("Создание ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
       // it's an empty note. so add one paragraph
       final Paragraph paragraph = new Paragraph();
       paragraph.setId(null);
@@ -221,6 +230,7 @@ public class NoteHandler extends AbstractHandler {
 
     connectionManager.removeNoteSubscribers(note.getId());
 
+    LOGGER.info("Клонирование ноута noteId: {}, noteUuid: " + note.getUuid() + " ( новый ноут noteId: {}, noteUuid: " + cloneNote.getUuid() + " )", note.getId(), cloneNote.getId());
     conn.sendMessage(new SockMessage(Operation.NEW_NOTE).put("note", cloneNote).toSend());
     sendListNotesInfo(conn);
   }
@@ -229,6 +239,8 @@ public class NoteHandler extends AbstractHandler {
   public void moveNoteToTrash(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
     final Note note = safeLoadNote("id", fromMessage, Permission.OWNER, authenticationInfo, conn);
+    LOGGER.info("Перемещение в корзину ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
+
     note.setPath("/" + Note.TRASH_FOLDER + normalizePath(note.getPath()));
     noteService.updateNote(note);
 
@@ -240,13 +252,13 @@ public class NoteHandler extends AbstractHandler {
       schedulerDAO.update(scheduler);
       noteEventService.noteScheduleChange(note, oldScheduler);
     }
-
     sendListNotesInfo(conn);
   }
 
   public void restoreNote(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
     final Note note = safeLoadNote("id", fromMessage, Permission.OWNER, authenticationInfo, conn);
+    LOGGER.info("Восттановление из корзины ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
 
     if (!note.getPath().startsWith("/" + Note.TRASH_FOLDER)) {
       throw new IOException("Can not restore this note " + note.getPath() + " as it is not in trash folder");
@@ -263,6 +275,7 @@ public class NoteHandler extends AbstractHandler {
   public void restoreFolder(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final String folderPath = normalizePath(fromMessage.getNotNull("id")) + "/";
     final String user = AuthorizationService.getAuthenticationInfo().getUser();
+    LOGGER.info("Восcтановление папки  " + folderPath);
 
     if (!folderPath.startsWith("/" + Note.TRASH_FOLDER)) {
       throw new IOException("Can't restore folder: '" + folderPath + "' as it is not in trash folder");
@@ -285,6 +298,7 @@ public class NoteHandler extends AbstractHandler {
   public void renameFolder(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final String oldFolderPath = normalizePath(fromMessage.getNotNull("id")) + "/";
     final String newFolderPath = normalizePath(fromMessage.getNotNull("name")) + "/";
+    LOGGER.info("Переименование папки  " + oldFolderPath + " в " + newFolderPath);
 
     noteService.getAllNotes().stream()
         .filter(this::userHasOwnerPermission)
@@ -300,7 +314,7 @@ public class NoteHandler extends AbstractHandler {
 
   public void moveFolderToTrash(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final String folderPath = normalizePath(fromMessage.getNotNull("id")) + "/";
-
+    LOGGER.info("Перемещение папки" + folderPath + " в корзину");
     noteService.getAllNotes().stream()
         .filter(note -> note.getPath().startsWith(folderPath))
         .filter(this::userHasOwnerPermission)
@@ -316,6 +330,7 @@ public class NoteHandler extends AbstractHandler {
     final String folderPath = normalizePath(fromMessage.getNotNull("id")) + "/";
     final String user = AuthorizationService.getAuthenticationInfo().getUser();
 
+    LOGGER.info("Удаление  папки  " + folderPath);
     noteService.getAllNotes().stream()
         .filter(this::userHasOwnerPermission)
         .filter(note -> note.getPath().startsWith(folderPath))
@@ -327,6 +342,7 @@ public class NoteHandler extends AbstractHandler {
   }
 
   public void emptyTrash(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
+    LOGGER.info("Удаление всех объектов из корзины");
     final String user = AuthorizationService.getAuthenticationInfo().getUser();
 
     noteService.getAllNotes().stream()
@@ -340,6 +356,7 @@ public class NoteHandler extends AbstractHandler {
   }
 
   public void restoreAll(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
+    LOGGER.info("Восстановление всех объектов из корзины");
     noteService.getAllNotes().stream()
         .filter(this::userHasOwnerPermission)
         .filter(note -> note.getPath().startsWith("/" + Note.TRASH_FOLDER + "/"))
@@ -353,8 +370,8 @@ public class NoteHandler extends AbstractHandler {
 
   public void clearAllParagraphOutput(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
-
     final Note note = safeLoadNote("id", fromMessage, Permission.WRITER, authenticationInfo, conn);
+    LOGGER.info("Очистка вывода результатов для всех параграфов ноута noteId: {}, noteUuid: " + note.getUuid(), note.getId());
 
     for (final Paragraph paragraph : noteService.getParagraphs(note)) {
       paragraph.setJobId(null);
