@@ -21,6 +21,8 @@ import com.google.gson.Gson;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +43,7 @@ import java.util.Map;
 @RequestMapping("/api/completion")
 public class CompletionRestApi {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CompletionRestApi.class);
   private final NoteService noteService;
   private final CompletionService completionService;
 
@@ -65,6 +68,7 @@ public class CompletionRestApi {
             .findAny()
             .orElse(null);
 
+    LOGGER.info("Дополнение параграфа paragraphId : {} ноута noteId: {}, noteUuid: {}, message: {} ", p.getId(), note.getId(), note.getUuid(), message);
     final Map<String, String> params = new Gson().fromJson(message,
         new TypeToken<HashMap<String, String>>() {}.getType());
 

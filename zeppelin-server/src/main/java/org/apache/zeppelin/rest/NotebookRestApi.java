@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/notebook")
 public class NotebookRestApi extends AbstractRestApi {
 
-  private static final Logger LOG = LoggerFactory.getLogger(NotebookRestApi.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NotebookRestApi.class);
 
   private final LuceneSearch luceneSearch;
   private final SchedulerDAO schedulerDAO;
@@ -112,6 +112,7 @@ public class NotebookRestApi extends AbstractRestApi {
     LOG.info("rename note by JSON {}", message);
     final NoteRequest request = NoteRequest.fromJson(message);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
+    LOGGER.info("Обновление ноута noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid());
     updateIfNotNull(request::getPath, note::setPath);
     updateIfNotNull(request::getOwners, p -> clearAndAdd(p, note.getOwners()));
     updateIfNotNull(request::getWriters, p -> clearAndAdd(p, note.getWriters()));
@@ -148,6 +149,7 @@ public class NotebookRestApi extends AbstractRestApi {
     final NoteRequest request = NoteRequest.fromJson(message);
 
     Note cloneNote = new Note(request.getPath());
+    LOGGER.info("Клонирование ноута noteId: {}, noteUuid {},новый ноут noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid(), cloneNote.getId(), cloneNote.getUuid());
     cloneNote.setPath(request.getPath());
     cloneNote.setScheduler(note.getScheduler());
     cloneNote.getReaders().clear();
@@ -219,6 +221,7 @@ public class NotebookRestApi extends AbstractRestApi {
           return json;
         })
         .collect(Collectors.toList());
+    LOGGER.info("Получение списка доступных для чтения ноутов через RestApi(GET)");
     return new JsonResponse(HttpStatus.OK, "List of all available for read notes", response).build();
   }
 
@@ -297,7 +300,7 @@ public class NotebookRestApi extends AbstractRestApi {
   //TODO(SAN) Add documentation
   @GetMapping(value = "/search", produces = "application/json")
   public ResponseEntity search(@RequestParam("q") final String queryTerm) {
-    LOG.info("Searching notes for: {}", queryTerm);
+    LOGGER.info("Поиск ноутов по запросу {} через RestApi", queryTerm);
     final List<Map<String, String>> result = new ArrayList<>();
     final List<Map<String, String>> notesFound = luceneSearch.query(queryTerm);
     for (final Map<String, String> stringStringMap : notesFound) {
