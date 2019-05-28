@@ -41,6 +41,7 @@
 // Do not delete import
 // eslint-disable-next-line
 import jstree from 'jstree';
+import sqlFormatter from 'svl-tin-sql-formatter';
 
 angular.module('zeppelinWebApp').controller('DatabaseExplorerCtrl',
   DatabaseExplorerCtrl);
@@ -83,7 +84,7 @@ function DatabaseExplorerCtrl($scope) {
           });
 
         // and load sources list
-        databaseServerRequest(metaServerUrl + '/jstree/sources_list', (responseText) => {
+        databaseServerRequest(metaServerUrl + '/jstree/databases_list', (responseText) => {
           let answer = JSON.parse(responseText);
           answer.forEach((e) => $scope.sources.push(e));
           $scope.currentSource = $scope.sources[0];
@@ -192,14 +193,7 @@ function DatabaseExplorerCtrl($scope) {
 
   $scope.changeDatabase = function(newSource) {
     showMaxSearchElementBlock(false);
-
-    // TODO(SAN) WTF???
-    let newURL = metaServerUrl + 'database=' + name;
-    jstreeDOM.jstree(true).settings.core.data.url = newURL;
-    jstreeDOM.jstree(true).settings.massload.url = newURL;
-    jstreeDOM.jstree(true).settings.search.ajax.url =
-      metaServerUrl + '/search?source=' + this.currentSource.id;
-
+    $scope.currentSource = newSource;
     jstreeDOM.jstree(true).close_all();
     jstreeDOM.jstree(true).refresh();
   };
@@ -208,7 +202,7 @@ function DatabaseExplorerCtrl($scope) {
     let local$ = require('jquery');
     jstreeDOM = local$('#jstree');
     jstreeDOM.jstree({
-      'plugins': ['json_data', 'types', 'dnd', 'search', 'massload', 'sort'],
+      'plugins': ['json_data', 'types', 'search', 'massload', 'sort', 'dnd'],
       // 'types': {
       //   'attribute': {
       //     'icon': 'glyphicon glyphicon-tag my-glyphicon-color-tag',
@@ -251,7 +245,9 @@ function DatabaseExplorerCtrl($scope) {
           'data': function(node) {
             return {
               'id': node.id,
-              'source_id': $scope.currentSource.id,
+              'database': $scope.currentSource,
+              'type': node.original && node.original.type,
+              'schemaId': node.parents[node.parents.length - 2],
             };
           },
         },
@@ -259,7 +255,7 @@ function DatabaseExplorerCtrl($scope) {
       'search': {
         'show_only_matches': true,
         'ajax': {
-          'url': metaServerUrl + '/jstree/search?source=' + $scope.currentSource.id,
+          'url': metaServerUrl + '/jstree/search?database=' + $scope.currentSource,
         },
         'search_callback': function(str, node) {
           if (searchParams.CURRENT_DISPLAYED
@@ -287,9 +283,9 @@ function DatabaseExplorerCtrl($scope) {
       let maxLength = Math.max.apply(null, nodes.map((node) => node.text.length)) + 3;
       nodes.forEach(function(node) {
         let spaces = ' '.repeat(maxLength - node.original.text.length);
-        if (node.original.type) {
+        if (node.original.value_type) {
           node.text = node.original.text + spaces
-            + '<span class = "column-type-span">' + node.original.type + '</span>';
+            + '<span class = "column-type-span">' + node.original.value_type + '</span>';
         }
       });
     }).on('model.jstree', function(event, data, parent) {
@@ -334,7 +330,7 @@ function DatabaseExplorerCtrl($scope) {
 
     if (nodesIds.length === 1 && !ctrlKey) {
       let node = jstreeDOM.jstree(true).get_node(nodesIds[0]);
-      if (node.type === 'column') {
+      if (node.original.type === 'column') {
         textToPasteInEditor = node.text.split(' ')[0];
       } else {
         textToPasteInEditor = getNameWithParent(nodesIds[0]);
@@ -404,6 +400,10 @@ function DatabaseExplorerCtrl($scope) {
     function pasteSelect() {
       let select = 'SELECT ' + stringListOfNodes(columnsIds) + '\n';
       select += 'FROM ' + stringListOfNodes(tablesIds);
+
+      // beatify sql code
+      select = sqlFormatter.format(select, {maxCharacterPerLine: 128});
+
       aceEditor.session.insert(aceEditor.getCursorPosition(), select);
     }
   }

@@ -18,8 +18,8 @@ limitations under the License.
     <select class="form-control"
             id="databaseSelect"
             ng-model="currentSource"
-            ng-change="changeDatabase()"
-            ng-options="source as source.name for source in sources">
+            ng-change="changeDatabase(currentSource)"
+            ng-options="source for source in sources">
     </select>
     <div class="btn-group cool-border">
       <input id="inputJstreeSearch"
