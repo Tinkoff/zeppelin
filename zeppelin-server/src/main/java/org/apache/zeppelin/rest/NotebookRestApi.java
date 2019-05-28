@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/notebook")
 public class NotebookRestApi extends AbstractRestApi {
 
-  private static final Logger LOG = LoggerFactory.getLogger(NotebookRestApi.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NotebookRestApi.class);
 
   private final LuceneSearch luceneSearch;
   private final SchedulerDAO schedulerDAO;
@@ -65,30 +65,50 @@ public class NotebookRestApi extends AbstractRestApi {
     this.schedulerDAO = schedulerDAO;
   }
 
+  /**
+   * List notebooks.
+   */
   @PostMapping(produces = "application/json")
   public ResponseEntity getNoteList(@RequestBody final List<String> requestedFields) {
     final List<NoteRequest> response = noteService.getAllNotes().stream()
         .filter(this::userHasReaderPermission)
         .map(NoteRequest::new)
         .collect(Collectors.toList());
+    LOGGER.info("Получение списка доступных для чтения ноутов через RestApi(POST)");
     return new JsonResponse(HttpStatus.OK, "List of all available for read notes", response).build();
   }
 
+  /**
+   * List notebooks.
+   */
   @GetMapping(produces = "application/json")
   public ResponseEntity getNoteList() {
+    LOGGER.info("Получение списка доступных для чтения ноутов через RestApi(GET)");
     return getNoteList(null);
   }
 
+  /**
+   * Get notebook.
+   *
+   * @param noteId Id of notebook
+   */
   @PostMapping(value = "/{noteId}", produces = "application/json")
   public ResponseEntity getNote(
       @PathVariable("noteId") final long noteId,
       @RequestBody final List<String> requestedFields) {
     NoteRequest noteRequest = new NoteRequest(secureLoadNote(noteId, Permission.READER));
+    LOGGER.info("Получение информации о ноуте по ID noteId: {} (POST)", noteId);
     return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
 
+  /**
+   * Get notebook.
+   *
+   * @param noteId Id of notebook
+   */
   @GetMapping(value = "/{noteId}", produces = "application/json")
   public ResponseEntity getNote(@PathVariable("noteId") final long noteId) {
+    LOGGER.info("Получение информации о ноуте по ID noteId: {} через RestApi(GET) ", noteId);
     return getNote(noteId, null);
   }
 
@@ -96,6 +116,7 @@ public class NotebookRestApi extends AbstractRestApi {
   @GetMapping(value = "/{noteId}/export", produces = "application/json")
   public ResponseEntity exportNote(@PathVariable("noteId") final String noteId) {
 //    checkIfUserCanRead(noteId, "Insufficient privileges you cannot export this note");
+    LOGGER.info("Выгрузка ноута noteId: {} через RestApi", noteId);
     final String exportJson = null;//zeppelinRepository.exportNote(noteId);
     return new JsonResponse(HttpStatus.OK, "", exportJson).build();
   }
@@ -104,6 +125,7 @@ public class NotebookRestApi extends AbstractRestApi {
   @PostMapping(value = "/import", produces = "application/json")
   public ResponseEntity importNote(final String noteJson) {
     final Note note = null;//zeppelinRepository.importNote(null, noteJson, getServiceContext().getAutheInfo());
+    LOGGER.info("Импорт ноута через RestApi");
     return new JsonResponse(HttpStatus.OK, "", note.getId()).build();
   }
 
@@ -111,11 +133,12 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity createNote(@RequestBody final String message) {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
 
-    LOG.info("Create new note by JSON {}", message);
+    LOGGER.info("Создание нового ноута через RestApi");
 
     try {
       final NoteRequest request = NoteRequest.fromJson(message);
       final Note note = new Note(request.getPath());
+      LOGGER.info("noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
       note.getReaders().add(authenticationInfo.getUser());
       note.getRunners().add(authenticationInfo.getUser());
       note.getWriters().add(authenticationInfo.getUser());
@@ -138,8 +161,8 @@ public class NotebookRestApi extends AbstractRestApi {
 
   @GetMapping(value = "/{noteId}/delete", produces = "application/json")
   public ResponseEntity deleteNote(@PathVariable("noteId") final long noteId) {
-    LOG.info("Delete note {} ", noteId);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
+    LOGGER.info("Удаление ноута noteId: {}, noteUuid: {} через RestApi", noteId, note.getUuid());
     noteService.deleteNote(note);
     return new JsonResponse(HttpStatus.OK, "Note deleted").build();
   }
@@ -149,12 +172,12 @@ public class NotebookRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId,
       @RequestBody final String message) throws IOException, IllegalArgumentException {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
-    LOG.info("clone note by JSON {}", message);
 
     Note note = secureLoadNote(noteId, Permission.READER);
     final NoteRequest request = NoteRequest.fromJson(message);
 
     Note cloneNote = new Note(request.getPath());
+    LOGGER.info("Клонирование ноута noteId: {}, noteUuid {},новый ноут noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid(), cloneNote.getId(), cloneNote.getUuid());
     cloneNote.setPath(request.getPath());
     cloneNote.setScheduler(note.getScheduler());
     cloneNote.getReaders().clear();
@@ -197,9 +220,9 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity updateNote(
       @PathVariable("noteId") final long noteId,
       @RequestBody final String message) {
-    LOG.info("rename note by JSON {}", message);
     final NoteRequest request = NoteRequest.fromJson(message);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
+    LOGGER.info("Обновление ноута noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid());
     updateIfNotNull(request::getPath, note::setPath);
     updateIfNotNull(request::getOwners, p -> clearAndAdd(p, note.getOwners()));
     updateIfNotNull(request::getWriters, p -> clearAndAdd(p, note.getWriters()));
@@ -226,7 +249,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   @GetMapping(value = "/search", produces = "application/json")
   public ResponseEntity search(@RequestParam("q") final String queryTerm) {
-    LOG.info("Searching notes for: {}", queryTerm);
+    LOGGER.info("Поиск ноутов по запросу {} через RestApi", queryTerm);
     final List<Map<String, String>> result = new ArrayList<>();
     final List<Map<String, String>> notesFound = luceneSearch.query(queryTerm);
     for (int i = 0; i < notesFound.size(); i++) {

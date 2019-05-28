@@ -5,6 +5,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.rest.message.ParagraphRequest;
 import org.apache.zeppelin.websocket.ConnectionManager;
 import org.apache.zeppelin.websocket.handler.AbstractHandler.Permission;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/notebook/{noteId}/paragraph")
 public class ParagraphRestApi extends AbstractRestApi {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParagraphRestApi.class);
 
   @Autowired
   protected ParagraphRestApi(
@@ -35,7 +38,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId,
       @RequestBody final List<String> requestedFields) {
-//    LOG.info("get paragraph {} {}", noteId, paragraphId);
+    LOGGER.info("Получение параграфа paragraphId: {} ноута noteId: {} через RestApi(POST)", paragraphId, noteId);
     final Note note = secureLoadNote(noteId, Permission.READER);
     final ParagraphRequest response = new ParagraphRequest(getParagraph(note, paragraphId));
     return new JsonResponse(HttpStatus.OK, "Paragraph info", response).build();
@@ -45,6 +48,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   public ResponseEntity getParagraph(
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId) {
+    LOGGER.info("Загрузка параграфа paragraphId: {} ноута noteId: {} через RestApi(GET) ", paragraphId, noteId);
     return getParagraph(noteId, paragraphId, null);
   }
 
@@ -52,7 +56,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   public ResponseEntity getAllParagraphs(
       @PathVariable("noteId") final long noteId,
       @RequestBody final List<String> requestedFields) {
-//    LOG.info("get paragraph {} {}", noteId, paragraphId);
+    LOGGER.info("Получение всех параграфов ноута noteId: {} через RestApi(POST)", noteId);
     final Note note = secureLoadNote(noteId, Permission.READER);
     List<ParagraphRequest> response = noteService.getParagraphs(note).stream()
         .map(ParagraphRequest::new)
@@ -62,6 +66,7 @@ public class ParagraphRestApi extends AbstractRestApi {
 
   @GetMapping(value = "/get_all", produces = "application/json")
   public ResponseEntity getAllParagraphs(@PathVariable("noteId") final long noteId) {
+    LOGGER.info("Получение всех параграфов ноута noteId: {} через RestApi(GET)", noteId);
     return getAllParagraphs(noteId, null);
   }
 
@@ -69,7 +74,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   public ResponseEntity createParagraph(
       @PathVariable("noteId") final long noteId,
       @RequestBody final String message) {
-//    LOG.info("insert paragraph {} {}", noteId, message);
+    LOGGER.info("Создание параграфа в ноуте noteId: {} из {} через RestApi", noteId, message);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
     final ParagraphRequest request = ParagraphRequest.fromJson(message);
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
@@ -121,11 +126,11 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId,
       @RequestBody final String message) {
-//    LOG.info("{} will update paragraph {} {}", authenticationInfo.getUser(), noteId, paragraphId);
     final ParagraphRequest request = ParagraphRequest.fromJson(message);
 
     final Note note = secureLoadNote(noteId, Permission.WRITER);
     final Paragraph paragraph = getParagraph(note, paragraphId);
+    LOGGER.info("Обновление параграфа paragraphId: {}, ноута noteId: {}, noteUuid: {} через RestApi", paragraph.getId(), note.getId(), note.getUuid());
 
     updateIfNotNull(request::getTitle, paragraph::setTitle);
     updateIfNotNull(request::getText, paragraph::setText);
@@ -145,7 +150,7 @@ public class ParagraphRestApi extends AbstractRestApi {
 
   private void moveParagraph(final Note note, final long paragraphId, final int newPosition) {
     List<Paragraph> paragraphs = noteService.getParagraphs(note);
-
+    LOGGER.info("Изменение номера параграфа paragraphId: {} на {} в ноуте noteId: {}, noteUuid: {} через RestApi", paragraphId, newPosition, note.getId(), note.getUuid());
     if (newPosition < 0 || newPosition >= paragraphs.size()) {
       throw new IndexOutOfBoundsException("newPosition " + newPosition + " is out of bounds");
     }
@@ -171,7 +176,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   @GetMapping(value = "/{paragraphId}/delete", produces = "application/json")
   public ResponseEntity deleteParagraph(@PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId) {
-//    LOG.info("delete paragraph {} {}", noteId, paragraphId);
+    LOGGER.info("Удаление параграфа paragraphId: {} ноута noteId: {} через RestApi", paragraphId, noteId);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
     Paragraph paragraph = getParagraph(note, paragraphId);
     noteService.removeParagraph(note, paragraph);
@@ -186,6 +191,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   ) {
     Note note = secureLoadNote(noteId, Permission.WRITER);
     Paragraph paragraph = getParagraph(note, paragraphId);
+    LOGGER.info("Изменение параметров параграфа paragraphId: {} ноута noteId: {}, noteUuid: {} через RestApi", paragraphId, note.getId(), note.getUuid());
     Map<String, Object> params = paragraph.getFormParams();
     params.clear();
     params.putAll(formValues);

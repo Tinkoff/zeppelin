@@ -44,7 +44,7 @@ import java.util.*;
 @RequestMapping("api")
 public class CronRestApi {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CronRestApi.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CronRestApi.class);
 
   private final NoteService noteRepository;
   private final SchedulerDAO schedulerDAO;
@@ -75,9 +75,9 @@ public class CronRestApi {
     String isEnableParam = params.get("enable");
     long noteId = Long.parseLong(noteIdParam);
     boolean isEnable = isEnableParam == null ? true : Boolean.valueOf(isEnableParam);
-    LOG.info("Register cron job note={} request cron msg={}", noteId, expression);
 
     final Note note = noteRepository.getNote(noteId);
+    LOGGER.info("Регистрация задания планировщика для ноута noteId: {}, noteUuid: {}  с расписанием {}, флаг включения = {}", note.getId(), note.getUuid(), expression, isEnableParam);
     checkIfNoteIsNotNull(note);
     checkIfUserCanRun(noteId, "Insufficient privileges you cannot set a cron job for this note");
 
@@ -137,6 +137,7 @@ public class CronRestApi {
   @GetMapping(value = "/cron/check_valid", produces = "application/json")
   public ResponseEntity checkCronExpression(@RequestParam("cronExpression") final String expression)
       throws IllegalArgumentException {
+    LOGGER.info("Проверка правильности выражения, с помощью которого задается расписание планировщика {}",  expression);
     if (!CronExpression.isValidExpression(expression)) {
       return new JsonResponse(HttpStatus.OK, "invalid").build();
     }
@@ -152,11 +153,11 @@ public class CronRestApi {
   @DeleteMapping(value = "/notebook/{noteId}/cron", produces = "application/json")
   public ResponseEntity removeCronJob(@PathVariable("noteId") final String noteIdParam)
       throws IOException, IllegalArgumentException {
-    LOG.info("Remove cron job note {}", noteIdParam);
 
     long noteId = Long.parseLong(noteIdParam);
 
     final Note note = noteRepository.getNote(noteId);
+    LOGGER.info("Удаление задания планировщика для ноута noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
     checkIfNoteIsNotNull(note);
     checkIfUserIsOwner(noteId,
         "Insufficient privileges you cannot remove this cron job from this note");
@@ -175,10 +176,10 @@ public class CronRestApi {
   @GetMapping(value = "/notebook/{noteId}/cron", produces = "application/json")
   public ResponseEntity getCronJob(@PathVariable("noteId") final String noteIdParam)
       throws IllegalArgumentException {
-    LOG.info("Get cron job note {}", noteIdParam);
 
     long noteId = Long.parseLong(noteIdParam);
     final Note note = noteRepository.getNote(noteId);
+    LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     checkIfNoteIsNotNull(note);
     checkIfUserCanRead(noteId, "Insufficient privileges you cannot get cron information");
     Scheduler scheduler = schedulerDAO.getByNote(note.getId());

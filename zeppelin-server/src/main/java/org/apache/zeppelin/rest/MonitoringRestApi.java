@@ -37,6 +37,7 @@ public class MonitoringRestApi {
   @GetMapping(value = "/list", produces = "application/json")
   public ResponseEntity listModules() {
     try {
+
       return new JsonResponse(HttpStatus.OK, "").build();
     } catch (final Exception e) {
       return new JsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(),

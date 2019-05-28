@@ -125,6 +125,7 @@ public class FavoriteNotesRestApi {
 
   @GetMapping(value = "/get_notes_ids", produces = "application/json")
   public ResponseEntity getNotesIds(@RequestParam("username") final String username) {
+    LOGGER.info("Получение Uuid-идентификаторов избранных и недавних ноутов");
     try {
       final HashMap<String, Set> idsMap = new HashMap<>(2);
       Set<String> favoriteSet = Collections.emptySet();
@@ -150,7 +151,7 @@ public class FavoriteNotesRestApi {
                                       @RequestParam("note_id") final String noteId,
                                       @RequestParam("note_type") final String noteType,
                                       @RequestParam("note_action") final String noteAction) {
-
+    LOGGER.info("Добавление/удаление ноута noteId: {} из избранных/недавних {}", noteId, noteType);
     //TODO(SAN) add " || !SecurityUtils.getSubject().getPrincipal().equals(username)"
     if (username == null || username.isEmpty()) {
       return new JsonResponse(HttpStatus.BAD_REQUEST, "username no correct").build();
