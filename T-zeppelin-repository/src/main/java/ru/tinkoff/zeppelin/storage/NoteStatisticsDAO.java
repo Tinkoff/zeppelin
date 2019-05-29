@@ -22,6 +22,7 @@ public class NoteStatisticsDAO {
             "SELECT DISTINCT ON (NOTES.ID, JOB.PARAGRAPH_ID)\n" +
             "       FAVORITE_NOTES.NOTE_UUID\n" +
             "      ,NOTES.ID as NOTE_ID\n" +
+            "      ,NOTES.PATH\n" +
             "      ,JOB.PARAGRAPH_ID\n" +
             "      ,PARAGRAPHS.UUID as PARAGRAPH_UUID\n" +
             "      ,JOB.STARTED_AT\n" +
@@ -44,6 +45,7 @@ public class NoteStatisticsDAO {
             "SELECT DISTINCT ON (NOTES.ID, JOB.PARAGRAPH_ID)\n" +
             "       RECENT_NOTES.NOTE_UUID\n" +
             "      ,NOTES.ID as NOTE_ID\n" +
+            "      ,NOTES.PATH\n" +
             "      ,JOB.PARAGRAPH_ID\n" +
             "      ,PARAGRAPHS.UUID as PARAGRAPH_UUID\n" +
             "      ,JOB.STARTED_AT\n" +
@@ -72,9 +74,10 @@ public class NoteStatisticsDAO {
 
         final Long noteId = resultSet.getLong("NOTE_ID");
         final String noteUUID = resultSet.getString("NOTE_UUID");
+        final String notePath = resultSet.getString("PATH");
 
         if (!buffer.containsKey(noteId)) {
-            buffer.put(noteId, new NoteStatistic(noteId, noteUUID, new ArrayList<>()));
+            buffer.put(noteId, new NoteStatistic(noteId, noteUUID, notePath, new ArrayList<>()));
         }
 
         final LocalDateTime startedAt =
