@@ -988,8 +988,9 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
               cursor: data.pos,
             },
           })
-            .success(function(data, status, headers, config) {
-              $rootScope.$broadcast('completionList', data.body);
+            .success(function(result, status, headers, config) {
+              result.body.callback =  data.callback;
+              $rootScope.$broadcast('completionList', result.body);
             })
             .error(function(err, status, headers, config) {
               console.error('Error %o', err);
@@ -999,7 +1000,6 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
       let remoteCompleter = {
         getCompletions: function(editor, session, pos, prefix, callback) {
-          let defaultKeywords = new Set();
           // eslint-disable-next-line handle-callback-err
 
           if (!editor.isFocused()) {
@@ -1009,47 +1009,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
           pos = session.getTextRange(new Range(0, 0, pos.row, pos.column)).length;
           let buf = session.getValue();
 
-          $rootScope.$broadcast('callCompletion', {buf: buf, pos: pos});
-
-          $scope.$on('completionList', function(event, data) {
-            let computeCaption = function(value, meta) {
-              let metaLength = meta !== undefined ? meta.length : 0;
-              let length = 200;
-              let whitespaceLength = 3;
-              let ellipses = '...';
-              let maxLengthCaption = length - metaLength - whitespaceLength - ellipses.length;
-              if (value !== undefined && value.length > maxLengthCaption) {
-                return value.substr(0, maxLengthCaption) + ellipses;
-              }
-              return value;
-            };
-            if (data) {
-              let completions = [];
-              $rootScope.completionLineWidth = -1;
-              for (let c in data) {
-                if (data.hasOwnProperty(c)) {
-                  let v = data[c];
-                  if (v.meta !== undefined && v.meta === 'keyword' && defaultKeywords.has(v.value.trim())) {
-                    continue;
-                  }
-                  if (v.name !== undefined && getTextWidth(v.name + ' ' + v.meta) > $rootScope.completionLineWidth) {
-                    $rootScope.completionLineWidth = getTextWidth(v.name + ' ' + v.meta);
-                  }
-                  completions.push({
-                    name: v.name,
-                    value: v.value,
-                    meta: v.meta,
-                    caption: computeCaption(v.name, v.meta),
-                    score: v.score,
-                    className: v.meta ? 'iconable_' + v.meta : '',
-                    description: v.description,
-                  });
-                }
-              }
-              $rootScope.$broadcast('completionListLength', completions.length);
-              callback(null, completions);
-            }
-          });
+          $rootScope.$broadcast('callCompletion', {buf: buf, pos: pos, callback: callback});
         },
         getDocTooltip: function(item) {
           if (item.description && item.description !== ''
@@ -1211,6 +1171,48 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       };
     }
   };
+
+  $scope.$on('completionList', function(event, data) {
+    let defaultKeywords = new Set();
+    debugger;
+    let computeCaption = function(value, meta) {
+      let metaLength = meta !== undefined ? meta.length : 0;
+      let length = 200;
+      let whitespaceLength = 3;
+      let ellipses = '...';
+      let maxLengthCaption = length - metaLength - whitespaceLength - ellipses.length;
+      if (value !== undefined && value.length > maxLengthCaption) {
+        return value.substr(0, maxLengthCaption) + ellipses;
+      }
+      return value;
+    };
+    if (data) {
+      let completions = [];
+      $rootScope.completionLineWidth = -1;
+      for (let c in data) {
+        if (data.hasOwnProperty(c)) {
+          let v = data[c];
+          if (v.meta !== undefined && v.meta === 'keyword' && defaultKeywords.has(v.value.trim())) {
+            continue;
+          }
+          if (v.name !== undefined && getTextWidth(v.name + ' ' + v.meta) > $rootScope.completionLineWidth) {
+            $rootScope.completionLineWidth = getTextWidth(v.name + ' ' + v.meta);
+          }
+          completions.push({
+            name: v.name,
+            value: v.value,
+            meta: v.meta,
+            caption: computeCaption(v.name, v.meta),
+            score: v.score,
+            className: v.meta ? 'iconable_' + v.meta : '',
+            description: v.description,
+          });
+        }
+      }
+      $rootScope.$broadcast('completionListLength', completions.length);
+      data.callback(null, completions);
+    }
+  });
 
   // ref: https://github.com/ajaxorg/ace/blob/5021d0193d9f2bba5a978d0b1d7a4f73d18ce713/lib/ace/autocomplete.js#L454
   const completionSupportWithoutBackend = function(str) {
