@@ -13,12 +13,14 @@ public class NoteStatistic {
     private long noteId;
     private String noteUuid;
     private String noteName;
+    private String notePath;
     private List<NoteStatisticInner> inner;
 
     public NoteStatistic(long noteId, String noteUuid, String path, List<NoteStatisticInner> inner) {
         this.noteId = noteId;
         this.noteUuid = noteUuid;
         this.inner = inner;
+        this.notePath = path;
         this.noteName = path.substring(path.lastIndexOf(File.separator) + 1);
     }
 
