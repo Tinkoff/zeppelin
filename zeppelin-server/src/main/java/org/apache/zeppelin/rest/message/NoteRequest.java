@@ -57,6 +57,15 @@ public class NoteRequest {
   public NoteRequest() {
   }
 
+  public Note getAsNote() {
+    final Note note = new Note(path);
+    note.getOwners().addAll(owners);
+    note.getReaders().addAll(readers);
+    note.getRunners().addAll(runners);
+    note.getWriters().addAll(writers);
+    return note;
+  }
+
   public String getPath() {
     return path;
   }

@@ -87,7 +87,7 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity createNote(@RequestBody final String message) {
     try {
       final NoteRequest request = NoteRequest.fromJson(message);
-      final Note note = new Note(request.getPath());
+      final Note note = request.getAsNote();
       addCurrentUserToOwners(note);
       noteService.persistNote(note);
 
@@ -313,11 +313,6 @@ public class NotebookRestApi extends AbstractRestApi {
 
   private void addCurrentUserToOwners(final Note note) {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
-    note.getReaders().addAll(Configuration.getDefaultReaders());
-    note.getRunners().addAll(Configuration.getDefaultRunners());
-    note.getWriters().addAll(Configuration.getDefaultWriters());
-    note.getOwners().addAll(Configuration.getDefaultOwners());
-
     note.getReaders().add(authenticationInfo.getUser());
     note.getRunners().add(authenticationInfo.getUser());
     note.getWriters().add(authenticationInfo.getUser());
