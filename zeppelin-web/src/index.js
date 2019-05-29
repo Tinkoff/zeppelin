@@ -38,6 +38,7 @@ import './app/visualization/builtins/visualization-scatterchart.js';
 import './app/interpreter/interpreter.controller.js';
 import './app/interpreter/interpreter.filter.js';
 import './app/interpreter/interpreter-item.directive.js';
+import './app/note_stats/note_stats.controller.js';
 import './app/interpreter/widget/number-widget.directive.js';
 import './app/configuration/configuration.controller.js';
 import './app/notebook/revisions-comparator/revisions-comparator.component.js';
