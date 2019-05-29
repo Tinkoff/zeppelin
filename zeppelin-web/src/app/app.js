@@ -123,6 +123,10 @@ let zeppelinWebApp = angular.module('zeppelinWebApp', requiredModules)
         templateUrl: 'app/exec_queue/exec_queue.html',
         controller: 'ExecQueueCtrl',
       })
+      .when('/note_stats', {
+        templateUrl: 'app/note_stats/note_stats.html',
+        controller: 'NoteStatsCtrl',
+      })
       .when('/search/:searchTerm', {
         templateUrl: 'app/search/result-list.html',
         controller: 'SearchResultCtrl',
