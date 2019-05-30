@@ -172,7 +172,7 @@ public class PythonInterpreterProcess {
         }
 
         // load current environment
-        final Set<String> envBeforeEval = ((HashMap<String, Object>) jep.getValue("locals()")).keySet();
+        final Set<String> envBeforeEval = new HashSet<>((List<String>)jep.getValue("list(locals().keys())"));
 
 
         Files.createDirectories(new File(noteStorage).toPath());
@@ -207,7 +207,7 @@ public class PythonInterpreterProcess {
         jep.runScript(pathToScript);
         flusherThread.interrupt();
 
-        final Set<String> envAfterEval = ((HashMap<String, Object>) jep.getValue("locals()")).keySet();
+        final Set<String> envAfterEval = new HashSet<>((List<String>)jep.getValue("list(locals().keys())"));
         envAfterEval.removeAll(envBeforeEval);
 
         for (final String env : envAfterEval) {
@@ -238,7 +238,7 @@ public class PythonInterpreterProcess {
             default:
               final PythonInterpreterEnvObject pieoD = new PythonInterpreterEnvObject(
                       env,
-                      jep.getValue(env).getClass().getName(),
+                      "OBJECT",
                       jep.getValue_bytearray("zpickle.dumps(" + env + ", protocol=0)")
               );
               envObjects.put(pieoD.getName(), pieoD);
