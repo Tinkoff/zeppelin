@@ -18,8 +18,11 @@ package ru.tinkoff.zeppelin.completer.jdbc;
 
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
-import java.io.File;
+
+import java.io.*;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
@@ -28,10 +31,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.google.gson.reflect.TypeToken;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.util.TablesNamesFinder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.metamodel.jdbc.JdbcDataContext;
 import org.apache.metamodel.schema.Column;
 import org.apache.metamodel.schema.Schema;
@@ -60,6 +66,8 @@ public class JDBCCompleter extends Completer {
   private static final String DRIVER_ARTIFACT_DEPENDENCY = "driver.artifact.dependency";
   private static final String DRIVER_MAVEN_REPO_KEY = "driver.maven.repository.url";
 
+  private final static Gson gson = new Gson();
+
   public JDBCCompleter() {
     super();
   }
@@ -87,81 +95,139 @@ public class JDBCCompleter extends Completer {
   @Override
   public void open(@Nonnull final Map<String, String> configuration, @Nonnull final String classPath) {
     synchronized (JDBCCompleter.class) {
-
       if (database != null) {
         return;
       }
-      final String className = configuration.get(DRIVER_CLASS_NAME_KEY);
-      final String artifact = configuration.get(DRIVER_ARTIFACT_KEY);
-      final String artifactDependencies = configuration.get(DRIVER_ARTIFACT_DEPENDENCY);
-      final String user = configuration.get(CONNECTION_USER_KEY);
-      final String dbUrl = configuration.get(CONNECTION_URL_KEY);
-      final String password = configuration.get(CONNECTION_PASSWORD_KEY);
 
-      if (className != null
-              && artifact != null
-              && user != null
-              && dbUrl != null
-              && password != null) {
-
-        final String repositpryURL = configuration.getOrDefault(
-                DRIVER_MAVEN_REPO_KEY,
-                "http://repo1.maven.org/maven2/"
-        );
-        final List<String> dependencies = new ArrayList<>();
-        if (artifactDependencies != null) {
-          dependencies.addAll(Arrays.asList(artifactDependencies.split(";")));
-        }
-        final String dir = JDBCInstallation.installDriver(artifact, dependencies, repositpryURL);
-        if (dir != null && !dir.equals("")) {
-          final File driverFolder = new File(dir);
-          try {
-            final List<URL> urls = Lists.newArrayList();
-            for (final File file : driverFolder.listFiles()) {
-              final URL url = file.toURI().toURL();
-
-              urls.add(new URL("jar:" + url.toString() + "!/"));
-            }
-
-            final URLClassLoader classLoader = URLClassLoader.newInstance(urls.toArray(new URL[0]));
-            final Class driverClass = Class.forName(className, true, classLoader);
-            final Driver driver = (Driver) driverClass.newInstance();
-
-            final Properties authSettings = new Properties();
-            authSettings.put("user", user);
-            authSettings.put("password", password);
-            final Connection connection = driver.connect(dbUrl, authSettings);
-
-            final Class dContent = Class.forName("org.apache.metamodel.jdbc.JdbcDataContext", true, classLoader);
-            final Constructor dConstructor = dContent.getConstructor(Connection.class);
-            final JdbcDataContext dataContext = (JdbcDataContext) dConstructor.newInstance(connection);
-
-            NavigableMap<String, NavigableMap<String, SortedSet<String>>> result = new TreeMap<>();
-            for (final Schema s : dataContext.getSchemas()) {
-              for (final Table t : s.getTables()) {
-                NavigableMap<String, SortedSet<String>> tableNode = result.get(s.getName());
-                if (tableNode == null) {
-                  result.put(s.getName(), new TreeMap<>());
-                  tableNode = result.get(s.getName());
-                }
-                SortedSet<String> columns = tableNode.get(t.getName());
-                if (columns == null) {
-                  tableNode.put(t.getName(), new TreeSet<>());
-                  columns = tableNode.get(t.getName());
-                }
-                columns.addAll(t.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-              }
-            }
-            dataContext.close(connection);
-            connection.close();
-
-            database = result;
-          } catch (final Exception e) {
-            LOGGER.error("SQL driver configured incorrectly", e);
-          }
+      if (StringUtils.isEmpty(configuration.get("metadata.server.url"))) {
+        // reliably
+        loadMetadataUseMetamodel(configuration);
+      } else {
+        try {
+          // fast
+          loadMetadataFromMetaserver(configuration);
+        } catch (final Exception e) {
+          loadMetadataUseMetamodel(configuration);
         }
       }
     }
+  }
+
+  /**
+   * Installs driver if needed and opens the database connection.
+   *
+   * @param configuration interpreter configuration.
+   */
+  public void loadMetadataUseMetamodel(@Nonnull final Map<String, String> configuration) {
+    final String className = configuration.get(DRIVER_CLASS_NAME_KEY);
+    final String artifact = configuration.get(DRIVER_ARTIFACT_KEY);
+    final String artifactDependencies = configuration.get(DRIVER_ARTIFACT_DEPENDENCY);
+    final String user = configuration.get(CONNECTION_USER_KEY);
+    final String dbUrl = configuration.get(CONNECTION_URL_KEY);
+    final String password = configuration.get(CONNECTION_PASSWORD_KEY);
+
+    if (className != null
+        && artifact != null
+        && user != null
+        && dbUrl != null
+        && password != null) {
+
+      final String repositpryURL = configuration.getOrDefault(
+          DRIVER_MAVEN_REPO_KEY,
+          "http://repo1.maven.org/maven2/"
+      );
+      final List<String> dependencies = new ArrayList<>();
+      if (artifactDependencies != null) {
+        dependencies.addAll(Arrays.asList(artifactDependencies.split(";")));
+      }
+      final String dir = JDBCInstallation.installDriver(artifact, dependencies, repositpryURL);
+      if (dir != null && !dir.equals("")) {
+        final File driverFolder = new File(dir);
+        try {
+          final List<URL> urls = Lists.newArrayList();
+          for (final File file : driverFolder.listFiles()) {
+            final URL url = file.toURI().toURL();
+
+            urls.add(new URL("jar:" + url.toString() + "!/"));
+          }
+
+          final URLClassLoader classLoader = URLClassLoader.newInstance(urls.toArray(new URL[0]));
+          final Class driverClass = Class.forName(className, true, classLoader);
+          final Driver driver = (Driver) driverClass.newInstance();
+
+          final Properties authSettings = new Properties();
+          authSettings.put("user", user);
+          authSettings.put("password", password);
+          final Connection connection = driver.connect(dbUrl, authSettings);
+
+          final Class dContent = Class.forName("org.apache.metamodel.jdbc.JdbcDataContext", true, classLoader);
+          //noinspection unchecked
+          final Constructor dConstructor = dContent.getConstructor(Connection.class);
+          final JdbcDataContext dataContext = (JdbcDataContext) dConstructor.newInstance(connection);
+
+          final NavigableMap<String, NavigableMap<String, SortedSet<String>>> result = new TreeMap<>();
+          for (final Schema s : dataContext.getSchemas()) {
+            for (final Table t : s.getTables()) {
+              NavigableMap<String, SortedSet<String>> tableNode = result.get(s.getName());
+              if (tableNode == null) {
+                result.put(s.getName(), new TreeMap<>());
+                tableNode = result.get(s.getName());
+              }
+              SortedSet<String> columns = tableNode.get(t.getName());
+              if (columns == null) {
+                tableNode.put(t.getName(), new TreeSet<>());
+                columns = tableNode.get(t.getName());
+              }
+              columns.addAll(t.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
+            }
+          }
+          dataContext.close(connection);
+          connection.close();
+
+          database = result;
+        } catch (final Exception e) {
+          LOGGER.error("SQL driver configured incorrectly", e);
+        }
+      }
+    }
+  }
+
+  private void loadMetadataFromMetaserver(final Map<String, String> configuration) throws Exception {
+    final String metaserverUrl = configuration.get("metadata.server.url");
+    final String metaserverDBName = configuration.get("metadata.server.database_name");
+    final String metaserverEndpoint = String.format("%s/%s/snapshot", metaserverUrl, metaserverDBName);
+
+    final HttpURLConnection conn = (HttpURLConnection) new URL(metaserverEndpoint).openConnection();
+    conn.setRequestMethod("GET");
+
+    final StringBuilder sb = new StringBuilder();
+    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+      while (reader.ready()) {
+        sb.append(reader.readLine());
+      }
+    }
+
+    // [schemaName : [tableName : [columnName]]]
+    final Type type = new TypeToken<Map<String, Map<String, List<String>>>>() {}.getType();
+    final Map<String, Map<String, List<String>>> meta = gson.fromJson(sb.toString(), type);
+
+    final NavigableMap<String, NavigableMap<String, SortedSet<String>>> result = new TreeMap<>();
+    for (final Map.Entry<String, Map<String, List<String>>> schemaEntry : meta.entrySet()) {
+      for (final Map.Entry<String, List<String>> tableEntry : schemaEntry.getValue().entrySet()) {
+        NavigableMap<String, SortedSet<String>> tableNode = result.get(schemaEntry.getKey());
+        if (tableNode == null) {
+          result.put(schemaEntry.getKey(), new TreeMap<>());
+          tableNode = result.get(schemaEntry.getKey());
+        }
+        SortedSet<String> columns = tableNode.get(tableEntry.getKey());
+        if (columns == null) {
+          tableNode.put(tableEntry.getKey(), new TreeSet<>());
+          columns = tableNode.get(tableEntry.getKey());
+        }
+        columns.addAll(tableEntry.getValue());
+      }
+    }
+    database = result;
   }
 
   @Override
