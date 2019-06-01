@@ -48,6 +48,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.github.jsqlparser</groupId>
+      <artifactId>jsqlparser</artifactId>
+      <version>1.2</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.zeppelin</groupId>
       <artifactId>t-jdbc-commons</artifactId>
       <version>1.0.0-T-SNAPSHOT</version>
