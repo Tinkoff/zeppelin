@@ -1,0 +1,32 @@
+{
+  "className": "ru.tinkoff.zeppelin.interpreter.waiting.WaitingInterpreter",
+  "properties": {
+    "zeppelin.base.url": {
+      "envName": "ZEPPELIN_BASE_URL",
+      "propertyName": "zeppelin.base.url",
+      "defaultValue": "http://localhost:8080",
+      "currentValue": "http://localhost:8080",
+      "description": "Base Zeppelin URL to construct REST API requests",
+      "type": "textarea"
+    },
+    "waiting.timeout": {
+      "envName": "WAITING_TIMEOUT",
+      "propertyName": "waiting.timeout",
+      "defaultValue": "1800",
+      "currentValue": "1800",
+      "description": "Max execution time of interpreter(sec). MUST be > 0 && < INT_MAX",
+      "type": "number"
+    },
+    "request.interval": {
+      "envName": "REQUEST_INTERVAL",
+      "propertyName": "request.interval",
+      "defaultValue": "5",
+      "currentValue": "5",
+      "description": "Time between condition check(sec). MUST be > 0 && < INT_MAX",
+      "type": "number"
+    }
+  },
+  "editor": {
+    "language": "wait"
+  }
+}
