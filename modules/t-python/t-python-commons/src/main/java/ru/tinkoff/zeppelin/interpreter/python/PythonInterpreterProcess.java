@@ -189,6 +189,7 @@ public class PythonInterpreterProcess {
               case "FUNC":
                 jep.set(envObject.getName() + "_ZZ", new NDArray<>(envObject.getPayload()));
                 jep.eval(envObject.getName() + " =  zdill.loads(" + envObject.getName() + "_ZZ)");
+                jep.eval("del " + envObject.getName() + "_ZZ");
                 break;
               case "MODULE":
                 final String[] pair = new String(envObject.getPayload()).split(":");

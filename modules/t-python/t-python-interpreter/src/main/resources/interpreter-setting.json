@@ -68,7 +68,9 @@
   },
   "editor": {
     "language": "python",
+    "enableLiveAutocompletion": true,
     "editOnDblClick": false,
-    "completionSupport": false
+    "completionSupport": false,
+    "completionKey": "TAB"
   }
 }

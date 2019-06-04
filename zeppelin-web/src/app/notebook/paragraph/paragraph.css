@@ -383,7 +383,7 @@ table.table-shortcut {
   direction: ltr;
 }
 
-/* completion icons */
+/* completion icons jdbc*/
 .ace_iconable_column:first-child::before {
   color: #ddba04;
   content: '\f0db  '; /* font-awesome icon */
@@ -408,6 +408,50 @@ table.table-shortcut {
 .ace_iconable_schema:first-child::before {
   color: #3304dd;
   content: '\f1c0  '; /* font-awesome icon */
+  font-family: FontAwesome;
+  font-size: 12px;
+}
+
+/* completion icons python*/
+.ace_iconable_function:first-child::before {
+  color: #0065a6;
+  content: '\f013  '; /* font-awesome icon */
+  font-family: FontAwesome;
+  font-size: 12px;
+}
+
+.ace_iconable_keyword:first-child::before {
+  color: #059b4e;
+  content: '\f084  '; /* font-awesome icon */
+  font-family: FontAwesome;
+  font-size: 12px;
+}
+
+.ace_iconable_statement:first-child::before {
+  color: #ffdf00;
+  content: '\f02e  '; /* font-awesome icon */
+  font-family: FontAwesome;
+  font-size: 12px;
+  text-shadow: -1px 0 #5b5b5b, 0 1px #5b5b5b, 1px 0 #5b5b5b, 0 -1px #5b5b5b;
+}
+
+.ace_iconable_class:first-child::before {
+  color: #00a28e;
+  content: '\f1ea  '; /* font-awesome icon */
+  font-family: FontAwesome;
+  font-size: 12px;
+}
+
+.ace_iconable_module:first-child::before {
+  color: #b402b2;
+  content: '\f1b3  '; /* font-awesome icon */
+  font-family: FontAwesome;
+  font-size: 12px;
+}
+
+.ace_iconable_instance:first-child::before {
+  color: #98000f;
+  content: '\f0fb  '; /* font-awesome icon */
   font-family: FontAwesome;
   font-size: 12px;
 }
