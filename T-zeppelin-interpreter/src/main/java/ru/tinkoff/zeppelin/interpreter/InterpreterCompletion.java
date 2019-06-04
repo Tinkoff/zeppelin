@@ -48,7 +48,16 @@ public class InterpreterCompletion implements Comparable<InterpreterCompletion> 
   /**
    * Priority of an element in completion list.
    */
-  private final int score;
+  private int score;
+
+  public InterpreterCompletion(final String name,
+                               final String value,
+                               final String meta,
+                               final String description,
+                               final int score) {
+    this(name, value, meta, description);
+    this.score = score;
+  }
 
   public InterpreterCompletion(final String name,
                                final String value,
