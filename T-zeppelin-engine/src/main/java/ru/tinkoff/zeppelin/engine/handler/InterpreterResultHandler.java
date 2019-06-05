@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.JobBatch;
+import ru.tinkoff.zeppelin.core.notebook.JobPriority;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
@@ -48,6 +50,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 public class InterpreterResultHandler extends AbstractHandler {
 
   private ApplicationContext applicationContext;
+  private final NoteEventService noteEventService;
 
   private static InterpreterResultHandler instance;
 
@@ -62,9 +65,11 @@ public class InterpreterResultHandler extends AbstractHandler {
                                   final NoteDAO noteDAO,
                                   final ParagraphDAO paragraphDAO,
                                   final FullParagraphDAO fullParagraphDAO,
-                                  final ApplicationContext applicationContext) {
+                                  final ApplicationContext applicationContext,
+                                  final NoteEventService noteEventService) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
     this.applicationContext = applicationContext;
+    this.noteEventService = noteEventService;
   }
 
   @PostConstruct
@@ -126,6 +131,9 @@ public class InterpreterResultHandler extends AbstractHandler {
       case ERROR:
         ZLog.log(ET.ERRORED_RESULT, "Задача завершена с ошибкой interpreterJobUUID=" + interpreterJobUUID,
             SystemEvent.SYSTEM_USERNAME);
+        if ( job.getPriority() == JobPriority.SCHEDULER.getIndex()){
+          noteEventService.errorOnNoteScheduleExecution(job);
+        }
         setErrorResult(job, batch, interpreterResult);
         break;
     }

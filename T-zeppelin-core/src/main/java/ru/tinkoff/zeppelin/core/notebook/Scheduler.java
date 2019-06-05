@@ -57,6 +57,18 @@ public class Scheduler implements Serializable {
     this.nextExecution = nextExecution;
   }
 
+  public Scheduler getScheduler(){
+    return  new Scheduler(
+            getId(),
+            getNoteId(),
+            isEnabled(),
+            getExpression(),
+            getUser(),
+            getRoles(),
+            getLastExecution(),
+            getNextExecution());
+  }
+
   public Long getId() {
     return id;
   }
