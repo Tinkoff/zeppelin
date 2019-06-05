@@ -25,6 +25,22 @@
         "description": "The JDBC user password",
         "type": "password"
       },
+      "metadata.server.url": {
+        "envName": null,
+        "propertyName": "metadata.server.url",
+        "defaultValue": "http://localhost:9999",
+        "currentValue": "http://localhost:9999",
+        "description": "Metadata server url (if you want to use metaserver)",
+        "type": "textarea"
+      },
+      "metadata.server.database_name": {
+        "envName": null,
+        "propertyName": "metadata.server.database_name",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Metadata server database name (if you want to use metaserver)",
+        "type": "textarea"
+      },
       "driver.className": {
         "envName": null,
         "propertyName": "driver.className",

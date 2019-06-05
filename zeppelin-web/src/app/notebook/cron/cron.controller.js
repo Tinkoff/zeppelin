@@ -318,8 +318,8 @@ function CronCtrl($scope, $http, baseUrlSrv) {
   };
 
   $scope.updateCron = function(expression, isEnable) {
-    $http.post(
-      `${baseUrlSrv.getRestApiBase()}/notebook/cron/` + noteId,
+    $http.put(
+      `${baseUrlSrv.getRestApiBase()}/notebook/${noteId}/cron`,
       {
         expression: expression,
         enable: isEnable,

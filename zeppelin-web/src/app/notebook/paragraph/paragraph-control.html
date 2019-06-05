@@ -48,7 +48,7 @@ limitations under the License.
     <div class="shebang" ng-if="!paragraph.config.editorHide && !viewOnly">
       <select
         class="form-control"
-        ng-change="editor.setReadOnly(false);commitParagraph(paragraph);setParagraphMode(editor.getSession());"
+        ng-change="editor.setReadOnly(false);setParagraphMode(editor.getSession());commitParagraph(paragraph);"
         ng-model="paragraph.shebang"
         ng-options="setting.shebang as setting.shebang for setting in interpreterSettings | orderBy: 'interpreterName'">
       </select>

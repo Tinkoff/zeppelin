@@ -812,7 +812,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.startSaveTimer();
       }
     }
-    setParagraphMode(session);
+    $scope.setParagraphMode(session);
     if ($scope.cursorPosition) {
       editor.moveCursorToPosition($scope.cursorPosition);
       $scope.cursorPosition = null;
@@ -989,8 +989,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
             },
           })
             .success(function(result, status, headers, config) {
-              result.body.callback =  data.callback;
-              $rootScope.$broadcast('completionList', result.body);
+              displayCompletionList(result.body, data.callback);
             })
             .error(function(err, status, headers, config) {
               console.error('Error %o', err);
@@ -1049,7 +1048,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         autoAdjustEditorHeight(_editor);
       });
 
-      setParagraphMode($scope.editor.getSession());
+      $scope.setParagraphMode($scope.editor.getSession());
 
       // autocomplete on '.'
       /*
@@ -1172,9 +1171,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     }
   };
 
-  $scope.$on('completionList', function(event, data) {
+  function displayCompletionList(data, callback) {
     let defaultKeywords = new Set();
-    debugger;
     let computeCaption = function(value, meta) {
       let metaLength = meta !== undefined ? meta.length : 0;
       let length = 200;
@@ -1210,9 +1208,9 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         }
       }
       $rootScope.$broadcast('completionListLength', completions.length);
-      data.callback(null, completions);
+      callback(null, completions);
     }
-  });
+  }
 
   // ref: https://github.com/ajaxorg/ace/blob/5021d0193d9f2bba5a978d0b1d7a4f73d18ce713/lib/ace/autocomplete.js#L454
   const completionSupportWithoutBackend = function(str) {
@@ -1305,7 +1303,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     session.setMode(mode);
   };
 
-  const setParagraphMode = function(session) {
+  $scope.setParagraphMode = function(session) {
     let index = _.findIndex($scope.interpreterSettings, {'shebang': $scope.paragraph.shebang});
     if (index < 0) {
       return;
