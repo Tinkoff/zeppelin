@@ -57,6 +57,7 @@ public class PythonCompleter extends Completer {
       st = autoimportedModules + pyContextInitScript + st;
       cursorPosition += autoimportedModules.length() + pyContextInitScript.length();
 
+      // find row and column of cursor
       for (final String line : st.split("\n")) {
         final int length = line.length();
         if (length >= cursorPosition) {
@@ -147,6 +148,17 @@ public class PythonCompleter extends Completer {
     } catch (final JepException e) {
       throw new RuntimeException("Can't create jep instance", e);
     }
+
+    // init autoimported modules script
+    final String modulesString = configuration.get("python.autoimport");
+    for (final String module : modulesString.split(";")) {
+      final String[] moduleProp = module.split(":");
+      final String moduleName = moduleProp[0];
+      final String moduleAlias = moduleProp.length > 1 ? moduleProp[1] : moduleName;
+      if (moduleName.length() == 0 || moduleAlias.length() == 0) continue;
+      //noinspection StringConcatenationInLoop
+      autoimportedModules += String.format("import %s as %s\n", moduleName, moduleAlias);
+    }
   }
 
   private JepInThread getCustomizedJepInstance(final Map<String, String> configuration) throws JepException {
@@ -180,17 +192,6 @@ public class PythonCompleter extends Completer {
         "        }\n" +
         "        comp_list.append(comp_dict)\n" +
         "    return comp_list");
-
-    // init autoimported modules
-    final String modulesString = configuration.get("python.autoimport");
-    for (final String module : modulesString.split(";")) {
-      final String[] moduleProp = module.split(":");
-      final String moduleName = moduleProp[0];
-      final String moduleAlias = moduleProp.length > 1 ? moduleProp[1] : moduleName;
-      if (moduleName.length() == 0 || moduleAlias.length() == 0) continue;
-      //noinspection StringConcatenationInLoop
-      autoimportedModules += String.format("import %s as %s\n", moduleName, moduleAlias);
-    }
 
     return jep;
   }

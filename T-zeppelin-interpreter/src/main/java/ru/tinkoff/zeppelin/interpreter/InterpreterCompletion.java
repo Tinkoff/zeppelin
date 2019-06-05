@@ -17,10 +17,7 @@
 
 package ru.tinkoff.zeppelin.interpreter;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.StringJoiner;
 
 public class InterpreterCompletion implements Comparable<InterpreterCompletion> {
@@ -48,40 +45,18 @@ public class InterpreterCompletion implements Comparable<InterpreterCompletion> 
   /**
    * Priority of an element in completion list.
    */
-  private int score;
+  private final int score;
 
   public InterpreterCompletion(final String name,
                                final String value,
                                final String meta,
                                final String description,
                                final int score) {
-    this(name, value, meta, description);
-    this.score = score;
-  }
-
-  public InterpreterCompletion(final String name,
-                               final String value,
-                               final String meta,
-                               final String description) {
     this.name = name;
     this.value = value;
     this.meta = meta;
     this.description = description;
-
-    final Set<String> preferredKeywords = new HashSet<>(
-        Arrays.asList("select", "*", "join", "from", "update", "insert", "delete", "with", "set", "on"));
-
-    if (meta.equals("column")) {
-      this.score = 900;
-    } else if (meta.equals("table")) {
-      this.score = 700;
-    } else if (meta.equals("schema")) {
-      this.score = 500;
-    } else if (preferredKeywords.contains(value)) {
-      this.score = 400;
-    } else {
-      this.score = 300;
-    }
+    this.score = score;
   }
 
   public String getName() {

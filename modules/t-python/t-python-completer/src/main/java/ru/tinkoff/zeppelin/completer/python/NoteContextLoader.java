@@ -87,6 +87,7 @@ class NoteContextLoader {
               script.append(String.format("import %s as %s\n", pair[0], pair[1]));
               break;
             default:
+              // add expression
               script.append(envObject.getName()).append(" = NO_DATA\n");
           }
         }

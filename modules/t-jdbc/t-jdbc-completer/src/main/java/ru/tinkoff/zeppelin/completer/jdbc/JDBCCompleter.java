@@ -68,6 +68,7 @@ public class JDBCCompleter extends Completer {
 
   private final static Gson gson = new Gson();
 
+  @SuppressWarnings("unused")
   public JDBCCompleter() {
     super();
   }
@@ -118,7 +119,7 @@ public class JDBCCompleter extends Completer {
    *
    * @param configuration interpreter configuration.
    */
-  public void loadMetadataUseMetamodel(@Nonnull final Map<String, String> configuration) {
+  private void loadMetadataUseMetamodel(@Nonnull final Map<String, String> configuration) {
     final String className = configuration.get(DRIVER_CLASS_NAME_KEY);
     final String artifact = configuration.get(DRIVER_ARTIFACT_KEY);
     final String artifactDependencies = configuration.get(DRIVER_ARTIFACT_DEPENDENCY);
@@ -145,7 +146,7 @@ public class JDBCCompleter extends Completer {
         final File driverFolder = new File(dir);
         try {
           final List<URL> urls = Lists.newArrayList();
-          for (final File file : driverFolder.listFiles()) {
+          for (final File file : Objects.requireNonNull(driverFolder.listFiles())) {
             final URL url = file.toURI().toURL();
 
             urls.add(new URL("jar:" + url.toString() + "!/"));
@@ -529,7 +530,7 @@ public class JDBCCompleter extends Completer {
       completeTailSet(candidates.tailSet(prefix), prefix, completions, type);
     } else {
       completions.addAll(
-          candidates.stream().map(t -> new InterpreterCompletion(t, t, type, ""))
+          candidates.stream().map(t -> createInterpreterCompletion(t, t, type))
           .collect(Collectors.toList()));
     }
   }
@@ -552,7 +553,33 @@ public class JDBCCompleter extends Completer {
         // all of the following elements will also have a different prefix.
         break;
       }
-      completions.add(new InterpreterCompletion(match, match, type, ""));
+      completions.add(createInterpreterCompletion(match, match, type));
     }
+  }
+
+  private final Set<String> preferredKeywords = new HashSet<>(
+      Arrays.asList("select", "*", "join", "from", "update", "insert", "delete", "with", "set", "on"));
+
+  private InterpreterCompletion createInterpreterCompletion(
+      final String name,
+      final String value,
+      final String meta) {
+
+    final int score;
+    switch (meta) {
+      case "column":
+        score = 900;
+        break;
+      case "table":
+        score = 700;
+        break;
+      case "schema":
+        score = 500;
+        break;
+      default:
+        score = preferredKeywords.contains(value) ? 400 : 300;
+    }
+
+    return new InterpreterCompletion(name, value, meta, "", score);
   }
 }
