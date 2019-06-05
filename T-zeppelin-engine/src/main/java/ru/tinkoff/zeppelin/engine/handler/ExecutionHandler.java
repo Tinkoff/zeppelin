@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
+import ru.tinkoff.zeppelin.core.notebook.JobPriority;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
@@ -66,6 +67,6 @@ public class ExecutionHandler extends AbstractHandler{
     ZLog.log(ET.JOB_SUBMITTED_FOR_EXECUTION,
         String.format("Задача добавлена в очередь на исполнение (ноут[id=%s], автор задачи=%s)", note.getId(), username),
         SystemEvent.SYSTEM_USERNAME);
-    publishBatch(note, paragraphs, username, roles, 0);
+    publishBatch(note, paragraphs, username, roles, JobPriority.USER.getIndex());
   }
 }
