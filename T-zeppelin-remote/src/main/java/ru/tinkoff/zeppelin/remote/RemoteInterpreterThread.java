@@ -25,10 +25,7 @@ import ru.tinkoff.zeppelin.interpreter.thrift.*;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.*;
 
 public class RemoteInterpreterThread extends AbstractRemoteProcessThread implements RemoteInterpreterThriftService.Iface {
 
@@ -54,7 +51,17 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
             processClassName,
             poolSize);
 
-    executor = Executors.newFixedThreadPool(this.poolSize);
+    executor = new ThreadPoolExecutor(
+            this.poolSize,
+            this.poolSize,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>() {
+              @Override
+              public boolean offer(final Runnable runnable) {
+                return false;
+              }
+            });
   }
 
   @Override
