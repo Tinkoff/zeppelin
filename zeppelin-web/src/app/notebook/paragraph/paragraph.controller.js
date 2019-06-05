@@ -812,7 +812,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.startSaveTimer();
       }
     }
-    setParagraphMode(session);
+    $scope.setParagraphMode(session);
     if ($scope.cursorPosition) {
       editor.moveCursorToPosition($scope.cursorPosition);
       $scope.cursorPosition = null;
@@ -1048,7 +1048,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         autoAdjustEditorHeight(_editor);
       });
 
-      setParagraphMode($scope.editor.getSession());
+      $scope.setParagraphMode($scope.editor.getSession());
 
       // autocomplete on '.'
       /*
@@ -1303,7 +1303,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     session.setMode(mode);
   };
 
-  const setParagraphMode = function(session) {
+  $scope.setParagraphMode = function(session) {
     let index = _.findIndex($scope.interpreterSettings, {'shebang': $scope.paragraph.shebang});
     if (index < 0) {
       return;
