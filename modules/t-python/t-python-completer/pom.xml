@@ -42,6 +42,12 @@
             <version>3.8.2</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.zeppelin</groupId>
+            <artifactId>t-python-commons</artifactId>
+            <version>1.0.0-T-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 </project>

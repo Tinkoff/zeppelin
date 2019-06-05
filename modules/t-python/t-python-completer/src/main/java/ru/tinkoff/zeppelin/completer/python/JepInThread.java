@@ -23,6 +23,11 @@ import jep.JepException;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * This class need because jep an only be used in
+ * the thread that created it. And ApacheShift uses a pool of threads,
+ * which does not guarantee the creation and execution of Jep in the same thread.
+ */
 class JepInThread {
 
   private final JepThread jepThread;
