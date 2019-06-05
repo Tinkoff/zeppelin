@@ -36,7 +36,7 @@ public class NotebookEventRestApi extends AbstractRestApi {
 
 
     @PostMapping(value = "/{noteId}", produces = "application/json")
-    public ResponseEntity updateNote(
+    public ResponseEntity noteSubscription(
             @PathVariable("noteId") final Long noteId,
             @RequestParam("type") final String eventType,
             @RequestParam("action") final String eventAction,
