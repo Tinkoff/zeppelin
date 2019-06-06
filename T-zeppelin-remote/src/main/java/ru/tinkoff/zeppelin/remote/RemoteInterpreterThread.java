@@ -56,12 +56,7 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
             this.poolSize,
             0L,
             TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>() {
-              @Override
-              public boolean offer(final Runnable runnable) {
-                return false;
-              }
-            });
+            new LinkedBlockingQueue<>(1));
   }
 
   @Override
