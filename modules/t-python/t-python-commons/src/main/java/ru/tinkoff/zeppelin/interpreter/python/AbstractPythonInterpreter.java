@@ -110,7 +110,7 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
             .getOrDefault("python.subprocess.java.args", StringUtils.EMPTY);
 
     try {
-      if (!instanceTempDir.mkdirs()) {
+      if (!instanceTempDir.exists() && !instanceTempDir.mkdirs()) {
         final InterpreterResult.Message errMessage = new InterpreterResult.Message(
                 InterpreterResult.Message.Type.TEXT,
                 "Error while create working directory"
