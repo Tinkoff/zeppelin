@@ -75,6 +75,33 @@ limitations under the License.
     </div>
   </div>
 
+  <!-- notifications -->
+  <div ng-if="showNotifications" class="permissions">
+    <div>
+      <h4>Note Notifications</h4>
+    </div>
+    <hr />
+    <div>
+      <div ng-repeat="eventTypeInfo in subscriptions">
+        <h5>{{eventTypeInfo[0]}}</h5>
+        <div class="permissionsForm">
+          <p ng-repeat="notificationTypeInfo in eventTypeInfo[1]">
+            <span class="readers">{{notificationTypeInfo[0]}} </span>
+            <select id="select{{eventTypeInfo[0]}}{{notificationTypeInfo[0]}}" multiple="multiple">
+              <option is-select2="false" ng-repeat="user in notificationTypeInfo[1]" selected="selected">{{user}}</option>
+            </select>
+          </p>
+        </div>
+      </div>
+    </div>
+    <br />
+    <div>
+      <button class="btn btn-primary" ng-click="saveNotifications()">Save</button>
+      <button class="btn btn-default" ng-click="closeNotifications()">Cancel</button>
+    </div>
+  </div>
+
+
   <div class="note-jump"></div>
   <div id="noteForms" ng-if="isShowNoteForms()" class="paragraph-space box">
       <h4>
