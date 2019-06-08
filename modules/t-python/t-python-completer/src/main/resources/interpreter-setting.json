@@ -1,0 +1,60 @@
+ {
+    "className": "ru.tinkoff.zeppelin.completer.python.PythonCompleter",
+    "properties": {
+      "python.working.dir": {
+        "envName": "PYTHON_WORKING_DIR",
+        "propertyName": "python.working.dir",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Path to temp storage of python interpreter results",
+        "type": "textarea"
+      },
+      "python.jep.library.file": {
+        "envName": "PYTHON_JEP_LIBRARY_FILE",
+        "propertyName": "python.jep.library.file",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Path to JEP *.so library",
+        "type": "textarea"
+      },
+      "python.env.cache.folder": {
+        "envName": "PYTHON_ENV_CACHE_FOLDER",
+        "propertyName": "python.env.cache.folder",
+        "defaultValue": "./noteContext",
+        "currentValue": "./noteContext",
+        "description": "path to cache folder",
+        "type": "textarea"
+      },
+      "python.jep.config.include.paths": {
+        "envName": "PYTHON_JEP_CONFIG_INCLUDE_PATHS",
+        "propertyName": "python.jep.config.include.paths",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Adds a path of directories separated by File.pathSeparator that will be appended to the sub-intepreter's sys.path",
+        "type": "textarea"
+      },
+      "python.jep.config.python.home": {
+        "envName": "PYTHON_JEP_CONFIG_PYTHON_HOME",
+        "propertyName": "python.jep.config.python.home",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Set the python's home location, if not specified then use standard",
+        "type": "textarea"
+      },
+      "python.autoimport": {
+        "envName": "PYTHON_AUTOIMPORT",
+        "propertyName": "python.autoimport",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "autoimported modules. Separated by ';'. Example module:name;module2:name2 -> import module as name & import module2 as name2",
+        "type": "textarea"
+      }
+    },
+   "editor": {
+     "language": "python",
+     "enableLiveAutocompletion": true,
+     "editOnDblClick": false,
+     "completionSupport": false,
+     "completionKey": "TAB"
+   }
+  }

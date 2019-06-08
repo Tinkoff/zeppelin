@@ -15,23 +15,12 @@
  * limitations under the License.
  */
 
-package ru.tinkoff.zeppelin.interpreter;
+package ru.tinkoff.zeppelin.completer.python;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import jep.Jep;
+import jep.JepException;
 
-public class Base {
-
-  private final Pattern envVariables = Pattern.compile("(?=(" + "Z_ENV_[_a-zA-Z0-9]+" + "))");
-
-  protected Set<String> getAllEnvVariables(final String st) {
-    final Set<String> matches = new HashSet<>();
-    final Matcher m = envVariables.matcher(st);
-    while (m.find()) {
-      matches.add(m.group(1));
-    }
-    return matches;
-  }
+@FunctionalInterface
+public interface JepConsumer {
+  void accept(Jep jep) throws JepException;
 }
