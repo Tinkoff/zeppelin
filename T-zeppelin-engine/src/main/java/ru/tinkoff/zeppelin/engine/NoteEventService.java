@@ -1,19 +1,22 @@
 package ru.tinkoff.zeppelin.engine;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
-import ru.tinkoff.zeppelin.core.notebook.*;
+import ru.tinkoff.zeppelin.core.notebook.Job;
+import ru.tinkoff.zeppelin.core.notebook.Note;
+import ru.tinkoff.zeppelin.core.notebook.NoteEvent;
+import ru.tinkoff.zeppelin.core.notebook.NoteSubscription;
+import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 import ru.tinkoff.zeppelin.storage.NoteEventDAO;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
-
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class NoteEventService {
@@ -32,10 +35,10 @@ public class NoteEventService {
     private final String server;
     private final String domain;
 
-    public NoteEventService(SchedulerDAO schedulerDAO,
-                            NoteEventDAO noteEventDAO,
-                            NoteService noteService,
-                            JavaMailSender emailSender,
+    public NoteEventService(final SchedulerDAO schedulerDAO,
+                            final NoteEventDAO noteEventDAO,
+                            final NoteService noteService,
+                            final JavaMailSender emailSender,
                             @Value("${zeppelin.email.username}") final String username,
                             @Value("${zeppelin.email.textTemplate.run}") final String textTemplateRun,
                             @Value("${zeppelin.email.textTemplate.error}") final String textTemplateError,
@@ -54,43 +57,43 @@ public class NoteEventService {
         this.domain = domain;
     }
 
-    public void errorOnNoteScheduleExecution(Job job) {
-        final List<NoteSubscription> note_subscriptions
+    public void errorOnNoteScheduleExecution(final Job job) {
+        final List<NoteSubscription> noteSubscriptions
                 = noteEventDAO.getNoteEvent(job.getNoteId(), NoteEvent.Type.ERROR.toString());
 
-        final List<String> mailing_list = note_subscriptions.stream()
+        final List<String> mailingList = noteSubscriptions.stream()
                 .filter(s -> s.getNotification() == NoteEvent.Notification.EMAIL)
                 .map(s -> (s.getName() + domain))
                 .collect(Collectors.toList());
 
-        sendMail(mailing_list, NoteEvent.Type.ERROR, noteService.getNote(job.getNoteId()), null);
+        sendMail(mailingList, NoteEvent.Type.ERROR, noteService.getNote(job.getNoteId()), null);
     }
 
-    public void successOnNoteScheduleExecution(Long noteId) {
-        List<NoteSubscription> note_subscriptions =
+    public void successOnNoteScheduleExecution(final Long noteId) {
+        final List<NoteSubscription> noteSubscriptions =
                 noteEventDAO.getNoteEvent(noteId, NoteEvent.Type.RUN.toString());
 
-        List<String> mailing_list = note_subscriptions.stream()
+        final List<String> mailingList = noteSubscriptions.stream()
                 .filter(s -> s.getNotification() == NoteEvent.Notification.EMAIL)
                 .map(s -> (s.getName() + domain))
                 .collect(Collectors.toList());
 
-        sendMail(mailing_list, NoteEvent.Type.RUN, noteService.getNote(noteId), null);
+        sendMail(mailingList, NoteEvent.Type.RUN, noteService.getNote(noteId), null);
     }
 
-    public void noteScheduleChange(Note note, Scheduler oldScheduler) {
-        List<NoteSubscription> note_subscriptions
+    public void noteScheduleChange(final Note note, final Scheduler oldScheduler) {
+        final List<NoteSubscription> noteSubscriptions
                 = noteEventDAO.getNoteEvent(note.getId(), NoteEvent.Type.SCHEDULE_CHANGE.name());
 
-        List<String> mailing_list = note_subscriptions.stream()
+        final List<String> mailingList = noteSubscriptions.stream()
                 .filter(s -> s.getNotification() == NoteEvent.Notification.EMAIL)
                 .map(s -> (s.getName() + domain))
                 .collect(Collectors.toList());
 
-        sendMail(mailing_list, NoteEvent.Type.SCHEDULE_CHANGE, note, oldScheduler);
+        sendMail(mailingList, NoteEvent.Type.SCHEDULE_CHANGE, note, oldScheduler);
     }
 
-    private void sendMail(List<String> mailTo, NoteEvent.Type type, Note note, Scheduler oldScheduler) {
+    private void sendMail(final List<String> mailTo, final NoteEvent.Type type, final Note note, final Scheduler oldScheduler) {
         if (mailTo.isEmpty()) {
             return;
         }
@@ -102,7 +105,7 @@ public class NoteEventService {
         try {
             message.setFrom(username);
             message.setTo(mailTo.toArray(new String[0]));
-            String text;
+            final String text;
             switch (type) {
                 case RUN: {
                     message.setSubject("Notebook run on schedule");
@@ -147,8 +150,8 @@ public class NoteEventService {
             }
             mimeMessage.setContent(text, "text/html");
             emailSender.send(mimeMessage);
-        } catch (MessagingException | RuntimeException exception) {
-            LOG.info("Error on email send: " + exception.getMessage());
+        } catch (final MessagingException | RuntimeException exception) {
+            LOG.info("Error on email send", exception);
         }
     }
 }
