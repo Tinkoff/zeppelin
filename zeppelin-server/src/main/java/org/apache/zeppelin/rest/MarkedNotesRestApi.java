@@ -25,6 +25,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import org.apache.zeppelin.rest.message.JsonResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,13 +40,12 @@ import ru.tinkoff.zeppelin.storage.RecentNotesDAO;
 @RestController
 @RequestMapping("/api/marked_notes")
 public class MarkedNotesRestApi {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(MarkedNotesRestApi.class);
   private static final Integer RECENT_NOTES_CLEANUP_INTERVAL = 10; // minutes
 
   private final FavoriteNotesDAO favoriteNotesDAO;
   private final RecentNotesDAO recentNotesDAO;
   private final ScheduledExecutorService saveExecServ;
-
 
   @Autowired
   public MarkedNotesRestApi(final FavoriteNotesDAO favoriteNotesDAO,
@@ -71,6 +72,8 @@ public class MarkedNotesRestApi {
   @GetMapping(value = "/get_notes_ids", produces = "application/json")
   public ResponseEntity getNotesIds(@RequestParam("username") final String username) {
     try {
+      LOGGER.info("Получение Uuid-идентификаторов избранных и недавних ноутов");
+
       final HashMap<String, Set> idsMap = new HashMap<>(2);
       idsMap.put("favorite", new HashSet<>(favoriteNotesDAO.getAll(username)));
       idsMap.put("recent", new LinkedHashSet<>(recentNotesDAO.getAll(username)));
@@ -86,6 +89,7 @@ public class MarkedNotesRestApi {
                                       @RequestParam("note_id") final String noteId,
                                       @RequestParam("note_type") final String noteType,
                                       @RequestParam("note_action") final String noteAction) {
+    LOGGER.info("Добавление/удаление ноута noteId: {} из избранных/недавних {}", noteId, noteType);
 
     if (username == null || username.isEmpty()) {
       return new JsonResponse(HttpStatus.BAD_REQUEST, "username no correct").build();

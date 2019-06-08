@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zeppelin.Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zeppelin.rest.message.JsonResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +51,7 @@ import ru.tinkoff.zeppelin.storage.ModuleSourcesDAO;
 @RestController
 @RequestMapping("/api/modules")
 public class ModuleRestApi {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ModuleRestApi.class);
 
   private final ModuleSourcesDAO moduleSourcesDAO;
   private final ModuleRepositoryDAO moduleRepositoryDAO;
@@ -85,10 +88,14 @@ public class ModuleRestApi {
     public List<ModuleSettingBlockDTO> modules = new ArrayList<>();
   }
 
+  /**
+   * List modules.
+   */
   @GetMapping(value = "/list", produces = "application/json")
   public ResponseEntity listModules() {
     try {
 
+      LOGGER.info("Получение списка модулей");
       ModuleSettingsDTO moduleSettingsDTO = new ModuleSettingsDTO();
 
       final List<ModuleSource> moduleSources = moduleSourcesDAO.getAll();
@@ -134,9 +141,15 @@ public class ModuleRestApi {
     public long id;
   }
 
+  /**
+   * Install module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/installModuleSource", produces = "application/json")
   public ResponseEntity installModuleConfiguration(@RequestBody final String message) {
     try {
+      LOGGER.info("Установка модуля {}", message);
       final InstallModuleConfigurationDTO installModuleConfigurationDTO = new Gson().fromJson(message, InstallModuleConfigurationDTO.class);
       final ModuleSource moduleSource = moduleSourcesDAO.get(installModuleConfigurationDTO.id);
 
@@ -153,8 +166,14 @@ public class ModuleRestApi {
     public long id;
   }
 
+  /**
+   * Uninstall module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/uninstallModuleSource", produces = "application/json")
   public ResponseEntity uninstallModuleSource(@RequestBody final String message) {
+    LOGGER.info("Удаление модуля {}", message);
     try {
       final UninstallModuleConfigurationDTO uninstallModuleConfigurationDTO = new Gson().fromJson(message, UninstallModuleConfigurationDTO.class);
       final ModuleSource moduleSource = moduleSourcesDAO.get(uninstallModuleConfigurationDTO.id);
@@ -173,8 +192,14 @@ public class ModuleRestApi {
     public boolean reinstall;
   }
 
+  /**
+   * Set module param Reinstall On app Start.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/setReinstallOnStartModuleSource", produces = "application/json")
   public ResponseEntity setReinstallOnStartModuleSource(@RequestBody final String message) {
+    LOGGER.info("Переустановка модуля при старте {}", message);
     try {
       final SetReinstallOnStartModuleSourceDTO setReinstallOnStartModuleSourceDTO = new Gson().fromJson(message, SetReinstallOnStartModuleSourceDTO.class);
       final ModuleSource moduleSource = moduleSourcesDAO.get(setReinstallOnStartModuleSourceDTO.id);
@@ -195,8 +220,14 @@ public class ModuleRestApi {
     public String type;
   }
 
+  /**
+   * Add module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/addModuleSource", produces = "application/json")
   public ResponseEntity addModuleSource(@RequestBody final String message) {
+    LOGGER.info("Добавление источника модуля {}", message);
     try {
       final AddModuleSourceDTO addModuleSourceDTO = new Gson().fromJson(message, AddModuleSourceDTO.class);
 
@@ -223,8 +254,14 @@ public class ModuleRestApi {
     public long id;
   }
 
+  /**
+   * Delete module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/deleteModuleSource", produces = "application/json")
   public ResponseEntity deleteModuleSource(@RequestBody final String message) {
+    LOGGER.info("Удаление источника модуля {}", message);
     try {
       final DeleteModuleSourceDTO deleteModuleSourceDTO = new Gson().fromJson(message, DeleteModuleSourceDTO.class);
 
@@ -252,8 +289,14 @@ public class ModuleRestApi {
     public ModuleConfiguration moduleConfiguration;
     public ModuleInnerConfiguration innerConfiguration;
   }
+  /**
+   * Add module configuration.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/addModuleConfiguration", produces = "application/json")
   public ResponseEntity addModuleConfiguration(@RequestBody final String message) {
+    LOGGER.info("Добавление параметров конфигурации модуля {}", message);
     try {
       final AddModuleConfigurationDTO addModuleConfigurationDTO = new Gson().fromJson(message, AddModuleConfigurationDTO.class);
 
@@ -287,9 +330,15 @@ public class ModuleRestApi {
     public ModuleConfiguration moduleConfiguration;
     public ModuleInnerConfiguration innerConfiguration;
   }
+
+  /**
+   * Update module configuration.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/updateModuleConfiguration", produces = "application/json")
   public ResponseEntity updateModuleConfiguration(@RequestBody final String message) {
-
+    LOGGER.info("Обновление параметров конфигурации модуля {}", message);
     final UpdateModuleConfigurationDTO updateModuleConfigurationDTO = new Gson().fromJson(message, UpdateModuleConfigurationDTO.class);
     moduleInnerConfigurationDAO.update(updateModuleConfigurationDTO.innerConfiguration);
     moduleConfigurationDAO.update(updateModuleConfigurationDTO.moduleConfiguration);
@@ -304,8 +353,15 @@ public class ModuleRestApi {
     public long id;
     public boolean enable;
   }
+
+  /**
+   * Enable module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/enableModule", produces = "application/json")
   public ResponseEntity enableModule(@RequestBody final String message) {
+    LOGGER.info("Включение модуля {}", message);
     try {
       final EnableModuleDTO enableModuleDTO = new Gson().fromJson(message, EnableModuleDTO.class);
       final ModuleConfiguration moduleConfiguration = moduleConfigurationDAO.getById(enableModuleDTO.id);
@@ -324,8 +380,15 @@ public class ModuleRestApi {
   public static class RestartModuleDTO {
     public long id;
   }
+
+  /**
+   * Restart module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/restartModule", produces = "application/json")
   public ResponseEntity restartModule(@RequestBody final String message) {
+    LOGGER.info("Перезапуск модуля {}", message);
     try {
       final RestartModuleDTO restartModuleDTO = new Gson().fromJson(message, RestartModuleDTO.class);
       final ModuleConfiguration moduleConfiguration = moduleConfigurationDAO.getById(restartModuleDTO.id);
@@ -341,8 +404,15 @@ public class ModuleRestApi {
   public static class DeleteModuleDTO {
     public long id;
   }
+
+  /**
+   * Delete module.
+   *
+   * @param message Module
+   */
   @PostMapping(value = "/deleteModule", produces = "application/json")
   public ResponseEntity deleteModule(@RequestBody final String message) {
+    LOGGER.info("Удаление модуля {}", message);
     try {
       final DeleteModuleDTO deleteModuleDTO = new Gson().fromJson(message, DeleteModuleDTO.class);
       final ModuleConfiguration moduleConfiguration = moduleConfigurationDAO.getById(deleteModuleDTO.id);
@@ -359,9 +429,6 @@ public class ModuleRestApi {
   }
 
 
-  /**
-   * List all interpreter settings.
-   */
   public static class ConfigurationDTO {
     public long id;
     public String shebang;
@@ -377,8 +444,12 @@ public class ModuleRestApi {
     public ModuleInnerConfiguration config;
   }
 
+  /**
+   * List all modules settings.
+   */
   @GetMapping(value = "/setting", produces = "application/json")
   public ResponseEntity listSettings() {
+    LOGGER.info("Получение списка настроек модулей");
     try {
 
       final List<ConfigurationDTO> result = new ArrayList<>();
@@ -406,12 +477,11 @@ public class ModuleRestApi {
   }
 
   /**
-   * Lists only interpreters.
-   *
-   * @return
+   * List interpreters settings.
    */
   @GetMapping(value = "/setting/interpreters", produces = "application/json")
   public ResponseEntity listInterpretersSettings() {
+    LOGGER.info("Получение списка настроек интерпретаторов");
     try {
 
       final List<ConfigurationDTO> result = new ArrayList<>();
@@ -444,10 +514,11 @@ public class ModuleRestApi {
   }
 
   /**
-   * List of dependency resolving repositories.
+   * List dependency resolving repositories.
    */
   @GetMapping(value = "/repository", produces = "application/json")
   public ResponseEntity listRepositories() {
+    LOGGER.info("Получение списка репозиториев");
     try {
       return new JsonResponse(HttpStatus.OK, "", moduleRepositoryDAO.getAll()).build();
     } catch (final Exception e) {
@@ -463,6 +534,7 @@ public class ModuleRestApi {
    */
   @PostMapping(value = "/repository", produces = "application/json")
   public ResponseEntity addRepository(@RequestBody final String message) {
+    LOGGER.info("Добавление репозитория с параметрами {}", message);
     try {
       final Repository request = Repository.fromJson(message);
       if (!request.getId().matches("\\w+")) {
@@ -486,6 +558,7 @@ public class ModuleRestApi {
    */
   @DeleteMapping(value = "/repository/{repoId}", produces = "application/json")
   public ResponseEntity removeRepository(@PathVariable("repoId") final String repoId) {
+    LOGGER.info("Добавление репозитория с ID: {}", repoId);
     try {
       moduleRepositoryDAO.delete(repoId);
       return new JsonResponse(HttpStatus.OK).build();
