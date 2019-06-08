@@ -59,6 +59,11 @@ limitations under the License.
             </div>
           </ul>
         </li>
+        <li>
+          <a href="#/note_stats" class="navbar-menu navbar-menu-notebook dropdown-toggle">
+            <span>Note Stats</span>
+          </a>
+        </li>
       </ul>
 
       <ul class="nav navbar-nav navbar-right" style="margin-right:5px;">
@@ -94,6 +99,7 @@ limitations under the License.
               <li><a href="#/interpreter">Interpreter</a></li>
               <li><a href="#/configuration">Configuration</a></li>
               <li><a href="#/monitoring">Monitoring</a></li>
+              <li><a href="#/credential">Credential</a></li>
               <li ng-if="ticket.principal && ticket.principal !== 'anonymous'" role="separator" style="margin: 5px 0;" class="divider"></li>
               <li ng-if="ticket.principal && ticket.principal !== 'anonymous'"><a ng-click="navbar.logout()">Logout</a></li>
             </ul>

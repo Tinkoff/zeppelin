@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 public class Base {
 
-  protected final Pattern envVariables = Pattern.compile("(?=(" + "Z_ENV_[_a-zA-Z0-9]+" + "))");
+  private final Pattern envVariables = Pattern.compile("(?=(" + "Z_ENV_[_a-zA-Z0-9]+" + "))");
 
   protected Set<String> getAllEnvVariables(final String st) {
     final Set<String> matches = new HashSet<>();

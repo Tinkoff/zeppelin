@@ -18,13 +18,23 @@ package org.apache.zeppelin.rest;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.CompletionService;
@@ -32,15 +42,11 @@ import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.engine.forms.FormsProcessor;
 import ru.tinkoff.zeppelin.interpreter.InterpreterCompletion;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/completion")
 public class CompletionRestApi {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CompletionRestApi.class);
   private final NoteService noteService;
   private final CompletionService completionService;
 
@@ -58,35 +64,30 @@ public class CompletionRestApi {
                                    @RequestBody final String message) {
 
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
-
     final Note note = noteService.getNote(noteId);
+    LOGGER.info("Дополнение параграфа paragraphId : {} ноута noteId: {}, noteUuid: {}, message: {} ",
+        paragraphId, note.getId(), note.getUuid(), message);
+
     final Paragraph p = noteService.getParagraphs(note).stream()
         .filter(e -> e.getUuid().equals(paragraphId))
             .findAny()
             .orElse(null);
+    if (p == null) {
+      return new JsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Paragraph not found").build();
+    }
 
     final Map<String, String> params = new Gson().fromJson(message,
         new TypeToken<HashMap<String, String>>() {}.getType());
-
     final String buf = params.get("buf");
     final int cur = (int) Double.parseDouble(params.get("cursor"));
-    if (p != null) {
-      final FormsProcessor.InjectResponse injectResponse = FormsProcessor.injectFormValues(buf, cur, p.getFormParams());
-      final List<InterpreterCompletion> completions = new ArrayList<>();
-      completions.addAll(
-              completionService.complete(
-                      note,
-                      p,
-                      injectResponse.getPayload(),
-                      injectResponse.getCursorPosition(),
-                      authenticationInfo.getUser(),
-                      authenticationInfo.getRoles())
-      );
-      return new JsonResponse(HttpStatus.OK, "", completions).build();
-
-    } else {
-      //LOGIC ERROR
-      return new JsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Paragraph not found").build();
-    }
+    final FormsProcessor.InjectResponse injectResponse = FormsProcessor.injectFormValues(buf, cur, p.getFormParams());
+    final List<InterpreterCompletion> completions = new ArrayList<>(completionService.complete(
+        note,
+        p,
+        injectResponse.getPayload(),
+        injectResponse.getCursorPosition(),
+        authenticationInfo.getUser(),
+        authenticationInfo.getRoles()));
+    return new JsonResponse(HttpStatus.OK, "", completions).build();
   }
 }

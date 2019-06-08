@@ -34,8 +34,7 @@ import java.util.Map;
 @Component
 public class SettingsHandler extends AbstractHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SettingsHandler.class);
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(SettingsHandler.class);
 
   @Autowired
   public SettingsHandler(final NoteService noteService,
@@ -48,6 +47,7 @@ public class SettingsHandler extends AbstractHandler {
 
     final SockMessage message = new SockMessage(Operation.CONFIGURATIONS_INFO)
             .put("configurations", properties);
+    LOGGER.info("Передача всех значений конфигурации");
     conn.sendMessage(message.toSend());
   }
 }

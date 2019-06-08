@@ -19,9 +19,12 @@ package ru.tinkoff.zeppelin.engine;
 
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
-import ru.tinkoff.zeppelin.storage.ModuleConfigurationDAO;
-import ru.tinkoff.zeppelin.storage.ModuleInnerConfigurationDAO;
-import ru.tinkoff.zeppelin.storage.ModuleSourcesDAO;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleConfiguration;
@@ -35,8 +38,9 @@ import ru.tinkoff.zeppelin.engine.server.CompleterRemoteProcess;
 import ru.tinkoff.zeppelin.engine.server.RemoteProcessStarter;
 import ru.tinkoff.zeppelin.engine.server.RemoteProcessType;
 import ru.tinkoff.zeppelin.interpreter.InterpreterCompletion;
-
-import java.util.*;
+import ru.tinkoff.zeppelin.storage.ModuleConfigurationDAO;
+import ru.tinkoff.zeppelin.storage.ModuleInnerConfigurationDAO;
+import ru.tinkoff.zeppelin.storage.ModuleSourcesDAO;
 
 @DependsOn({"configuration", "thriftBootstrap"})
 @Component
@@ -46,16 +50,19 @@ public class CompletionService {
   private final ModuleInnerConfigurationDAO moduleInnerConfigurationDAO;
   private final ModuleSourcesDAO moduleSourcesDAO;
   private final ThriftServerBootstrap serverBootstrap;
+  private final CredentialService credentialService;
 
   public CompletionService(final ModuleConfigurationDAO moduleConfigurationDAO,
                            final ModuleInnerConfigurationDAO moduleInnerConfigurationDAO,
                            final ModuleSourcesDAO moduleSourcesDAO,
-                           final ThriftServerBootstrap serverBootstrap) {
+                           final ThriftServerBootstrap serverBootstrap,
+                           final CredentialService credentialService) {
 
     this.moduleConfigurationDAO = moduleConfigurationDAO;
     this.moduleInnerConfigurationDAO = moduleInnerConfigurationDAO;
     this.moduleSourcesDAO = moduleSourcesDAO;
     this.serverBootstrap = serverBootstrap;
+    this.credentialService = credentialService;
   }
 
   public List<InterpreterCompletion> complete(final Note note,
@@ -101,6 +108,10 @@ public class CompletionService {
         final Map<String, String> userContext = new HashMap<>();
         userContext.put("Z_ENV_USER_NAME", user);
         userContext.put("Z_ENV_USER_ROLES", roles.toString());
+
+        // put all available credentials
+        credentialService.getUserReadableCredentials(user)
+            .forEach(c -> userContext.put(c.getKey(), c.getValue()));
 
         // prepare configuration
         final Map<String, String> configuration = new HashMap<>();

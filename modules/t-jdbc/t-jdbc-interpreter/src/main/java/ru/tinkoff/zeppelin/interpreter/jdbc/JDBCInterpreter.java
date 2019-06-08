@@ -17,7 +17,6 @@
 package ru.tinkoff.zeppelin.interpreter.jdbc;
 
 import com.google.common.collect.Lists;
-
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -26,10 +25,18 @@ import java.sql.Driver;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -288,6 +295,12 @@ public class JDBCInterpreter extends Interpreter {
    */
   @Nonnull
   private InterpreterResult executeQuery(@Nonnull final String queryString, final boolean processResult) {
+    try {
+      CCJSqlParserUtil.parse(queryString);
+    } catch (final JSQLParserException e) {
+      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, e.getCause().getMessage()));
+    }
+
     ResultSet resultSet = null;
     final StringBuilder exception = new StringBuilder();
     try {

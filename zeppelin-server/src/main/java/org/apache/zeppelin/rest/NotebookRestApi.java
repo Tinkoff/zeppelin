@@ -17,8 +17,19 @@
 
 package org.apache.zeppelin.rest;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -31,7 +42,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
@@ -41,19 +60,11 @@ import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.engine.search.LuceneSearch;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
 
-import java.lang.reflect.Type;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping("/api/notebook")
 public class NotebookRestApi extends AbstractRestApi {
 
-  private static final Logger LOG = LoggerFactory.getLogger(NotebookRestApi.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NotebookRestApi.class);
 
   private final LuceneSearch luceneSearch;
   private final SchedulerDAO schedulerDAO;
@@ -90,8 +101,12 @@ public class NotebookRestApi extends AbstractRestApi {
   @PostMapping(produces = "application/json")
   public ResponseEntity createNote(@RequestBody final String message) {
     try {
+      LOGGER.info("Создание нового ноута через RestApi");
+
       final NoteRequest request = NoteRequest.fromJson(message);
       final Note note = request.getAsNote();
+      LOGGER.info("noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
+
       addCurrentUserToOwners(note);
       noteService.persistNote(note);
 
@@ -113,9 +128,10 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity updateNote(
       @PathVariable("noteId") final long noteId,
       @RequestBody final String message) {
-    LOG.info("rename note by JSON {}", message);
     final NoteRequest request = NoteRequest.fromJson(message);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
+    LOGGER.info("Обновление ноута noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid());
+
     updateIfNotNull(request::getPath, note::setPath);
     updateIfNotNull(request::getOwners, p -> clearAndAdd(p, note.getOwners()));
     updateIfNotNull(request::getWriters, p -> clearAndAdd(p, note.getWriters()));
@@ -148,12 +164,14 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity cloneNote(
       @PathVariable("noteId") final long noteId,
       @RequestBody final String message) throws IllegalArgumentException {
-    LOG.info("clone note by JSON {}", message);
 
     final Note note = secureLoadNote(noteId, Permission.READER);
     final NoteRequest request = NoteRequest.fromJson(message);
 
     Note cloneNote = new Note(request.getPath());
+    LOGGER.info("Клонирование ноута noteId: {}, noteUuid {},новый ноут noteId: {}, noteUuid: {} через RestApi",
+        note.getId(), note.getUuid(), cloneNote.getId(), cloneNote.getUuid());
+
     cloneNote.setPath(request.getPath());
     cloneNote.setScheduler(note.getScheduler());
     cloneNote.getReaders().clear();
@@ -191,6 +209,8 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @GetMapping(value = "/{noteId:\\d+}", produces = "application/json")
   public ResponseEntity getNote(@PathVariable("noteId") final long noteId) {
+    LOGGER.info("Получение информации о ноуте по ID noteId: {} (GET)", noteId);
+
     final NoteRequest noteRequest = new NoteRequest(secureLoadNote(noteId, Permission.READER));
     return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
@@ -202,6 +222,8 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @GetMapping(value = "/{noteUUID:\\w+[^0-9]\\w+}", produces = "application/json")
   public ResponseEntity getNoteByUUID(@PathVariable("noteUUID") final String noteUUID) {
+    LOGGER.info("Получение информации о ноуте по UUID noteUUID: {} через RestApi(GET) ", noteUUID);
+
     final Note note = noteService.getNote(noteUUID);
     if (!userHasReaderPermission(note)) {
       return new JsonResponse(HttpStatus.UNAUTHORIZED, "You can't see this note").build();
@@ -215,6 +237,8 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @GetMapping(produces = "application/json")
   public ResponseEntity getNoteList() {
+    LOGGER.info("Получение списка доступных для чтения ноутов через RestApi(GET)");
+
     final List<JsonObject> response = noteService.getAllNotes().stream()
         .filter(this::userHasReaderPermission)
         .map(n -> {
@@ -235,6 +259,8 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @GetMapping(value = "/{noteId}/export", produces = "application/json")
   public ResponseEntity exportNote(@PathVariable("noteId") final long noteId) {
+    LOGGER.info("Выгрузка ноута noteId: {} через RestApi", noteId);
+
     final Note note = secureLoadNote(noteId, Permission.READER);
     final NoteRequest noteRequest = new NoteRequest(note);
     final JsonObject json = gson.toJsonTree(noteRequest).getAsJsonObject();
@@ -255,6 +281,8 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @PostMapping(value = "/import", produces = "application/json")
   public ResponseEntity importNote(@RequestBody final String noteJson) {
+    LOGGER.info("Импорт ноута через RestApi");
+
     final NoteRequest request = NoteRequest.fromJson(noteJson);
     Note note = new Note(request.getPath());
     note.setPath(note.getPath() + "_imported");
@@ -294,8 +322,8 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @DeleteMapping(value = "/{noteId}", produces = "application/json")
   public ResponseEntity deleteNote(@PathVariable("noteId") final long noteId) {
-    LOG.info("Delete note {} ", noteId);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
+    LOGGER.info("Удаление ноута noteId: {}, noteUuid: {} через RestApi", noteId, note.getUuid());
     noteService.deleteNote(note);
     return new JsonResponse(HttpStatus.OK, "Note deleted").build();
   }
@@ -303,7 +331,7 @@ public class NotebookRestApi extends AbstractRestApi {
   //TODO(SAN) Add documentation
   @GetMapping(value = "/search", produces = "application/json")
   public ResponseEntity search(@RequestParam("q") final String queryTerm) {
-    LOG.info("Searching notes for: {}", queryTerm);
+    LOGGER.info("Поиск ноутов по запросу {} через RestApi", queryTerm);
     final List<Map<String, String>> result = new ArrayList<>();
     final List<Map<String, String>> notesFound = luceneSearch.query(queryTerm);
     for (final Map<String, String> stringStringMap : notesFound) {

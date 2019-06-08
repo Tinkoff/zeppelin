@@ -35,24 +35,24 @@ public class InterpreterResult implements Serializable {
   }
 
 
-  Code code;
-  List<Message> msg = new LinkedList<>();
+  private Code code;
+  private List<Message> msg = new LinkedList<>();
 
-  public InterpreterResult(Code code) {
+  public InterpreterResult(final Code code) {
     this.code = code;
   }
 
-  public InterpreterResult(Code code, List<Message> msgs) {
+  public InterpreterResult(final Code code, final List<Message> msgs) {
     this.code = code;
     msg.addAll(msgs);
   }
 
-  public InterpreterResult(Code code, Message msgs) {
+  public InterpreterResult(final Code code, final Message msgs) {
     this.code = code;
     msg.add(msgs);
   }
 
-  public InterpreterResult add(Message message) {
+  public InterpreterResult add(final Message message) {
     msg.add(message);
     return this;
   }
@@ -82,7 +82,7 @@ public class InterpreterResult implements Serializable {
     Type type;
     String data;
 
-    public Message(Type type, String data) {
+    public Message(final Type type, final String data) {
       this.type = type;
       this.data = data;
     }
