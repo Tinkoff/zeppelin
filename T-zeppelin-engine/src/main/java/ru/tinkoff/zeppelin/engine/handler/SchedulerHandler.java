@@ -25,9 +25,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
+import ru.tinkoff.zeppelin.core.notebook.JobPriority;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 import ru.tinkoff.zeppelin.storage.JobBatchDAO;
 import ru.tinkoff.zeppelin.storage.JobDAO;
@@ -50,6 +52,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 public class SchedulerHandler extends AbstractHandler {
 
   private final SchedulerDAO schedulerDAO;
+  private final NoteEventService noteEventService;
 
   public SchedulerHandler(final JobBatchDAO jobBatchDAO,
                           final JobDAO jobDAO,
@@ -58,9 +61,11 @@ public class SchedulerHandler extends AbstractHandler {
                           final NoteDAO noteDAO,
                           final ParagraphDAO paragraphDAO,
                           final FullParagraphDAO fullParagraphDAO,
-                          final SchedulerDAO schedulerDAO) {
+                          final SchedulerDAO schedulerDAO,
+                          final NoteEventService noteEventService) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
     this.schedulerDAO = schedulerDAO;
+    this.noteEventService = noteEventService;
   }
 
   public List<Scheduler> loadJobs() {
@@ -82,7 +87,8 @@ public class SchedulerHandler extends AbstractHandler {
     ZLog.log(ET.JOB_READY_FOR_EXECUTION_BY_SCHEDULER,
         String.format("Ноут[id=%s] готов к исполнению по РАСПИСАНИЮ (автор задачи=%s)",
             scheduler.getNoteId(), scheduler.getUser()), SystemEvent.SYSTEM_USERNAME);
-    publishBatch(note, paragraphs, scheduler.getUser(), scheduler.getRoles(), 100);
+    noteEventService.successOnNoteScheduleExecution(note.getId());
+    publishBatch(note, paragraphs, scheduler.getUser(), scheduler.getRoles(), JobPriority.SCHEDULER.getIndex());
 
     final CronExpression cronExpression;
     try {

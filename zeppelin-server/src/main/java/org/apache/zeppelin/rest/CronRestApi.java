@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
 
@@ -54,13 +55,16 @@ public class CronRestApi extends AbstractRestApi {
   private static final Logger LOGGER = LoggerFactory.getLogger(CronRestApi.class);
 
   private final SchedulerDAO schedulerDAO;
+  private final NoteEventService noteEventService;
 
   public CronRestApi(
       final NoteService noteService,
       final SchedulerDAO schedulerDAO,
-      final ConnectionManager connectionManager) {
+      final ConnectionManager connectionManager,
+      final NoteEventService noteEventService) {
     super(noteService, connectionManager);
     this.schedulerDAO = schedulerDAO;
+    this.noteEventService = noteEventService;
   }
 
   /**
@@ -114,6 +118,8 @@ public class CronRestApi extends AbstractRestApi {
       return new JsonResponse(HttpStatus.BAD_REQUEST, "wrong cron expressions").build();
     }
 
+    final Scheduler oldScheduler = isNewCronScheduler ? null : scheduler.getScheduler();
+
     updateIfNotNull(() -> expression, scheduler::setExpression);
     updateIfNotNull(() -> isEnable, scheduler::setEnabled);
 
@@ -128,6 +134,7 @@ public class CronRestApi extends AbstractRestApi {
 
 
     scheduler = isNewCronScheduler ? schedulerDAO.persist(scheduler) : schedulerDAO.update(scheduler);
+    noteEventService.noteScheduleChange(note, oldScheduler);
 
     // broadcast event
     final SockMessage message = new SockMessage(Operation.NOTE_UPDATED);

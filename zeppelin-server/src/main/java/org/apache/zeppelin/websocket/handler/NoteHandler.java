@@ -42,6 +42,7 @@ import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
@@ -54,15 +55,18 @@ public class NoteHandler extends AbstractHandler {
 
   private final NoteDTOConverter noteDTOConverter;
   private final SchedulerDAO schedulerDAO;
+  private final NoteEventService noteEventService;
 
   @Autowired
   public NoteHandler(final NoteService noteService,
       final ConnectionManager connectionManager,
       final NoteDTOConverter noteDTOConverter,
-      final SchedulerDAO schedulerDAO) {
+      final SchedulerDAO schedulerDAO,
+      final NoteEventService noteEventService) {
     super(connectionManager, noteService);
     this.noteDTOConverter = noteDTOConverter;
     this.schedulerDAO = schedulerDAO;
+    this.noteEventService = noteEventService;
   }
 
   public static class NoteInfo {
@@ -244,8 +248,10 @@ public class NoteHandler extends AbstractHandler {
     //disable scheduler
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     if (scheduler != null) {
+      final Scheduler oldScheduler = scheduler.getScheduler();
       scheduler.setEnabled(false);
       schedulerDAO.update(scheduler);
+      noteEventService.noteScheduleChange(note, oldScheduler);
     }
     sendListNotesInfo(conn);
   }

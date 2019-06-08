@@ -54,6 +54,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
+import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.engine.search.LuceneSearch;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
@@ -66,6 +68,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   private final LuceneSearch luceneSearch;
   private final SchedulerDAO schedulerDAO;
+  private final NoteEventService noteEventService;
 
   private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -74,10 +77,12 @@ public class NotebookRestApi extends AbstractRestApi {
       final LuceneSearch luceneSearch,
       final ConnectionManager connectionManager,
       final NoteService noteService,
-      final SchedulerDAO schedulerDAO) {
+      final SchedulerDAO schedulerDAO,
+      final NoteEventService noteEventService) {
     super(noteService, connectionManager);
     this.luceneSearch = luceneSearch;
     this.schedulerDAO = schedulerDAO;
+    this.noteEventService = noteEventService;
   }
 
   /**
@@ -138,8 +143,10 @@ public class NotebookRestApi extends AbstractRestApi {
     if (note.getPath().startsWith(Note.TRASH_FOLDER)) {
       final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
       if (scheduler != null) {
+        final Scheduler oldScheduler = scheduler.getScheduler();
         scheduler.setEnabled(false);
         schedulerDAO.update(scheduler);
+        noteEventService.noteScheduleChange(note, oldScheduler);
       }
     }
 

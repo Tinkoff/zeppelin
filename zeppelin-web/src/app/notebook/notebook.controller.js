@@ -41,6 +41,9 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.looknfeelOption = ['default', 'simple', 'report'];
   $scope.noteFormTitle = null;
   $scope.selectedParagraphsIds = new Set();
+  // notification
+  $scope.subscriptions = null;
+  $scope.showNotifications = false;
 
   $scope.formatRevisionDate = function(date) {
     if (!date) {
@@ -358,6 +361,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     if (data.note) {
       $scope.note = data.note;
       initializeLookAndFeel();
+      getSubscriptions();
     } else {
       $location.path('/');
     }
@@ -637,10 +641,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     initializeLookAndFeel();
   });
 
-  let getInterpreterBindings = function() {
-    websocketMsgSrv.getInterpreterBindings($scope.note.id);
-  };
-
   $scope.toggleSelection = function(paragraphId) {
     let paragraphs = $scope.selectedParagraphsIds;
     if (paragraphs.has(paragraphId)) {
@@ -755,109 +755,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
   };
 
-  $scope.$on('interpreterBindings', function(event, data) {
-    $scope.interpreterBindings = data.interpreterBindings;
-    $scope.interpreterBindingsOrig = angular.copy($scope.interpreterBindings); // to check dirty
-
-    let selected = false;
-    let key;
-    let setting;
-
-    for (key in $scope.interpreterBindings) {
-      if($scope.interpreterBindings.hasOwnProperty(key)) {
-        setting = $scope.interpreterBindings[key];
-        if (setting.selected) {
-          selected = true;
-          break;
-        }
-      }
-    }
-
-    if (!selected) {
-      // make default selection
-      let selectedIntp = {};
-      for (key in $scope.interpreterBindings) {
-        if ($scope.interpreterBindings.hasOwnProperty(key)) {
-          setting = $scope.interpreterBindings[key];
-          if (!selectedIntp[setting.name]) {
-            setting.selected = true;
-            selectedIntp[setting.name] = true;
-          }
-        }
-      }
-      $scope.showSetting = true;
-    }
-  });
-
-  $scope.interpreterSelectionListeners = {
-    accept: function(sourceItemHandleScope, destSortableScope) {
-      return true;
-    },
-    itemMoved: function(event) {},
-    orderChanged: function(event) {},
-  };
-
   $scope.closeAdditionalBoards = function() {
-    $scope.closeSetting();
     $scope.closePermissions();
+    $scope.closeNotifications();
     $scope.closeRevisionsComparator();
-  };
-
-  $scope.openSetting = function() {
-    $scope.showSetting = true;
-    getInterpreterBindings();
-  };
-
-  $scope.closeSetting = function() {
-    if (isSettingDirty()) {
-      BootstrapDialog.confirm({
-        closable: true,
-        title: '',
-        message: 'Interpreter setting changes will be discarded.',
-        callback: function(result) {
-          if (result) {
-            $scope.$apply(function() {
-              $scope.showSetting = false;
-            });
-          }
-        },
-      });
-    } else {
-      $scope.showSetting = false;
-    }
-  };
-
-  $scope.saveSetting = function() {
-    let selectedSettingIds = [];
-    for (let no in $scope.interpreterBindings) {
-      if ($scope.interpreterBindings.hasOwnProperty(no)) {
-        let setting = $scope.interpreterBindings[no];
-        if (setting.selected) {
-          selectedSettingIds.push(setting.id);
-        }
-      }
-    }
-    websocketMsgSrv.saveInterpreterBindings($scope.note.id, selectedSettingIds);
-    console.log('Interpreter bindings %o saved', selectedSettingIds);
-
-    _.forEach($scope.note.paragraphs, function(n, key) {
-      let regExp = /^\s*%/g;
-      if (n.text && !regExp.exec(n.text)) {
-        $scope.$broadcast('saveInterpreterBindings', n.id);
-      }
-    });
-
-    $scope.showSetting = false;
-  };
-
-  $scope.toggleSetting = function() {
-    if ($scope.showSetting) {
-      $scope.closeSetting();
-    } else {
-      $scope.closeAdditionalBoards();
-      $scope.openSetting();
-      angular.element('html, body').animate({scrollTop: 0}, 'slow');
-    }
   };
 
   $scope.openRevisionsComparator = function() {
@@ -878,6 +779,65 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
   };
 
+  // Get configuration for selectors.
+  // see https://select2.org/configuration/options-api
+  let getSelectConfiguration = function() {
+    let selectJson = {
+      tokenSeparators: [',', ' '],
+      ajax: {
+        url: function(params) {
+          if (!params.term) {
+            return false;
+          }
+          return baseUrlSrv.getRestApiBase() + '/security/userlist/' + params.term;
+        },
+        delay: 250,
+        processResults: function(data, params) {
+          let results = [];
+
+          if (data.body.users.length !== 0) {
+            let users = [];
+            for (let len = 0; len < data.body.users.length; len++) {
+              users.push({
+                'id': data.body.users[len],
+                'text': data.body.users[len],
+              });
+            }
+            results.push({
+              'text': 'Users :',
+              'children': users,
+            });
+          }
+          if (data.body.roles.length !== 0) {
+            let roles = [];
+            for (let len = 0; len < data.body.roles.length; len++) {
+              roles.push({
+                'id': data.body.roles[len],
+                'text': data.body.roles[len],
+              });
+            }
+            results.push({
+              'text': 'Roles :',
+              'children': roles,
+            });
+          }
+          return {
+            results: results,
+            pagination: {
+              more: false,
+            },
+          };
+        },
+        cache: false,
+      },
+      width: ' ',
+      tags: true,
+      minimumInputLength: 3,
+    };
+    return selectJson;
+  };
+
+
   let getPermissions = function(callback) {
     $http.get(baseUrlSrv.getRestApiBase() + '/notebook/' + $scope.note.databaseId)
     .success(function(data, status, headers, config) {
@@ -889,58 +849,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       };
       $scope.permissionsOrig = angular.copy($scope.permissions); // to check dirty
 
-      let selectJson = {
-        tokenSeparators: [',', ' '],
-        ajax: {
-          url: function(params) {
-            if (!params.term) {
-              return false;
-            }
-            return baseUrlSrv.getRestApiBase() + '/security/userlist/' + params.term;
-          },
-          delay: 250,
-          processResults: function(data, params) {
-            let results = [];
-
-            if (data.body.users.length !== 0) {
-              let users = [];
-              for (let len = 0; len < data.body.users.length; len++) {
-                users.push({
-                  'id': data.body.users[len],
-                  'text': data.body.users[len],
-                });
-              }
-              results.push({
-                'text': 'Users :',
-                'children': users,
-              });
-            }
-            if (data.body.roles.length !== 0) {
-              let roles = [];
-              for (let len = 0; len < data.body.roles.length; len++) {
-                roles.push({
-                  'id': data.body.roles[len],
-                  'text': data.body.roles[len],
-                });
-              }
-              results.push({
-                'text': 'Roles :',
-                'children': roles,
-              });
-            }
-            return {
-              results: results,
-              pagination: {
-                more: false,
-              },
-            };
-          },
-          cache: false,
-        },
-        width: ' ',
-        tags: true,
-        minimumInputLength: 3,
-      };
+      let selectJson = getSelectConfiguration();
 
       $scope.setIamOwner();
       angular.element('#selectOwners').select2(selectJson);
@@ -1358,14 +1267,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
   };
 
-  const isSettingDirty = function() {
-    // if (angular.equals($scope.interpreterBindings, $scope.interpreterBindingsOrig)) {
-    //   return false;
-    // } else {
-    return false;
-    // }
-  };
-
   const isPermissionsDirty = function() {
     if (angular.equals($scope.permissions, $scope.permissionsOrig)) {
       return false;
@@ -1391,6 +1292,110 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       return true;
     }
   };
+
+  // Note notification functions below.
+
+  /**
+   * Inits subscriptions.
+   */
+  function getSubscriptions() {
+    $http.get(baseUrlSrv.getRestApiBase() + '/event/' + $scope.note.databaseId + '/subscriptions')
+      .success((data) => {
+        // Array of [key, value] for simple iteration
+        $scope.subscriptions = Object.entries(data.body);
+        for (let i = 0; i < $scope.subscriptions.length; i++) {
+          $scope.subscriptions[i][1] = Object.entries($scope.subscriptions[i][1]);
+        }
+        setTimeout(() => initNotificationSelects(getSelectConfiguration()), 100);
+      });
+  }
+
+  /**
+   * Inits select2 with passed config for each notification select.
+   */
+  function initNotificationSelects(json) {
+    for (let i = 0; i < $scope.subscriptions.length; i++) {
+      let eventTypeInfo = $scope.subscriptions[i];
+      for (let j = 0; j < eventTypeInfo[1].length; j++) {
+        let notificationTypeInfo = eventTypeInfo[1][j];
+        angular.element('#select' + eventTypeInfo[0] + notificationTypeInfo[0]).select2(json);
+      }
+    }
+  }
+
+  function makeAction(eventType, action, notificationType, user) {
+    $http.post([baseUrlSrv.getRestApiBase(), '/event/', $scope.note.databaseId,
+      '?type=', eventType, '&action=', action,
+      '&notification=', notificationType, '&user=', user].join(''))
+    .error(function(data, status, headers, config) {
+      console.log('Error %o %o', status, data.message);
+      BootstrapDialog.show({
+        type: BootstrapDialog.TYPE_WARNING,
+        closable: true,
+        closeByBackdrop: false,
+        closeByKeyboard: false,
+        title: 'Fail to update notification for <b>' + user + '</b>',
+        message: data.message,
+        buttons: [{
+          label: 'Close all dialogs',
+          action: function(dialog) {
+            BootstrapDialog.closeAll();
+          },
+        }, {
+          label: 'Close',
+          action: function(dialog) {
+            dialog.close();
+          },
+        }],
+      });
+    });
+  }
+
+  /**
+   * Process each select.
+   */
+  function updateNotifications() {
+    for (let i = 0; i < $scope.subscriptions.length; i++) {
+      let eventTypeInfo = $scope.subscriptions[i];
+      for (let j = 0; j < eventTypeInfo[1].length; j++) {
+        let notificationTypeInfo = eventTypeInfo[1][j];
+        let tmpUsers = new Set(angular.element('#select' + eventTypeInfo[0] + notificationTypeInfo[0]).val());
+        let oldUsers = new Set(notificationTypeInfo[1]);
+
+        let newUsers = new Set([...tmpUsers].filter((x) => !oldUsers.has(x)));
+        let removedUsers = new Set([...oldUsers].filter((x) => !tmpUsers.has(x)));
+
+        newUsers.forEach((user) => makeAction(eventTypeInfo[0], 'add', notificationTypeInfo[0], user));
+        removedUsers.forEach((user) => makeAction(eventTypeInfo[0], 'remove', notificationTypeInfo[0], user));
+      }
+    }
+    angular.element('.permissionsForm select').find('option:not([is-select2="false"])').remove();
+  }
+
+  $scope.closeNotifications = function() {
+    $scope.showNotifications = false;
+  };
+
+  $scope.toggleNotifications = function() {
+    if ($scope.showNotifications) {
+      $scope.closeNotifications();
+      setTimeout(() => initNotificationSelects({}), 100);
+    } else {
+      $scope.closeAdditionalBoards();
+      $scope.openNotifications();
+    }
+  };
+
+  $scope.openNotifications = function() {
+    $scope.showNotifications = true;
+    getSubscriptions();
+  };
+
+  $scope.saveNotifications = function() {
+    updateNotifications();
+    $scope.showNotifications = false;
+  };
+
 
   /*
    ** $scope.$on functions below
@@ -1625,10 +1630,8 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
 
     initializeLookAndFeel();
-
-    // open interpreter binding setting when there're none selected
-    getInterpreterBindings();
     getPermissions();
+    getSubscriptions();
     let isPersonalized = $scope.note.config.personalizedMode;
     isPersonalized = isPersonalized === undefined ? 'false' : isPersonalized;
     $scope.note.config.personalizedMode = isPersonalized;
