@@ -63,7 +63,8 @@ public class NoteRevisionHandler extends AbstractHandler {
 
 
     final String message = fromMessage.getNotNull("commitMessage");
-    LOGGER.info("Сохранение текущей версии ноута с сообщением noteId: {}, noteUuid: "+ note.getUuid() + " с сообщением: " + message);
+    LOGGER.info("Сохранение текущей версии ноута с сообщением noteId: {}, noteUuid: {} с сообщением: {}",
+        note.getId(), note.getUuid(), message);
     noteService.persistRevision(note, message);
     listRevisionHistory(conn, fromMessage);
   }
@@ -79,7 +80,7 @@ public class NoteRevisionHandler extends AbstractHandler {
         conn);
 
     final SockMessage message = new SockMessage(Operation.LIST_REVISION_HISTORY);
-    LOGGER.info("Загрузка истории версий ноута noteId: {}, noteUuid: "+ note.getUuid() , note.getId());
+    LOGGER.info("Загрузка истории версий ноута noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
     message.put("revisionList", noteService.getRevisions(note));
     conn.sendMessage(message.toSend());
   }
@@ -96,10 +97,10 @@ public class NoteRevisionHandler extends AbstractHandler {
     );
 
     final long revisionId = Long.parseLong(fromMessage.getNotNull("revisionId"));
-    NoteRevision noteRevision = getNoteRevision(note, revisionId);
-    LOGGER.info("Получение версии revisionId: {} ноута noteId: {}, noteUuid: " + note.getUuid(), revisionId, note.getId());
+    final NoteRevision noteRevision = getNoteRevision(note, revisionId);
+    LOGGER.info("Получение версии revisionId: {} ноута noteId: {}, noteUuid: {}", revisionId, note.getId(), note.getUuid());
     note.setRevision(noteRevision);
-    NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
+    final NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
 
     final SockMessage message = new SockMessage(Operation.NOTE_REVISION)
         .put("noteId", note.getUuid())
@@ -123,11 +124,12 @@ public class NoteRevisionHandler extends AbstractHandler {
     final String revisionId = fromMessage.getNotNull("revisionId").toString();
 
     if (!"Head".equals(revisionId)) {
-      NoteRevision noteRevision = getNoteRevision(note, new Double(revisionId).longValue());
+      final NoteRevision noteRevision = getNoteRevision(note, new Double(revisionId).longValue());
       note.setRevision(noteRevision);
     }
-    LOGGER.info("Загрузка для сравнения версии  revisionId: {}, revisionMsg: " + note.getRevision().getMessage() + " ноута noteId: {}, noteUuid: " + note.getUuid(), revisionId, note.getId());
-    NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
+    LOGGER.info("Загрузка для сравнения версии  revisionId: {}, revisionMsg: {} ноута noteId: {}, noteUuid: {}",
+        revisionId, note.getRevision().getMessage(), note.getId(), note.getUuid());
+    final NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
 
     final SockMessage message = new SockMessage(Operation.NOTE_REVISION_FOR_COMPARE);
     message.put("noteId", note.getUuid());
@@ -150,14 +152,15 @@ public class NoteRevisionHandler extends AbstractHandler {
     );
 
     final long revisionId = Long.parseLong(fromMessage.getNotNull("revisionId"));
-    NoteRevision noteRevision = getNoteRevision(note, revisionId);
+    final NoteRevision noteRevision = getNoteRevision(note, revisionId);
     noteService.restoreNoteToRevision(note, noteRevision);
-    NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
+    final NoteDTO noteDTO = noteDTOConverter.convertNoteToDTO(note);
 
     final SockMessage message = new SockMessage(Operation.SET_NOTE_REVISION);
     message.put("status", true);
 
-    LOGGER.info("Установка, в качетсве текущей, версии revisionId: {}, revisionMsg: " + note.getRevision().getMessage() + " ноута noteId: {}, noteUuid: " + note.getUuid(), revisionId, note.getId());
+    LOGGER.info("Установка, в качетсве текущей, версии revisionId: {}, revisionMsg: {} ноута noteId: {}, noteUuid: {}",
+        revisionId, note.getRevision().getMessage(), note.getId(), note.getUuid());
     conn.sendMessage(message.toSend());
     connectionManager.broadcast(
         noteDTO.getDatabaseId(),
@@ -166,7 +169,8 @@ public class NoteRevisionHandler extends AbstractHandler {
   }
 
   private NoteRevision getNoteRevision(final Note note, final long revisionId) {
-    LOGGER.info("Поиск версии revisionId: {} ноута noteId: {}, noteUuid: "+ note.getUuid() ,revisionId, note.getId());
+    LOGGER.info("Поиск версии revisionId: {} ноута noteId: {}, noteUuid: {}",
+        revisionId, note.getId(), note.getUuid());
     return noteService.getRevisions(note).stream()
         .filter(r -> r.getId() == revisionId)
         .findAny()

@@ -17,6 +17,12 @@
 
 package org.apache.zeppelin.rest;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -25,17 +31,21 @@ import org.apache.zeppelin.websocket.Operation;
 import org.apache.zeppelin.websocket.SockMessage;
 import org.apache.zeppelin.websocket.handler.AbstractHandler.Permission;
 import org.quartz.CronExpression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.*;
 
 @RestController
 @RequestMapping("api")
@@ -43,9 +53,7 @@ public class CronRestApi extends AbstractRestApi {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CronRestApi.class);
 
-  private final NoteService noteRepository;
   private final SchedulerDAO schedulerDAO;
-  private final ConnectionManager connectionManager;
 
   public CronRestApi(
       final NoteService noteService,
@@ -53,7 +61,6 @@ public class CronRestApi extends AbstractRestApi {
       final ConnectionManager connectionManager) {
     super(noteService, connectionManager);
     this.schedulerDAO = schedulerDAO;
-    this.connectionManager = connectionManager;
   }
 
   /**
@@ -69,8 +76,7 @@ public class CronRestApi extends AbstractRestApi {
   @PutMapping(value = "/notebook/{noteId}/cron", produces = "application/json")
   public ResponseEntity registerCronJob(
       @PathVariable("noteId") final String noteIdParam,
-      @RequestBody final Map<String, String> params
-  ) throws IllegalArgumentException {
+      @RequestBody final Map<String, String> params) throws IllegalArgumentException {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
 
     final String expression = params.get("expression");

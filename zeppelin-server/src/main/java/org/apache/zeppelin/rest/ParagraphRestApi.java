@@ -17,6 +17,10 @@
 package org.apache.zeppelin.rest;
 
 import com.google.gson.JsonObject;
+import java.security.InvalidParameterException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.rest.message.JsonResponse;
 import org.apache.zeppelin.rest.message.ParagraphRequest;
@@ -27,15 +31,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.NoteService;
-
-import java.security.InvalidParameterException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/notebook/{noteId}/paragraph")
@@ -153,6 +159,8 @@ public class ParagraphRestApi extends AbstractRestApi {
   public ResponseEntity getParagraph(
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId) {
+    LOGGER.info("Получение параграфа paragraphId: {} ноута noteId: {} через RestApi(GET)", paragraphId, noteId);
+
     final Note note = secureLoadNote(noteId, Permission.READER);
     final ParagraphRequest response = new ParagraphRequest(getParagraph(note, paragraphId));
     return new JsonResponse(HttpStatus.OK, "Paragraph info", response).build();
@@ -166,6 +174,8 @@ public class ParagraphRestApi extends AbstractRestApi {
   @GetMapping(produces = "application/json")
   public ResponseEntity getAllParagraphs(
       @PathVariable("noteId") final long noteId) {
+    LOGGER.info("Получение всех параграфов ноута noteId: {} через RestApi(POST)", noteId);
+
     final Note note = secureLoadNote(noteId, Permission.READER);
     final List<ParagraphRequest> response = noteService.getParagraphs(note).stream()
         .map(ParagraphRequest::new)
@@ -175,7 +185,8 @@ public class ParagraphRestApi extends AbstractRestApi {
 
   private void moveParagraph(final Note note, final long paragraphId, final int newPosition) {
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
-    LOGGER.info("Изменение номера параграфа paragraphId: {} на {} в ноуте noteId: {}, noteUuid: {} через RestApi", paragraphId, newPosition, note.getId(), note.getUuid());
+    LOGGER.info("Изменение номера параграфа paragraphId: {} на {} в ноуте noteId: {}, noteUuid: {} через RestApi",
+        paragraphId, newPosition, note.getId(), note.getUuid());
 
     if (newPosition < 0 || newPosition >= paragraphs.size()) {
       throw new IndexOutOfBoundsException("newPosition " + newPosition + " is out of bounds");
@@ -219,8 +230,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   public ResponseEntity setFormValue(
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId,
-      @RequestBody final Map<String, Object> formValues
-  ) {
+      @RequestBody final Map<String, Object> formValues) {
     final Note note = secureLoadNote(noteId, Permission.WRITER);
     final Paragraph paragraph = getParagraph(note, paragraphId);
     final Map<String, Object> params = paragraph.getFormParams();
