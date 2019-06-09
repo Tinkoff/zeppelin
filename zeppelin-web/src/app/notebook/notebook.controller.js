@@ -45,10 +45,8 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.subscriptions = null;
   $scope.showNotifications = false;
 
-  $scope.isWaiting = function(paragraph) {
-    if (paragraph.config && paragraph.config.editorSetting && paragraph.config.editorSetting.language) {
-      return paragraph.config.editorSetting.language === 'wait';
-    }
+  $scope.isAction = function(paragraph) {
+    return paragraph.config && paragraph.config.editorSetting && paragraph.config.editorSetting.action;
   };
 
   $scope.formatRevisionDate = function(date) {
@@ -853,6 +851,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         runners: data.body.runners,
         writers: data.body.writers,
       };
+      $scope.$emit('updatePermissions', $scope.note.databaseId, $scope.permissions);
       $scope.permissionsOrig = angular.copy($scope.permissions); // to check dirty
 
       let selectJson = getSelectConfiguration();

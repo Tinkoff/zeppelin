@@ -78,6 +78,7 @@
     <module>modules/markdown</module>
 
     <module>modules/waiting/t-waiting-interpreter</module>
+    <module>modules/runner/t-runner-interpreter</module>
   </modules>
 
   <properties>

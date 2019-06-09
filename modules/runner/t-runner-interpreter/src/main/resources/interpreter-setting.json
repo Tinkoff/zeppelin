@@ -1,0 +1,18 @@
+{
+  "className": "ru.tinkoff.zeppelin.interpreter.runner.RunnerInterpreter",
+  "properties": {
+    "zeppelin.base.url": {
+      "envName": "ZEPPELIN_BASE_URL",
+      "propertyName": "zeppelin.base.url",
+      "defaultValue": "http://localhost:8080",
+      "currentValue": "http://localhost:8080",
+      "description": "Base Zeppelin URL to construct REST API requests",
+      "type": "textarea"
+    }
+  },
+  "editor": {
+    "action" : "runs",
+    "warning" : "Внимание у вас нет прав запуска ноута!",
+    "warning_condition": "!$scope.permissions.runners.includes($rootScope.ticket.principal.trim())"
+  }
+}

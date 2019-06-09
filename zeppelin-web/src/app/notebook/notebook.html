@@ -138,10 +138,10 @@ limitations under the License.
 
   <!-- Include the paragraphs according to the note, pass the note to init function -->
   <div ng-repeat="currentParagraph in note.paragraphs">
-    <div ng-if="isWaiting(currentParagraph)">
+    <div ng-if="isAction(currentParagraph)">
       <div id="{{currentParagraph.id}}_paragraphColumn_main"
            ng-controller="WaitingParagraphCtrl"
-           ng-init="init(currentParagraph, note)"
+           ng-init="init(currentParagraph, note, permissions)"
            ng-class="columnWidthClass(currentParagraph.config.colWidth)"
            style="margin: 0; padding: 0;">
         <div class="new-paragraph"
@@ -164,7 +164,7 @@ limitations under the License.
         </div>
       </div>
     </div>
-    <div ng-if="!isWaiting(currentParagraph)">
+    <div ng-if="!(isWaiting(currentParagraph) || isRunner(currentParagraph))">
       <div id="{{currentParagraph.id}}_paragraphColumn_main"
            ng-controller="ParagraphCtrl"
            ng-init="init(currentParagraph, note)"

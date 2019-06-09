@@ -27,6 +27,8 @@
     }
   },
   "editor": {
-    "language": "wait"
+    "action" : "is waiting for",
+    "warning" : "Внимание, у параграфа не настроено расписание!",
+    "warning_condition": "!$scope.note.scheduler.isEnabled"
   }
 }

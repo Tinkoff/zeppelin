@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ru.tinkoff.zeppelin.interpreter.waiting;
+package ru.tinkoff.zeppelin.interpreter.runner;
 
 import com.google.gson.Gson;
 import java.io.BufferedReader;
@@ -22,11 +22,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
@@ -37,32 +34,16 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
 /**
  *
  */
-public class WaitingInterpreter extends Interpreter {
+public class RunnerInterpreter extends Interpreter {
 
   private static class ResponseDTO {
     public String status;
-    public NoteInfoDTO body;
-  }
-
-  private static class NoteInfoDTO {
-    // use for updated note
-    public String path;
-    public Set<String> owners;
-    public Set<String> readers;
-    public Set<String> runners;
-    public Set<String> writers;
-
-    // use only for send note back to user
-    public Long id;
-    public String uuid;
-    public Object revision;
-    public Map<String, Object> formParams;
-    public Boolean isRunning;
+    public String message;
   }
 
   private final AtomicBoolean interrupted = new AtomicBoolean(false);
 
-  public WaitingInterpreter() {
+  public RunnerInterpreter() {
     super();
   }
 
@@ -83,6 +64,7 @@ public class WaitingInterpreter extends Interpreter {
     }
     this.configuration.clear();
     this.configuration.putAll(configuration);
+
   }
 
   @Override
@@ -100,9 +82,9 @@ public class WaitingInterpreter extends Interpreter {
     interrupted.set(true);
   }
 
-  private boolean isRunning(final String zeppelinBaseUrl, final String noteId) throws IOException {
+  private ResponseDTO run(final String zeppelinBaseUrl, final String noteId) throws IOException {
     final HttpURLConnection conn = (HttpURLConnection) new URL(
-        String.format("%s/api/notebook/%s", zeppelinBaseUrl, noteId)
+        String.format("%s/api/executor/notebook/%s", zeppelinBaseUrl, noteId)
     ).openConnection();
     conn.setRequestMethod("GET");
 
@@ -113,15 +95,7 @@ public class WaitingInterpreter extends Interpreter {
       }
     }
 
-    final ResponseDTO response = new Gson().fromJson(sb.toString(), ResponseDTO.class);
-    if (response.status != null && response.status.equals("OK")) {
-      if (response.body != null && response.body.isRunning != null) {
-        return response.body.isRunning;
-      }
-    } else {
-      throw new IOException("Bad response");
-    }
-    return false;
+    return new Gson().fromJson(sb.toString(), ResponseDTO.class);
   }
 
   @Override
@@ -130,25 +104,18 @@ public class WaitingInterpreter extends Interpreter {
                                        final Map<String, String> userContext,
                                        final Map<String, String> configuration) {
     final String zeppelinBaseUrl = configuration.get("zeppelin.base.url");
-    final int maxLife = Integer.parseInt(configuration.get("waiting.timeout"));
-    final int requestInterval = Integer.parseInt(configuration.get("request.interval"));
 
     interrupted.set(false);
-
-    final long startTime = Instant.now().getEpochSecond();
-    while (Instant.now().getEpochSecond() < startTime + maxLife && !interrupted.get()) {
+    if (!interrupted.get()) {
       try {
-        if (!isRunning(zeppelinBaseUrl, st)) {
-          return new InterpreterResult(Code.SUCCESS, new Message(Type.TEXT, "Successfully finished"));
+        final ResponseDTO response = run(zeppelinBaseUrl, st);
+        if (response.status != null && response.status.equals("OK")) {
+          return new InterpreterResult(Code.SUCCESS, new Message(Type.TEXT, response.message));
+        } else {
+          return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, response.message));
         }
       } catch (final IOException e) {
         return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, e.getMessage()));
-      }
-
-      try {
-        TimeUnit.SECONDS.sleep(requestInterval);
-      } catch (final Exception e) {
-        // SKIP
       }
     }
 

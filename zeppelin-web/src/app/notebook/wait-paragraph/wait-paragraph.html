@@ -19,9 +19,9 @@ limitations under the License.
 
     <div style="margin: 0px 10px 10px 10px">
       <div class="row">
-        <h3>This paragraph is waiting for <b>{{notePath}}</b></h3>
-        <h3 style="color:red;" ng-if="!note.scheduler.isEnabled">
-          Внимание, у параграфа не настроено расписание!
+        <h3>This paragraph {{action}} <b>{{notePath}}</b></h3>
+        <h3 style="color:red;" ng-if="check()">
+          {{warning}}
         </h3>
       </div>
 

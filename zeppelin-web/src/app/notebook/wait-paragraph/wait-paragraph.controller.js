@@ -38,7 +38,7 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
   $scope.TRASH_FOLDER_ID = TRASH_FOLDER_ID;
   $scope.query = {q: ''};
 
-  $scope.init = function(newParagraph, note) {
+  $scope.init = function(newParagraph, note, permissions) {
     $scope.paragraph = newParagraph;
     $scope.parentNote = note;
     $scope.paragraphFocused = false;
@@ -47,6 +47,16 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
     }
     if (!$scope.paragraph.config) {
       $scope.paragraph.config = {};
+    }
+
+    $scope.permissions = permissions;
+    if (!permissions) {
+      $scope.permissions = {
+        owners: [],
+        readers: [],
+        runners: [],
+        writers: [],
+      };
     }
 
     favoriteNotesService.init();
@@ -60,11 +70,52 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
     });
 
     $scope.isNoteRunning = !!(note && note.hasOwnProperty('info') &&
-      note.info.hasOwnProperty('isRunning')
-      && note.info.isRunning === true);
+      note.info && note.info.hasOwnProperty('isRunning') && note.info.isRunning === true);
 
     getInterpreterSettings();
     $scope.notePath = getNotePath($scope.paragraph.text);
+
+    let editorSetting = $scope.paragraph.config.editorSetting;
+    if ($scope.paragraph.config && editorSetting && editorSetting.warning
+        && editorSetting.warning_condition && editorSetting.action) {
+      $scope.warning = editorSetting.warning;
+      $scope.warning_condition = editorSetting.warning_condition;
+      $scope.action = editorSetting.action;
+    }
+  };
+
+  $scope.setParagraphMode = function() {
+    let index = _.findIndex($scope.interpreterSettings, {'shebang': $scope.paragraph.shebang});
+    if (index < 0) {
+      return;
+    }
+
+    _.merge($scope.paragraph.config.editorSetting, $scope.interpreterSettings[index].config.editor);
+
+    if ($scope.interpreterSettings[index].config.editor.language) {
+      let editorSetting = $scope.paragraph.config.editorSetting;
+      if ($scope.paragraph.config && editorSetting && editorSetting.warning
+          && editorSetting.warning_condition && editorSetting.action) {
+        delete editorSetting.warning;
+        delete editorSetting.warning_condition;
+        delete editorSetting.action;
+      }
+    } else {
+      let editorSetting = $scope.paragraph.config.editorSetting;
+      if ($scope.paragraph.config && editorSetting && editorSetting.warning
+          && editorSetting.warning_condition && editorSetting.action) {
+        $scope.warning = editorSetting.warning;
+        $scope.warning_condition = editorSetting.warning_condition;
+        $scope.action = editorSetting.action;
+      }
+    }
+  };
+
+  $scope.check = function() {
+    if ($scope.warning_condition) {
+      return eval($scope.warning_condition);
+    }
+    return false;
   };
 
   $scope.getExecutionTime = function(pdata) {
@@ -94,6 +145,11 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
     return desc;
   };
 
+  $rootScope.$on('updatePermissions', function(event, noteId, permissions) {
+    if ($scope.note.databaseId === noteId) {
+      $scope.permissions = permissions;
+    }
+  });
 
   $rootScope.$on('updateCron', function(event, noteId, expression, isEnabled) {
     if ($scope.note.databaseId === noteId) {
@@ -149,8 +205,9 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
   };
 
   $scope.reloadNoteList = function() {
-    websocketMsgSrv.reloadAllNotesFromRepo();
     $scope.isReloadingNotes = true;
+    websocketMsgSrv.reloadAllNotesFromRepo();
+    setTimeout(() => $scope.isReloadingNotes = false, 100);
   };
 
   $scope.toggleFolderNode = function(node) {
