@@ -19,7 +19,6 @@ package org.apache.zeppelin.rest.message;
 import com.google.gson.Gson;
 import java.util.Map;
 import java.util.Set;
-
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.NoteRevision;
 
@@ -96,6 +95,10 @@ public class NoteRequest {
       noteRequest.path = normalizePath(noteRequest.path);
     }
     return noteRequest;
+  }
+
+  public void setRunning(final boolean running) {
+    isRunning = running;
   }
 
   private static String normalizePath(String path) {

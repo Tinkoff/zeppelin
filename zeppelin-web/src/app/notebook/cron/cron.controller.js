@@ -328,6 +328,7 @@ function CronCtrl($scope, $http, baseUrlSrv) {
       if (response.data.status === 'OK') {
         $scope.cron.expression = response.data.body.newCronExpression;
         $scope.cron.enable = response.data.body.enable;
+        $scope.$emit('updateCron', noteId, $scope.cron.expression, $scope.cron.enable);
       }
     });
   };

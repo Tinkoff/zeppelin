@@ -45,6 +45,12 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.subscriptions = null;
   $scope.showNotifications = false;
 
+  $scope.isWaiting = function(paragraph) {
+    if (paragraph.config && paragraph.config.editorSetting && paragraph.config.editorSetting.language) {
+      return paragraph.config.editorSetting.language === 'wait';
+    }
+  };
+
   $scope.formatRevisionDate = function(date) {
     if (!date) {
       return 'Unidentified';
@@ -1609,6 +1615,13 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       position: newIndex,
       shebang: paragraphShebang,
     });
+  });
+
+  $scope.$on('updateCron', function(event, noteId, expression, isEnabled) {
+    if ($scope.note.databaseId === noteId) {
+      $scope.note.scheduler.isEnabled = isEnabled;
+      $scope.note.scheduler.expression = expression;
+    }
   });
 
   $scope.$on('setNoteContent', function(event, note) {

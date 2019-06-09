@@ -1,0 +1,131 @@
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div id="{{paragraph.id}}_container"
+     ng-class="{'paragraph': !asIframe, 'paragraphAsIframe': asIframe}">
+  <div>
+    <div style="margin-top: 40px" ng-include src="'app/notebook/paragraph/paragraph-progress-bar.html'"></div>
+
+    <div style="margin: 0px 10px 10px 10px">
+      <div class="row">
+        <h3>This paragraph is waiting for <b>{{notePath}}</b></h3>
+        <h3 style="color:red;" ng-if="!note.scheduler.isEnabled">
+          Внимание, у параграфа не настроено расписание!
+        </h3>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4" ng-if="ticket">
+          <h4>Notebook
+            <i ng-class="isReloadingNotes ? 'fa fa-refresh fa-spin' : 'fa fa-refresh'"
+               ng-style="!isReloadingNotes && {'cursor': 'pointer'}" style="font-size: 13px;"
+               ng-click="reloadNoteList();"
+               tooltip-placement="bottom" uib-tooltip="Reload notes from storage">
+            </i>
+          </h4>
+
+          <div>
+            <h5><a href="" data-toggle="modal" data-target="#noteImportModal" style="text-decoration: none;">
+              <i style="font-size: 15px;" class="fa fa-upload"></i> Import note</a></h5>
+            <h5 ng-controller="NoteCreateCtrl as noteCreateCtrl"><a href="" data-toggle="modal" data-target="#noteCreateModal" style="text-decoration: none;" ng-click="noteCreateCtrl.getInterpreterSettings()">
+              <i style="font-size: 15px;" class="icon-notebook"></i> Create new note</a></h5>
+
+            <ul id="notebook-names">
+              <li class="filter-names" ng-include="'components/note-name-filter/note-name-filter.html'"></li>
+              <li ng-repeat="note in notes.list | filter:query.q track by $index">
+                <i style="font-size: 10px;" class="icon-doc"></i>
+                <a style="text-decoration: none;" role="button" href="" ng-click="changeNote(note.path)">{{noteName(note)}}</a>
+              </li>
+
+              <div ng-if="!query.q || query.q === ''" infinite-scroll="loadMoreNotes()">
+                <li ng-repeat="node in notes.root.children | limitTo:numberOfNotesDisplayed track by $index"
+                    ng-include src="'app/notebook/wait-paragraph/notebook-template.html'" ng-class="note_folder_renderer"></li>
+              </div>
+              <div ng-if="query.q" infinite-scroll="loadMoreNotes()">
+                <li ng-repeat="node in notes.flatList | filter:query.q | orderBy:arrayOrderingSrv.noteFlatListOrdering | limitTo:numberOfNotesDisplayed track by $index"
+                    ng-include src="'app/notebook/wait-paragraph/notebook-template.html'" ng-class="note_folder_renderer"></li>
+              </div>
+            </ul>
+          </div>
+
+          <div style="margin: 10px 0" ng-if="favoriteNotes.length !== 0">
+            <h4>Favorite Notes</h4>
+            <ul>
+              <li style="color: #0b93d5; list-style: none" ng-repeat="note in favoriteNotes">
+                <a style="text-decoration: none;" href="#/notebook/{{note.id}}">
+                  <i style="font-size: 10px" class="icon-doc"></i>
+                  {{note.name}}
+                </a>
+                <i class="icon-star favorite-star"
+                   ng-class="{'favorite-star-on' : isFavoriteNote(note.id)}"
+                   ng-click="changeNoteFavoriteStatus(note.id)"></i>
+                <a>
+                  <i style="color:green; margin-left:10px" class="fa fa-check"
+                     ng-click="changeNote(note.path)" tooltip-placement="bottom" uib-tooltip="Wait for this note"></i>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div style="margin: 10px 0" ng-if="recentNotes.length !== 0">
+            <h4>Recent Notes</h4>
+            <ul>
+              <li style="color: #0b93d5; list-style: none" ng-repeat="note in recentNotes">
+                <a style="text-decoration: none;" href="#/notebook/{{note.id}}">
+                  <i style="font-size: 10px" class="icon-doc"></i>
+                  {{note.name}}
+                </a>
+                <a>
+                  <i style="color:green; margin-left:10px" class="fa fa-check"
+                     ng-click="changeNote(note.path)" tooltip-placement="bottom" uib-tooltip="Wait for this note"></i>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- Rendering -->
+    <div class="tableDisplay"
+         ng-show="!paragraph.config.tableHide"
+         ng-controller="ResultCtrl"
+         ng-repeat="result in paragraph.results.msg track by $index"
+         ng-init="init(result, paragraph.config.results[$index], paragraph, $index)"
+         ng-include src="'app/notebook/paragraph/result/result.html'">
+    </div>
+    <div id="{{paragraph.id}}_error" class="error text"
+         ng-bind="paragraph.errorMessage">
+    </div>
+  </div>
+
+  <div ng-include src="'app/notebook/paragraph/paragraph-control.html'"></div>
+  <span class="check-button"
+        tooltip-placement="bottom-right"
+        ng-class="{'check-button-display-always': selectedParagraphsIds.size > 0}"
+        uib-tooltip="{{selectedParagraphsIds.has(paragraph.id) ?  'Remove this paragraph from selection (Ctrl + Shift + S)' : 'Add this paragraph to selection (Ctrl + Shift + S)'}}"
+        ng-click="toggleSelection(paragraph.id)"><i class="fa {{selectedParagraphsIds.has(paragraph.id) ? 'fa-check-square-o' : 'fa-square-o'}}" aria-hidden="true"></i></span>
+
+  <div ng-if="!asIframe" class="paragraphFooter">
+    <div ng-show="!paragraph.config.tableHide && !viewOnly"
+         id="{{paragraph.id}}_executionTime"
+         class="executionTime" ng-bind-html="getExecutionTime(paragraph)">
+    </div>
+    <div ng-if = "paragraph.status === 'RUNNING'" class = "paragraphFooterElapsed">
+      <div id="{{paragraph.id}}_elapsedTime"
+           class="elapsedTime" ng-bind-html="getElapsedTime(paragraph)">
+      </div>
+    </div>
+  </div>
+</div>

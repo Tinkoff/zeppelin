@@ -272,7 +272,7 @@ abstract class AbstractHandler {
     jobBatchDAO.update(jobBatch);
   }
 
-  boolean noteIsRunning(final Note note) {
+  public boolean noteIsRunning(final Note note) {
     JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
     if (jobBatch == null) {
       return false;
