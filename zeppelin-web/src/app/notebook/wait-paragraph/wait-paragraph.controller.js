@@ -94,6 +94,14 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
     return desc;
   };
 
+
+  $rootScope.$on('updateCron', function(event, noteId, expression, isEnabled) {
+    if ($scope.note.databaseId === noteId) {
+      $scope.note.scheduler.isEnabled = isEnabled;
+      $scope.note.scheduler.expression = expression;
+    }
+  });
+
   $scope.isResultOutdated = function(pdata) {
     if (pdata.updated !== undefined && Date.parse(pdata.updated) > Date.parse(pdata.startedAt)) {
       return true;

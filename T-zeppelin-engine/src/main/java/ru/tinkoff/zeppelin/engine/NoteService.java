@@ -17,6 +17,7 @@
 package ru.tinkoff.zeppelin.engine;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
 import ru.tinkoff.zeppelin.core.notebook.Note;
@@ -26,6 +27,7 @@ import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 import ru.tinkoff.zeppelin.storage.NoteDAO;
 import ru.tinkoff.zeppelin.storage.NoteRevisionDAO;
 import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+import ru.tinkoff.zeppelin.storage.SchedulerDAO;
 
 /**
  * Service for operations on storage
@@ -41,37 +43,49 @@ public class NoteService {
   private final ParagraphDAO paragraphDAO;
   private final FullParagraphDAO fullParagraphDAO;
   private final NoteRevisionDAO noteRevisionDAO;
+  private final SchedulerDAO schedulerDAO;
 
   public NoteService(final NoteDAO noteDAO,
-      final ParagraphDAO paragraphDAO,
-      final FullParagraphDAO fullParagraphDAO,
-      final NoteRevisionDAO noteRevisionDAO) {
+                     final ParagraphDAO paragraphDAO,
+                     final FullParagraphDAO fullParagraphDAO,
+                     final NoteRevisionDAO noteRevisionDAO,
+                     final SchedulerDAO schedulerDAO) {
     this.noteDAO = noteDAO;
     this.paragraphDAO = paragraphDAO;
     this.fullParagraphDAO = fullParagraphDAO;
     this.noteRevisionDAO = noteRevisionDAO;
+    this.schedulerDAO = schedulerDAO;
   }
 
   public List<Note> getAllNotes() {
-    return noteDAO.getAllNotes();
+    return noteDAO.getAllNotes()
+        .stream()
+        .peek(n -> n.setScheduler(schedulerDAO.getByNote(n.getId())))
+        .collect(Collectors.toList());
   }
 
   public Note getNote(final String uuid) {
-    return noteDAO.get(uuid);
+    final Note found = noteDAO.get(uuid);
+    if (found != null) {
+      found.setScheduler(schedulerDAO.getByNote(found.getId()));
+    }
+    return found;
   }
 
   public Note getNote(final Long noteid) {
-    return noteDAO.get(noteid);
+    final Note found = noteDAO.get(noteid);
+    if (found != null) {
+      found.setScheduler(schedulerDAO.getByNote(found.getId()));
+    }
+    return found;
   }
 
   public Note persistNote(final Note note) {
-    final Note saved = noteDAO.persist(note);
-    return saved;
+    return noteDAO.persist(note);
   }
 
   public Note updateNote(final Note note) {
-    final Note updated = noteDAO.update(note);
-    return updated;
+    return noteDAO.update(note);
   }
 
   public void deleteNote(final Note note) {
@@ -118,8 +132,8 @@ public class NoteService {
   }
 
   public void persistRevision(final Note note, final String message) {
-    NoteRevision revision = noteRevisionDAO.createRevision(note, message);
-    List<Paragraph> paragraphs = paragraphDAO.getByNoteId(note.getId());
+    final NoteRevision revision = noteRevisionDAO.createRevision(note, message);
+    final List<Paragraph> paragraphs = paragraphDAO.getByNoteId(note.getId());
     paragraphs.stream()
         .peek(p -> p.setRevisionId(revision.getId()))
         .peek(p -> p.setJobId(null))

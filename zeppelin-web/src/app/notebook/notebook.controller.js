@@ -1617,6 +1617,13 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     });
   });
 
+  $scope.$on('updateCron', function(event, noteId, expression, isEnabled) {
+    if ($scope.note.databaseId === noteId) {
+      $scope.note.scheduler.isEnabled = isEnabled;
+      $scope.note.scheduler.expression = expression;
+    }
+  });
+
   $scope.$on('setNoteContent', function(event, note) {
     setTimeout(() => $rootScope.$broadcast('initCron', note), 100);
     if (note === undefined) {
