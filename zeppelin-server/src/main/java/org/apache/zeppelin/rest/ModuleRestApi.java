@@ -17,13 +17,14 @@
 package org.apache.zeppelin.rest;
 
 import com.google.gson.Gson;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zeppelin.Repository;
+import org.apache.zeppelin.realm.AuthenticationInfo;
+import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,7 @@ import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleInnerConfigurati
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleSource;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleSource.Type;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.option.Permissions;
+import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.engine.ModuleSettingService;
 import ru.tinkoff.zeppelin.engine.server.ModuleInstaller;
 import ru.tinkoff.zeppelin.storage.ModuleConfigurationDAO;
@@ -88,6 +90,9 @@ public class ModuleRestApi {
   @GetMapping(value = "/list", produces = "application/json")
   public ResponseEntity listModules() {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
 
       ModuleSettingsDTO moduleSettingsDTO = new ModuleSettingsDTO();
 
@@ -137,6 +142,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/installModuleSource", produces = "application/json")
   public ResponseEntity installModuleConfiguration(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final InstallModuleConfigurationDTO installModuleConfigurationDTO = new Gson().fromJson(message, InstallModuleConfigurationDTO.class);
       final ModuleSource moduleSource = moduleSourcesDAO.get(installModuleConfigurationDTO.id);
 
@@ -156,6 +165,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/uninstallModuleSource", produces = "application/json")
   public ResponseEntity uninstallModuleSource(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final UninstallModuleConfigurationDTO uninstallModuleConfigurationDTO = new Gson().fromJson(message, UninstallModuleConfigurationDTO.class);
       final ModuleSource moduleSource = moduleSourcesDAO.get(uninstallModuleConfigurationDTO.id);
 
@@ -176,6 +189,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/setReinstallOnStartModuleSource", produces = "application/json")
   public ResponseEntity setReinstallOnStartModuleSource(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final SetReinstallOnStartModuleSourceDTO setReinstallOnStartModuleSourceDTO = new Gson().fromJson(message, SetReinstallOnStartModuleSourceDTO.class);
       final ModuleSource moduleSource = moduleSourcesDAO.get(setReinstallOnStartModuleSourceDTO.id);
 
@@ -198,6 +215,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/addModuleSource", produces = "application/json")
   public ResponseEntity addModuleSource(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final AddModuleSourceDTO addModuleSourceDTO = new Gson().fromJson(message, AddModuleSourceDTO.class);
 
       final ModuleSource moduleSource = new ModuleSource(
@@ -226,6 +247,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/deleteModuleSource", produces = "application/json")
   public ResponseEntity deleteModuleSource(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final DeleteModuleSourceDTO deleteModuleSourceDTO = new Gson().fromJson(message, DeleteModuleSourceDTO.class);
 
       final List<ModuleConfiguration> configurations = moduleConfigurationDAO.getAll().stream()
@@ -255,6 +280,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/addModuleConfiguration", produces = "application/json")
   public ResponseEntity addModuleConfiguration(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final AddModuleConfigurationDTO addModuleConfigurationDTO = new Gson().fromJson(message, AddModuleConfigurationDTO.class);
 
       if (!addModuleConfigurationDTO.moduleConfiguration.getShebang().matches("\\w+")) {
@@ -290,6 +319,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/updateModuleConfiguration", produces = "application/json")
   public ResponseEntity updateModuleConfiguration(@RequestBody final String message) {
 
+    if(!isAdmin()) {
+      return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+    }
+
     final UpdateModuleConfigurationDTO updateModuleConfigurationDTO = new Gson().fromJson(message, UpdateModuleConfigurationDTO.class);
     moduleInnerConfigurationDAO.update(updateModuleConfigurationDTO.innerConfiguration);
     moduleConfigurationDAO.update(updateModuleConfigurationDTO.moduleConfiguration);
@@ -307,6 +340,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/enableModule", produces = "application/json")
   public ResponseEntity enableModule(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final EnableModuleDTO enableModuleDTO = new Gson().fromJson(message, EnableModuleDTO.class);
       final ModuleConfiguration moduleConfiguration = moduleConfigurationDAO.getById(enableModuleDTO.id);
       moduleConfiguration.setEnabled(enableModuleDTO.enable);
@@ -327,6 +364,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/restartModule", produces = "application/json")
   public ResponseEntity restartModule(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final RestartModuleDTO restartModuleDTO = new Gson().fromJson(message, RestartModuleDTO.class);
       final ModuleConfiguration moduleConfiguration = moduleConfigurationDAO.getById(restartModuleDTO.id);
       moduleSettingService.restart(moduleConfiguration.getShebang());
@@ -344,6 +385,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/deleteModule", produces = "application/json")
   public ResponseEntity deleteModule(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final DeleteModuleDTO deleteModuleDTO = new Gson().fromJson(message, DeleteModuleDTO.class);
       final ModuleConfiguration moduleConfiguration = moduleConfigurationDAO.getById(deleteModuleDTO.id);
       moduleConfigurationDAO.delete(moduleConfiguration.getId());
@@ -380,6 +425,9 @@ public class ModuleRestApi {
   @GetMapping(value = "/setting", produces = "application/json")
   public ResponseEntity listSettings() {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
 
       final List<ConfigurationDTO> result = new ArrayList<>();
       final List<ModuleConfiguration> configurations = moduleConfigurationDAO.getAll();
@@ -413,6 +461,10 @@ public class ModuleRestApi {
   @GetMapping(value = "/setting/interpreters", produces = "application/json")
   public ResponseEntity listInterpretersSettings() {
     try {
+
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
 
       final List<ConfigurationDTO> result = new ArrayList<>();
       final List<ModuleConfiguration> configurations = moduleConfigurationDAO.getAll();
@@ -449,6 +501,10 @@ public class ModuleRestApi {
   @GetMapping(value = "/repository", produces = "application/json")
   public ResponseEntity listRepositories() {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       return new JsonResponse(HttpStatus.OK, "", moduleRepositoryDAO.getAll()).build();
     } catch (final Exception e) {
       return new JsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(),
@@ -464,6 +520,10 @@ public class ModuleRestApi {
   @PostMapping(value = "/repository", produces = "application/json")
   public ResponseEntity addRepository(@RequestBody final String message) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       final Repository request = Repository.fromJson(message);
       if (!request.getId().matches("\\w+")) {
         return new JsonResponse(
@@ -487,12 +547,33 @@ public class ModuleRestApi {
   @DeleteMapping(value = "/repository/{repoId}", produces = "application/json")
   public ResponseEntity removeRepository(@PathVariable("repoId") final String repoId) {
     try {
+      if(!isAdmin()) {
+        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
+      }
+
       moduleRepositoryDAO.delete(repoId);
       return new JsonResponse(HttpStatus.OK).build();
     } catch (final Exception e) {
       return new JsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(),
           ExceptionUtils.getStackTrace(e)).build();
     }
+  }
+
+  private boolean isAdmin() {
+    final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
+    final Set<String> userRoles = new HashSet<>();
+    userRoles.add(authenticationInfo.getUser());
+    userRoles.addAll(authenticationInfo.getRoles());
+
+    final Set<String> admin = new HashSet<>();
+    admin.addAll(Configuration.getAdminUsers());
+    admin.addAll(Configuration.getAdminGroups());
+    for (final String availableRole : userRoles) {
+      if (admin.contains(availableRole)) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }
