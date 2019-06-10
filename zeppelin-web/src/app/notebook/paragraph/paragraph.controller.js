@@ -440,6 +440,18 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params, selectedText);
   };
 
+  $scope.runExplain = function() {
+    if ($scope.isNoteRunning || $scope.paragraph.config.editorSetting.language !== 'sql') {
+      return;
+    }
+    $scope.commitParagraph($scope.paragraph);
+    let query = $scope.getEditorValue().toLowerCase();
+    let prefix = query.startsWith('explain') ? '' : 'EXPLAIN ';
+
+    websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title, '',
+      $scope.paragraph.config, $scope.paragraph.settings.params, prefix + query);
+  };
+
   $scope.bindBeforeUnload = function() {
     angular.element(window).off('beforeunload');
 
@@ -1927,6 +1939,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.goToSingleParagraph();
       } else if (keyEvent.ctrlKey && keyCode === 66) { // Ctrl + b
         $scope.beautifySqlCode();
+      } else if (keyEvent.ctrlKey && keyCode === 77) { // Ctrl + m
+        $scope.runExplain();
       } else if (keyEvent.ctrlKey && keyEvent.altKey && keyCode === 70) { // Ctrl + f
         $scope.$emit('toggleSearchBox');
       } else {
