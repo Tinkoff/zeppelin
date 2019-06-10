@@ -462,10 +462,6 @@ public class ModuleRestApi {
   public ResponseEntity listInterpretersSettings() {
     try {
 
-      if(!isAdmin()) {
-        return new JsonResponse(HttpStatus.FORBIDDEN, "FORBIDDEN").build();
-      }
-
       final List<ConfigurationDTO> result = new ArrayList<>();
       final List<ModuleConfiguration> configurations = moduleConfigurationDAO.getAll();
       for (final ModuleConfiguration configuration : configurations) {
@@ -475,6 +471,10 @@ public class ModuleRestApi {
         }
 
         final ModuleInnerConfiguration inner = moduleInnerConfigurationDAO.getById(configuration.getModuleInnerConfigId());
+        inner.getProperties().values().stream()
+                .filter(moduleProperty -> moduleProperty.getType().equals("password"))
+                .forEach(moduleProperty -> moduleProperty.setCurrentValue("*****"));
+
         final ConfigurationDTO conf = new ConfigurationDTO();
         conf.id = configuration.getId();
         conf.shebang = configuration.getShebang();
