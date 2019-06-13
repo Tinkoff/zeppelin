@@ -30,9 +30,9 @@ function modalvisible() {
         let relatedTarget = angular.element(e.relatedTarget);
         let clone = relatedTarget.data('clone');
         let notePath = relatedTarget.data('source-note-name');
-        // let path = relatedTarget.data('path');
+        let relativePath = relatedTarget.data('path');
         let cloneNote = clone ? true : false;
-        previsibleMethod()(cloneNote, notePath);
+        previsibleMethod()(cloneNote, notePath, relativePath);
       });
       element.on('shown.bs.modal', function(e) {
         if (scope.targetinput) {

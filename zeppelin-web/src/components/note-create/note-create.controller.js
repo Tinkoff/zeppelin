@@ -29,17 +29,7 @@ function NoteCreateCtrl($scope, noteListFactory, $routeParams, websocketMsgSrv) 
 
   vm.createNote = function() {
     if (!vm.clone) {
-      let defaultInterpreterGroup = '';
-      if ($scope.note.defaultInterpreter !== null) {
-        // TODO(SAN) добавил проверку на null
-        if ($scope.note.defaultInterpreter) {
-          defaultInterpreterGroup = $scope.note.defaultInterpreter.name;
-        } else {
-          defaultInterpreterGroup = 'python';
-        }
-      }
-      vm.websocketMsgSrv.createNotebook($scope.note.path, defaultInterpreterGroup);
-      $scope.note.defaultInterpreter = $scope.interpreterSettings[0];
+      vm.websocketMsgSrv.createNotebook($scope.note.path);
     } else {
       let noteId = $routeParams.noteId;
       vm.websocketMsgSrv.cloneNote(noteId, $scope.note.path);
@@ -51,15 +41,16 @@ function NoteCreateCtrl($scope, noteListFactory, $routeParams, websocketMsgSrv) 
     vm.createNote();
   };
 
-  vm.preVisible = function(clone, notePath) {
+  vm.preVisible = function(clone, notePath, relativePath) {
     vm.clone = clone;
     vm.notePath = notePath;
-    $scope.note.path = vm.clone ? vm.cloneNoteName() : vm.newNoteName();
+    $scope.note.path = vm.clone ? vm.cloneNoteName() : notePath || vm.newNoteName(relativePath);
     $scope.$apply();
   };
 
-  vm.newNoteName = function() {
-    let path = '/Users/' + $scope.ticket.screenUsername + '/' + 'Untitled Note ';
+  vm.newNoteName = function(relativePath) {
+    let path = relativePath ? '/' + relativePath : `/Users/${$scope.ticket.screenUsername}`;
+    path += '/Untitled Note ';
     let newCount = 1;
     angular.forEach(vm.notes.flatList, function(note) {
       let regExp = new RegExp(`^${path}([0-9]+)$`);

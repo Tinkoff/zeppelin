@@ -34,12 +34,11 @@ function WebsocketMessageService($rootScope, websocketEvents) {
       websocketEvents.sendNewEvent({op: 'GET_HOME_NOTE'});
     },
 
-    createNotebook: function(notePath, defaultInterpreterGroup) {
+    createNotebook: function(notePath) {
       websocketEvents.sendNewEvent({
         op: 'NEW_NOTE',
         data: {
           path: notePath,
-          defaultInterpreterGroup: defaultInterpreterGroup,
         },
       });
     },
