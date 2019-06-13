@@ -323,6 +323,37 @@ limitations under the License.
     </div>
 
 
+    <span class="btn-group dropdown-menu-left" style="margin-top:15px; margin-right:15px; margin-bottom: 13px; font-size:15px;">
+        <button type="button" class="btn btn-default btn-xs" ng-click="getInterpreterQueue()" data-toggle="dropdown">
+          Note position in interpreters execution queues <span class="caret"></span>
+        </button>
+        <div class="dropdown-menu" role="menu" style="width:100%;">
+         <table class="table table-striped">
+                <thead>
+                <tr>
+                  <th style="font-size:14px;text-align: center; border: 1px solid black;">Interpreter</th>
+                  <th style="font-size:14px;text-align: center; border: 1px solid black;">№ in queue</th>
+                  <th style="font-size:14px;text-align: center; border: 1px solid black;">Queue size</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="element in interpreterQueueDTO.interpreter">
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{element.name}}
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{element.queuePosition}}
+                  </td>
+
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{element.queueSize}}
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+        </div>
+      </span>
+
     <div class="pull-right" style="margin-top:15px; margin-right:15px; margin-left: 15px; margin-bottom: 13px; font-size:15px;">
       <span ng-if="!revisionView">
         <span class="setting-btn"

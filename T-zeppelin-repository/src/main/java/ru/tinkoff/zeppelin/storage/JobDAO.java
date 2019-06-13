@@ -349,6 +349,7 @@ public class JobDAO {
     final LinkedList<Job> jobs = new LinkedList<>(namedParameterJdbcTemplate.query(
             SELECT_READY_TO_EXECUTE_JOBS,
             JobDAO::mapRow));
+    // TODO: KOT LOOK AT THIS
     jobs.sort(Comparator.comparing(Job::getIndex));
     return jobs;
   }

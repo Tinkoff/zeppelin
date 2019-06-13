@@ -17,6 +17,7 @@ import 'github-markdown-css/github-markdown.css';
 
 import './app/app.js';
 import './app/app.controller.js';
+import './app/exec_queue/exec_queue.controller.js';
 import './app/home/home.controller.js';
 import './app/notebook/notebook.controller.js';
 
@@ -71,6 +72,7 @@ import './components/websocket/websocket-event.factory.js';
 import './components/note-list/note-list.factory.js';
 import './components/base-url/base-url.service.js';
 import './components/favorite-notes/favorite-notes.service.js';
+import './components/interpreter-queue/interpreter-queue.service.js';
 import './components/loader/loader.service';
 import './components/login/login.controller.js';
 import './components/note-action/note-action.service.js';

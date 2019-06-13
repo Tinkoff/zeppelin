@@ -1,0 +1,81 @@
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div class="interpreterHead">
+  <div class="header">
+    <div class="row">
+      <div class="col-md-12">
+        <h3 class="new_h3">
+          Interpreters execution queues
+        </h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="box width-full">
+    <div id="favorites" class="tab-pane fade in active">
+      <div class="panel-group">
+        <div ng-repeat="(key,value) in execQueue">
+          <div class="panel panel-default" >
+            <div class="panel-heading" >
+              <a class="panel-title" data-toggle="collapse" data-target="#{{key}}-resultTable">
+                {{key}}
+              </a>
+            </div>
+              <table class="table table-striped collapse" id="{{key}}-resultTable">
+
+                <thead>
+                <tr>
+                  <th style="width:4%;text-align: center; border: 1px solid black;">Note id</th>
+                  <th style="width:10%;text-align: center; border: 1px solid black;">Note Uuid</th>
+                  <th style="width:15%;text-align: center; border: 1px solid black;">Note Name</th>
+                  <th style="width:25%;text-align: center; border: 1px solid black;">Paragraph Uuid</th>
+                  <th style="width:12%;text-align: center; border: 1px solid black;">Paragraph position in note</th>
+                  <th style="width:5%;text-align: center; border: 1px solid black;">Username</th>
+                  <th style="width:20%;text-align: center; border: 1px solid black;">Started at</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr ng-repeat="paragraph in value">
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.noteId}}
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    <a href="../#/notebook/{{paragraph.noteUuid}}">
+                      {{paragraph.noteUuid}}</a>
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.noteName}}
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.paragraphUuid}}
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.paragraphPosition}}
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.username}}
+                  </td>
+                  <td style="vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.startedAt}}
+                  </td>
+                </tr>
+                </tbody>
+
+              </table>
+          </div>
+        </div>
+      </div>
+  </div>
+</div>

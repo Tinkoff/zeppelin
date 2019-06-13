@@ -21,7 +21,7 @@ angular.module('zeppelinWebApp').controller('NotebookCtrl', NotebookCtrl);
 function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
                       $http, websocketMsgSrv, baseUrlSrv, $timeout, saveAsService,
                       ngToast, noteActionService, noteVarShareService, TRASH_FOLDER_ID,
-                      heliumService, favoriteNotesService) {
+                      heliumService, favoriteNotesService, interpreterQueueService) {
   'ngInject';
 
   ngToast.dismiss();
@@ -41,6 +41,8 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.looknfeelOption = ['default', 'simple', 'report'];
   $scope.noteFormTitle = null;
   $scope.selectedParagraphsIds = new Set();
+  $scope.interpreterQueueDTO = null;
+  $scope.interpreterQueuePromise = null;
 
   $scope.formatRevisionDate = function(date) {
     if (!date) {
@@ -172,6 +174,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
     favoriteNotesService.init();
     favoriteNotesService.addNoteToRecent($routeParams.noteId);
+    interpreterQueueService.init();
   };
 
   initNotebook();
@@ -239,6 +242,19 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
   $scope.isFavorite = function(noteId) {
     return favoriteNotesService.noteIsFavorite(noteId);
+  };
+
+
+  $scope.getInterpreterQueue = function() {
+    $scope.interpreterQueuePromise = interpreterQueueService.loadInterpreterQueue();
+    $scope.interpreterQueuePromise.then(function(response) {
+      if (response.data.status === 'OK') {
+        $scope.interpreterQueueDTO = response.data.body;
+        return $scope.interpreterQueueDTO;
+      } else{
+        return null;
+      }
+    });
   };
 
   $scope.switchDatabaseExplorerDisplay = function() {
