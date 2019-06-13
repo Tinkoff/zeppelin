@@ -61,11 +61,10 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
   @Override
   public void cancel() {
     if (watchdog != null) {
-      watchdog.destroyProcess();
-
       // valid only for ExecuteWatchdog
       try {
         watchdog.timeoutOccured(null);
+        watchdog.stop();
       } catch (final Throwable th) {
         //SKIP
       }
@@ -75,11 +74,10 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
   @Override
   public void close() {
     if (watchdog != null) {
-      watchdog.destroyProcess();
-
       // valid only for ExecuteWatchdog
       try {
         watchdog.timeoutOccured(null);
+        watchdog.stop();
       } catch (final Throwable th) {
         //SKIP
       }
