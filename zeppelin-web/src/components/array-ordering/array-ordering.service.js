@@ -28,7 +28,7 @@ function ArrayOrderingService(TRASH_FOLDER_ID) {
 
   this.getNoteName = function(note) {
     if (note.name === undefined || note.name.trim() === '') {
-      return 'Note ' + note.id;
+      return note.path || 'Note ' + note.id;
     } else {
       return note.name;
     }
