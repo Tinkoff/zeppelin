@@ -17,7 +17,6 @@
 
 package ru.tinkoff.zeppelin.remote;
 
-import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TThreadPoolServer;
@@ -41,7 +40,6 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
 
   private TServerSocket serverTransport;
   private TThreadPoolServer server;
-  ZeppelinThriftService.Client zeppelin;
 
   Class processClass;
 
@@ -66,6 +64,23 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
 
   protected abstract TProcessor getProcessor();
 
+  protected ZeppelinThriftService.Client getZeppelin() throws Exception {
+    final TTransport transport = new TSocket(zeppelinServerHost, Integer.parseInt(zeppelinServerPort));
+    transport.open();
+
+    return new ZeppelinThriftService.Client(new TBinaryProtocol(transport));
+  }
+
+  void releaseZeppelin(final ZeppelinThriftService.Client connection) {
+    try {
+      connection.getOutputProtocol().getTransport().close();
+    } catch (final Throwable t) {
+      // SKIP
+    }
+  }
+
+
+
   @Override
   public void run() {
     try {
@@ -80,8 +95,6 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
 
       final TTransport transport = new TSocket(zeppelinServerHost, Integer.parseInt(zeppelinServerPort));
       transport.open();
-
-      zeppelin = new ZeppelinThriftService.Client(new TBinaryProtocol(transport));
 
       new Thread(new Runnable() {
         boolean interrupted = false;
@@ -105,8 +118,10 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
                     processUUID.toString()
             );
             try {
+              final ZeppelinThriftService.Client zeppelin = getZeppelin();
               zeppelin.registerInterpreterProcess(registerInfo);
-            } catch (TException e) {
+              releaseZeppelin(zeppelin);
+            } catch (Throwable e) {
               shutdown();
             }
           }

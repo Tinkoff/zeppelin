@@ -91,7 +91,9 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
             interpreter.setSessionUUID(uuid.toString());
             interpreter.setTempTextPublisher(s -> {
               try {
+                final ZeppelinThriftService.Client zeppelin = getZeppelin();
                 zeppelin.handleInterpreterTempOutput(uuid.toString(), s);
+                releaseZeppelin(zeppelin);
               } catch (final Throwable th) {
                 //SKIP
               }
@@ -113,7 +115,9 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
                       ));
             }
             try {
+              final ZeppelinThriftService.Client zeppelin = getZeppelin();
               zeppelin.handleInterpreterResult(interpreter.getSessionUUID(), new Gson().toJson(result));
+              releaseZeppelin(zeppelin);
             } catch (final Throwable e) {
               //skip
             }
