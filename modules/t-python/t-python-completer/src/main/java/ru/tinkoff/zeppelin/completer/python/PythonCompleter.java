@@ -201,7 +201,7 @@ public class PythonCompleter extends Completer {
   private static void loadJepLibrary(final Map<String, String> configuration) throws IOException {
     final String jepLibPath = configuration.get("python.jep.library.file");
     final String workDirPath = configuration.get("python.working.dir");
-    final String newJepLibPath = workDirPath + "/" + "libjep.dylib";
+    final String newJepLibPath = workDirPath + "/" + System.mapLibraryName("jep");
 
     // copy Jep library
     Files.copy(Paths.get(jepLibPath), Paths.get(newJepLibPath), StandardCopyOption.REPLACE_EXISTING);
