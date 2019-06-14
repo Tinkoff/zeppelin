@@ -505,11 +505,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
   $scope.setLookAndFeel = function(looknfeel) {
     $scope.note.config.looknfeel = looknfeel;
-    if ($scope.revisionView === true) {
-      $rootScope.$broadcast('setLookAndFeel', $scope.note.config.looknfeel);
-    } else {
-      $scope.setConfig();
-    }
+    $rootScope.$broadcast('setLookAndFeel', $scope.note.config.looknfeel);
   };
 
   $scope.setNoteFormTitle = function(noteFormTitle) {
@@ -546,7 +542,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     if (!$scope.note.config.looknfeel) {
       $scope.note.config.looknfeel = 'default';
     } else {
-      $scope.viewOnly = $scope.note.config.looknfeel === 'report' ? true : false;
+      $scope.viewOnly = $scope.note.config.looknfeel === 'report';
     }
 
     if ($scope.note.paragraphs && $scope.note.paragraphs[0]) {
@@ -642,6 +638,9 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   };
 
   $scope.toggleSelection = function(paragraphId) {
+    if ($scope.note.config.looknfeel === 'report') {
+      return;
+    }
     let paragraphs = $scope.selectedParagraphsIds;
     if (paragraphs.has(paragraphId)) {
       paragraphs.delete(paragraphId);

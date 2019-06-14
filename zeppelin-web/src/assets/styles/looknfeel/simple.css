@@ -23,7 +23,6 @@ body {
 
 .box:hover,
 .well:hover {
-  background: #ffffff;
   border: 1px solid #DDDDDD;
 }
 
@@ -70,6 +69,12 @@ body {
   font-size: 8px;
   text-align: right;
   margin-right: 5px;
+}
+
+.paragraph .check-button {
+  right: -6px !important;
+  top: 2px !important;
+  font-size: 12px !important;
 }
 
 .paragraph .elapsedTime {

@@ -21,7 +21,7 @@ body {
   min-height: 0;
 }
 
-.box:hover,
+.box,
 .well:hover {
   background: white;
   border: 0;
@@ -29,6 +29,10 @@ body {
 
 .paragraph-col {
   border: 0 solid white;
+}
+
+.paragraph .check-button {
+  visibility: hidden;
 }
 
 .paragraph-space {
