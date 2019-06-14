@@ -1555,7 +1555,9 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       .scope().editor;
     let col = angParagEditor.selection.lead.column;
     let row = angParagEditor.selection.lead.row;
-    $scope.$broadcast('focusParagraph', paragraph.id, row + 1, col);
+    $timeout(() => {
+      $scope.$broadcast('focusParagraph', paragraph.id, row + 1, col);
+    });
   };
 
   $scope.$on('moveParagraphUp', function(event, paragraph) {
@@ -1616,7 +1618,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
           continue;
         }
       } else {
-        $scope.$broadcast('focusParagraph', $scope.note.paragraphs[i].id, -1);
+        let id = $scope.note.paragraphs[i].id;
+        $timeout(() => {
+          $scope.$broadcast('focusParagraph', id, -1);
+        });
         break;
       }
     }
@@ -1631,7 +1636,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
           continue;
         }
       } else {
-        $scope.$broadcast('focusParagraph', $scope.note.paragraphs[i].id, 0);
+        let id = $scope.note.paragraphs[i].id;
+        $timeout(() => {
+          $scope.$broadcast('focusParagraph', id, 0);
+        });
         break;
       }
     }

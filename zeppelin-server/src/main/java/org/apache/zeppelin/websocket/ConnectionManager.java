@@ -18,18 +18,20 @@
 package org.apache.zeppelin.websocket;
 
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
-import ru.tinkoff.zeppelin.core.externalDTO.InterpreterResultDTO;
 import ru.tinkoff.zeppelin.engine.EventService;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Manager class for managing websocket connections
@@ -147,15 +149,7 @@ public class ConnectionManager {
         return;
       }
 
-      if (event.getBefore() != null && event.getAfter() != null
-              && event.getBefore().getPosition() != event.getAfter().getPosition()) {
-        broadcast(
-                event.getNoteId(),
-                new SockMessage(Operation.PARAGRAPH_MOVED)
-                        .put("id", event.getAfter().getId())
-                        .put("index", event.getAfter().getPosition())
-        );
-      } else if (event.getBefore() != null && event.getAfter() != null) {
+      if (event.getBefore() != null && event.getAfter() != null) {
         broadcast(
                 event.getNoteId(),
                 new SockMessage(Operation.PARAGRAPH)

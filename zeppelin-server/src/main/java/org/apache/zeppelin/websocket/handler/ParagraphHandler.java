@@ -19,13 +19,17 @@ package org.apache.zeppelin.websocket.handler;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.*;
-
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.exception.BadRequestException;
 import org.apache.zeppelin.websocket.ConnectionManager;
+import org.apache.zeppelin.websocket.Operation;
 import org.apache.zeppelin.websocket.SockMessage;
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 import org.slf4j.Logger;
@@ -128,17 +132,20 @@ public class ParagraphHandler extends AbstractHandler {
       throw new BadRequestException("newIndex " + indexTo + " is out of bounds");
     }
 
-    paragraphs.forEach(p -> p.setPosition(p.getPosition() * 10));
-    paragraphs.stream()
-            .filter(p -> p.getId().equals(paragraphFrom.getId()))
-            .forEach(p -> p.setPosition(indexTo * 10 - (indexFrom - indexTo) % 10));
-    paragraphs.sort(Comparator.comparingInt(Paragraph::getPosition));
+    Collections.swap(paragraphs, indexFrom, indexTo);
 
     for (int i = 0; i < paragraphs.size(); i++) {
       final Paragraph paragraph = paragraphs.get(i);
       paragraph.setPosition(i);
       noteService.updateParagraph(note, paragraph);
     }
+
+    connectionManager.broadcast(
+        note.getId(),
+        new SockMessage(Operation.PARAGRAPH_MOVED)
+            .put("id", paragraphFrom.getUuid())
+            .put("index", indexTo)
+    );
   }
 
   public String insertParagraph(final WebSocketSession conn, final SockMessage fromMessage) throws IOException {
