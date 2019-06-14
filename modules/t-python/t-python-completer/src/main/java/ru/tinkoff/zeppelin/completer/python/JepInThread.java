@@ -54,9 +54,13 @@ class JepInThread {
     try {
       jepThread.addAction(Jep::close);
       jepThread.interrupt();
-    } catch (final JepException e) {
+    } catch (final Throwable e) {
       // ignore
     }
+  }
+
+  boolean interrupted() {
+    return jepThread.isInterrupted() || jepThread.exception != null;
   }
 
   class JepThread extends Thread {
@@ -76,8 +80,9 @@ class JepInThread {
       // create Jep
       try {
         jep = new Jep();
-      } catch (final JepException e) {
+      } catch (final Throwable e) {
         exception = e;
+        return;
       }
 
       // listen to actions
@@ -101,7 +106,7 @@ class JepInThread {
       // close Jep
       try {
         jep.close();
-      } catch (final JepException e) {
+      } catch (final Throwable e) {
         exception = e;
       }
     }

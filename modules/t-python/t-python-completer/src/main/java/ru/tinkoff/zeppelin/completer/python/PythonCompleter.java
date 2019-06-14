@@ -23,7 +23,9 @@ import org.apache.commons.lang3.StringUtils;
 import ru.tinkoff.zeppelin.interpreter.Completer;
 import ru.tinkoff.zeppelin.interpreter.InterpreterCompletion;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -33,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SuppressWarnings("unused")
 public class PythonCompleter extends Completer {
 
-  private static final String LIBRARY_NAME = "completer-jep.lib";
+  private static final String LIBRARY_NAME = "jep.so";
 
   private final static AtomicBoolean libraryIsLoaded = new AtomicBoolean(false);
   private JepInThread jep;
@@ -95,7 +97,7 @@ public class PythonCompleter extends Completer {
         completions.add(new InterpreterCompletion(name, value, type, description, score));
       }
       return gson.toJson(completions);
-    } catch (final Exception e) {
+    } catch (final Throwable e) {
       return gson.toJson(Collections.emptySet());
     }
   }
@@ -131,11 +133,11 @@ public class PythonCompleter extends Completer {
       try {
         if (!libraryIsLoaded.get()) {
           //TODO(SAN) not work correctly. Need fix it.
-          //loadJepLibrary(configuration);
+          loadJepLibrary(configuration);
           libraryIsLoaded.set(true);
         }
-      } catch (final Exception e) {
-        throw new RuntimeException("Can't load jep library", e);
+      } catch (final Throwable e) {
+        //throw new RuntimeException("Can't load jep library", e);
       }
       if (pyContext == null) {
         pyContext = new NoteContextLoader(configuration.get("python.env.cache.folder"));
@@ -199,13 +201,14 @@ public class PythonCompleter extends Completer {
   private static void loadJepLibrary(final Map<String, String> configuration) throws IOException {
     final String jepLibPath = configuration.get("python.jep.library.file");
     final String workDirPath = configuration.get("python.working.dir");
-    final String newJepLibPath = workDirPath + "/" + LIBRARY_NAME;
+    final String newJepLibPath = workDirPath + "/" + "libjep.dylib";
 
     // copy Jep library
     Files.copy(Paths.get(jepLibPath), Paths.get(newJepLibPath), StandardCopyOption.REPLACE_EXISTING);
+    addDir(Paths.get(newJepLibPath).getParent().toString());
 
     // load Jep library
-    System.load(newJepLibPath);
+    System.loadLibrary("jep");
 
     // delete Jep library after exit
     addDeleteFileHook(newJepLibPath);
@@ -228,7 +231,7 @@ public class PythonCompleter extends Completer {
 
   @Override
   public boolean isAlive() {
-    return true;
+    return !Objects.isNull(jep) && !jep.interrupted();
   }
 
   @Override
@@ -244,5 +247,26 @@ public class PythonCompleter extends Completer {
   @Override
   public void close() {
     jep.close();
+  }
+
+
+  private static void addDir(String s) throws IOException {
+    try {
+      final  Field field = ClassLoader.class.getDeclaredField("usr_paths");
+      field.setAccessible(true);
+      final String[] paths = (String[])field.get(null);
+      for (final String path : paths) {
+        if (s.equals(path)) {
+          return;
+        }
+      }
+      final String[] tmp = new String[paths.length+1];
+      System.arraycopy(paths,0,tmp,0,paths.length);
+      tmp[paths.length] = s;
+      field.set(null,tmp);
+      System.setProperty("java.library.path", System.getProperty("java.library.path") + File.pathSeparator + s);
+    } catch (final Exception e) {
+      throw new IOException("Failed to add library path");
+    }
   }
 }
