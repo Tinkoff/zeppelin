@@ -61,6 +61,13 @@ limitations under the License.
                 <a href="../#/notebook/{{note.noteUuid}}" class="button">
                   <i class="fa fa-arrow-right" style="color: green; margin-left: 10px"></i>
                 </a>
+
+                <p style="float:right;">
+                  {{getJobTooltip(getNoteStatus(note))}}
+                  <i ng-style="{'color': getJobColorByStatus(getNoteStatus(note))}"
+                     ng-class="getJobIconByStatus(getNoteStatus(note))">
+                  </i>
+                </p>
               </h4>
             </div>
             <div id="fav-{{note.noteUuid}}" class="panel-collapse collapse">
@@ -70,18 +77,21 @@ limitations under the License.
                   <th style="width:25%;text-align: center; border: 1px solid black;">Paragraph id</th>
                   <th style="width:25%;text-align: center; border: 1px solid black;">Who started</th>
                   <th style="width:10%;text-align: center; border: 1px solid black;">Start time</th>
-                  <th style="width:10%;text-align: center; border: 1px solid black;">End Time/Duration</th>
-                  <th style="width:30%;text-align: center; border: 1px solid black;">Status</th>
+                  <th style="width:10%;text-align: center; border: 1px solid black;">End Time</th>
+                  <th style="width:10%;text-align: center; border: 1px solid black;">Duration</th>
+                  <th style="width:20%;text-align: center; border: 1px solid black;">Status</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr ng-repeat="paragraph in note.inner">
+
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.paragraphUuid}}
                     <a href="../#/notebook/{{note.noteUuid}}/?paragraph={{paragraph.paragraphUuid}}" class="button">
                       <i class="fa fa-arrow-right" style="color:green; margin-left:10px"></i>
                     </a>
                   </td>
+
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.userName}}
                   </td>
@@ -89,8 +99,13 @@ limitations under the License.
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.startedAt}}
                   </td>
+
                   <td style="text-align: center; vertical-align: middle; border: 1px solid black;">
                     {{paragraph.endedAt}}
+                  </td>
+
+                  <td style="text-align: center; vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.duration}}
                   </td>
                   <td style="text-align: center; vertical-align: middle; border: 1px solid black;">
                     <i ng-style="{'color': getJobColorByStatus(paragraph.status)}"
@@ -121,6 +136,13 @@ limitations under the License.
                 <a href="../#/notebook/{{note.noteUuid}}" class="button">
                   <i class="fa fa-arrow-right" style="color: green; margin-left: 10px"></i>
                 </a>
+
+                <p style="float:right;">
+                  {{getJobTooltip(getNoteStatus(note))}}
+                  <i ng-style="{'color': getJobColorByStatus(getNoteStatus(note))}"
+                     ng-class="getJobIconByStatus(getNoteStatus(note))">
+                  </i>
+                </p>
               </h4>
             </div>
             <div id="rec-{{note.noteUuid}}" class="panel-collapse collapse">
@@ -130,8 +152,9 @@ limitations under the License.
                   <th style="width:25%;text-align: center; border: 1px solid black;">Paragraph id</th>
                   <th style="width:25%;text-align: center; border: 1px solid black;">Who started</th>
                   <th style="width:10%;text-align: center; border: 1px solid black;">Start time</th>
-                  <th style="width:10%;text-align: center; border: 1px solid black;">End Time/Duration</th>
-                  <th style="width:30%;text-align: center; border: 1px solid black;">Status</th>
+                  <th style="width:10%;text-align: center; border: 1px solid black;">End Time</th>
+                  <th style="width:10%;text-align: center; border: 1px solid black;">Duration</th>
+                  <th style="width:20%;text-align: center; border: 1px solid black;">Status</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -153,6 +176,10 @@ limitations under the License.
 
                   <td style="text-align: center; vertical-align: middle; border: 1px solid black;">
                     {{paragraph.endedAt}}
+                  </td>
+
+                  <td style="text-align: center; vertical-align: middle; border: 1px solid black;">
+                    {{paragraph.duration}}
                   </td>
 
                   <td style="text-align: center; vertical-align: middle; border: 1px solid black;">

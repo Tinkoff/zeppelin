@@ -1,19 +1,21 @@
 package ru.tinkoff.zeppelin.storage;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import javax.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Component;
-import ru.tinkoff.zeppelin.core.notebook.JobBatch;
-import ru.tinkoff.zeppelin.core.notebook.NoteStatisticInner;
+import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.NoteStatistic;
-
-import javax.annotation.Nonnull;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.*;
+import ru.tinkoff.zeppelin.core.notebook.NoteStatisticInner;
 
 @Component
 public class NoteStatisticsDAO {
@@ -93,7 +95,7 @@ public class NoteStatisticsDAO {
         NoteStatisticInner noteStatisticInner = new NoteStatisticInner();
         noteStatisticInner.setParagraphId(resultSet.getLong("PARAGRAPH_ID"));
         noteStatisticInner.setParagraphUuid(resultSet.getString("PARAGRAPH_UUID"));
-        noteStatisticInner.setStatus(JobBatch.Status.valueOf(resultSet.getString("STATUS")));
+        noteStatisticInner.setStatus(Job.Status.valueOf(resultSet.getString("STATUS")));
         noteStatisticInner.setUserName(resultSet.getString("USER_NAME"));
         noteStatisticInner.setStartedAt(startedAt);
         noteStatisticInner.setEndedAt(endedAt);

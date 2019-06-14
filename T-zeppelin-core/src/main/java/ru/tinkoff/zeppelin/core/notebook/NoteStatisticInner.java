@@ -6,7 +6,7 @@ public class NoteStatisticInner {
     private long paragraphId;
     private String paragraphUuid;
     private String userName;
-    private JobBatch.Status status;
+    private Job.Status status;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
 
@@ -26,11 +26,11 @@ public class NoteStatisticInner {
         this.paragraphId = paragraphId;
     }
 
-    public JobBatch.Status getStatus() {
+    public Job.Status getStatus() {
         return status;
     }
 
-    public void setStatus(JobBatch.Status status) {
+    public void setStatus(Job.Status status) {
         this.status = status;
     }
 

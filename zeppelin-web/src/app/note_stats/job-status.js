@@ -60,18 +60,51 @@ export function getJobColorByStatus(jobStatus) {
 
 export function getJobTooltip(jobStatus) {
   if (jobStatus === JobStatus.PENDING) {
-    return 'Paragraph is waiting for execution';
+    return 'Pending';
   } else if (jobStatus === JobStatus.RUNNING) {
-    return 'Paragraph is running';
+    return 'Running';
   } else if (jobStatus === JobStatus.DONE) {
-    return 'Paragraph successfully finished';
+    return 'Success';
   } else if (jobStatus === JobStatus.ERROR) {
-    return 'Error occurred during running the paragraph';
+    return 'Errored';
   } else if (jobStatus === JobStatus.CANCELED) {
-    return 'Paragraph canceled';
+    return 'Canceled';
   } else if (jobStatus === JobStatus.ABORTING) {
-    return 'Paragraph is aborting';
+    return 'Aborting';
   } else if (jobStatus === JobStatus.ABORTED) {
-    return 'Paragraph successfully aborted';
+    return 'Aborted';
+  }
+}
+
+export function getNoteStatus(note) {
+  let isPending = false;
+  let isCanceled = false;
+  let isAborted = false;
+  for (let i = 0; i < note.inner.length; ++i) {
+    let jobStatus = note.inner[i].status;
+
+    if (jobStatus === JobStatus.PENDING) {
+      isPending = true;
+    } else if (jobStatus === JobStatus.RUNNING) {
+      return JobStatus.RUNNING;
+    } else if (jobStatus === JobStatus.ERROR) {
+      return JobStatus.ERROR;
+    } else if (jobStatus === JobStatus.CANCELED) {
+      isCanceled = true;
+    } else if (jobStatus === JobStatus.ABORTING) {
+      return JobStatus.ABORTING;
+    } else if (jobStatus === JobStatus.ABORTED) {
+      isAborted = true;
+    }
+  }
+
+  if (isPending) {
+    return JobStatus.PENDING;
+  } else if (isAborted) {
+    return JobStatus.ABORTED;
+  } else if (isCanceled) {
+    return JobStatus.CANCELED;
+  } else {
+    return JobStatus.DONE;
   }
 }

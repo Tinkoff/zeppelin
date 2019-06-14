@@ -13,7 +13,7 @@
  */
 
 import moment from 'moment';
-import {getJobIconByStatus, getJobColorByStatus, getJobTooltip} from './job-status';
+import {getJobIconByStatus, getJobColorByStatus, getJobTooltip, getNoteStatus} from './job-status';
 
 angular.module('zeppelinWebApp').controller('NoteStatsCtrl', NoteStatsController);
 
@@ -27,6 +27,7 @@ function NoteStatsController($scope, $rootScope, $http, baseUrlSrv, ngToast) {
   $scope.getJobIconByStatus = getJobIconByStatus;
   $scope.getJobColorByStatus = getJobColorByStatus;
   $scope.getJobTooltip = getJobTooltip;
+  $scope.getNoteStatus = getNoteStatus;
 
   /**
    * Gets available notes stats.
@@ -56,6 +57,9 @@ function NoteStatsController($scope, $rootScope, $http, baseUrlSrv, ngToast) {
     );
   }
 
+  /**
+   * Converts times and computes duration.
+   */
   function processList(list) {
     for (let i = 0; i < list.length; i++) {
       for (let j = 0; j < list[i].inner.length; j++) {
@@ -68,12 +72,18 @@ function NoteStatsController($scope, $rootScope, $http, baseUrlSrv, ngToast) {
         list[i].inner[j].startedAt = moment(convertTime(start)).format('MMMM DD YYYY, h:mm:ss A');
 
         let end = list[i].inner[j].endedAt;
+        let duration = '';
         if (end === undefined) {
-          end = moment(convertTime(start)).toNow(true);
+          end = 'Running';
+          duration = moment(convertTime(start)).toNow(true);
         } else {
           end = moment(convertTime(end)).format('MMMM DD YYYY, h:mm:ss A');
+          duration = moment.utc(moment(end, 'MMMM DD YYYY, h:mm:ss A')
+            .diff(moment(list[i].inner[j].startedAt, 'MMMM DD YYYY, h:mm:ss A')))
+            .format('HH:mm:ss');
         }
         list[i].inner[j].endedAt = end;
+        list[i].inner[j].duration = duration;
       }
     }
   }
