@@ -81,7 +81,7 @@ public class AuthorizationService {
       return cache.get(principal);
     } else {
       // load groups
-      Set<String> principalRoles = new HashSet<>();
+      final Set<String> principalRoles = new HashSet<>();
       for (final Realm realm : realms) {
         final ShiroSecurityService securityService = (ShiroSecurityService)realm;
           principalRoles.addAll(securityService.getAssociatedRoles(principal));
@@ -91,6 +91,31 @@ public class AuthorizationService {
 
       cache.put(principal, authenticationInfo);
       return authenticationInfo;
+    }
+  }
+
+  public static AuthenticationInfo getAuthenticationInfo(final String principal) {
+
+    final DefaultWebSecurityManager securityManager = (DefaultWebSecurityManager)SecurityUtils.getSecurityManager();
+    if(securityManager == null) {
+     throw new UnsupportedOperationException("Can not load user groups. securityManager not initialized");
+    }
+
+    final Collection<Realm> realms = securityManager.getRealms();
+    if(realms == null || realms.isEmpty()) {
+      throw new UnsupportedOperationException("Can not load user groups. realms not initialized");
+    }
+
+    if (cache.containsKey(principal) && !cache.get(principal).getRoles().isEmpty()) {
+      return cache.get(principal);
+    } else {
+      // load groups
+      final Set<String> principalRoles = new HashSet<>();
+      for (final Realm realm : realms) {
+        final ShiroSecurityService securityService = (ShiroSecurityService)realm;
+        principalRoles.addAll(securityService.getAssociatedRoles(principal));
+      }
+      return new AuthenticationInfo(principal, principalRoles);
     }
   }
 

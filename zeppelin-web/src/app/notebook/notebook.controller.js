@@ -852,6 +852,49 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     return selectJson;
   };
 
+  let getUsers = function() {
+    let selectJson = {
+      tokenSeparators: [',', ' '],
+      ajax: {
+        url: function(params) {
+          if (!params.term) {
+            return false;
+          }
+          return baseUrlSrv.getRestApiBase() + '/event/' + $scope.note.databaseId + '/' + params.term;
+        },
+        delay: 250,
+        processResults: function(data, params) {
+          let results = [];
+
+          if (data.body.length !== 0) {
+            let users = [];
+            for (let len = 0; len < data.body.length; len++) {
+              users.push({
+                'id': data.body[len],
+                'text': data.body[len],
+              });
+            }
+            results.push({
+              'text': 'Users :',
+              'children': users,
+            });
+          }
+          return {
+            results: results,
+            pagination: {
+              more: false,
+            },
+          };
+        },
+        cache: false,
+      },
+      width: ' ',
+      tags: true,
+      minimumInputLength: 3,
+    };
+    return selectJson;
+  };
+
 
   let getPermissions = function(callback) {
     $http.get(baseUrlSrv.getRestApiBase() + '/notebook/' + $scope.note.databaseId)
@@ -1321,7 +1364,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         for (let i = 0; i < $scope.subscriptions.length; i++) {
           $scope.subscriptions[i][1] = Object.entries($scope.subscriptions[i][1]);
         }
-        setTimeout(() => initNotificationSelects(getSelectConfiguration()), 100);
+        setTimeout(() => initNotificationSelects(getUsers()), 100);
       });
   }
 
@@ -1376,7 +1419,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         let notificationTypeInfo = eventTypeInfo[1][j];
         let tmpUsers = new Set(angular.element('#select' + eventTypeInfo[0] + notificationTypeInfo[0]).val());
         let oldUsers = new Set(notificationTypeInfo[1]);
-
         let newUsers = new Set([...tmpUsers].filter((x) => !oldUsers.has(x)));
         let removedUsers = new Set([...oldUsers].filter((x) => !tmpUsers.has(x)));
 

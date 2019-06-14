@@ -31,6 +31,7 @@ public class NoteEventService {
     private final String textTemplateScheduleChange;
     private final String server;
     private final String domain;
+    private final Boolean notificationEnableFlg;
 
     public NoteEventService(SchedulerDAO schedulerDAO,
                             NoteEventDAO noteEventDAO,
@@ -41,7 +42,8 @@ public class NoteEventService {
                             @Value("${zeppelin.email.textTemplate.error}") final String textTemplateError,
                             @Value("${zeppelin.email.textTemplate.scheduleChange}") final String textTemplateScheduleChange,
                             @Value("${zeppelin.email.server}") final String server,
-                            @Value("${zeppelin.email.domain}") final String domain) {
+                            @Value("${zeppelin.email.domain}") final String domain,
+                            @Value("${zeppelin.notification.enable}") final Boolean notificationEnableFlg) {
         this.schedulerDAO = schedulerDAO;
         this.noteEventDAO = noteEventDAO;
         this.noteService = noteService;
@@ -52,6 +54,7 @@ public class NoteEventService {
         this.textTemplateScheduleChange = textTemplateScheduleChange;
         this.server = server;
         this.domain = domain;
+        this.notificationEnableFlg = notificationEnableFlg;
     }
 
     public void errorOnNoteScheduleExecution(Job job) {
@@ -90,8 +93,8 @@ public class NoteEventService {
         sendMail(mailing_list, NoteEvent.Type.SCHEDULE_CHANGE, note, oldScheduler);
     }
 
-    private void sendMail(List<String> mailTo, NoteEvent.Type type, Note note, Scheduler oldScheduler) {
-        if (mailTo.isEmpty()) {
+    private void sendMail(final List<String> mailTo, final NoteEvent.Type type, final Note note, final Scheduler oldScheduler) {
+        if (!notificationEnableFlg || mailTo.isEmpty()) {
             return;
         }
         final Scheduler currentScheduler = schedulerDAO.getByNote(note.getId());
