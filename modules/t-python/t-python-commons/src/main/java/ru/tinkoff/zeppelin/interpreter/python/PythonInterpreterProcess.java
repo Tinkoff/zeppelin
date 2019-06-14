@@ -156,7 +156,7 @@ public class PythonInterpreterProcess {
           }
           jep.set(key, properties.get(key).toString());
         }
-        jep.eval("import pickle as zpickle");
+        jep.eval("import dill as zpickle");
         jep.eval("import dill as zdill");
 
         // inject autiomported modules
