@@ -27,6 +27,7 @@ public class InterpreterQueueDTO {
     private final String noteName;
     private final Long paragraphId;
     private final String paragraphUuid;
+    private final String paragraphTitle;
     private final Long paragraphPosition;
     private final String shebang;
     private final String username;
@@ -38,6 +39,7 @@ public class InterpreterQueueDTO {
                                final String path,
                                final Long paragraphId,
                                final String paragraphUuid,
+                               final String paragraphTitle,
                                final Long paragraphPosition,
                                final String shebang,
                                final String username,
@@ -48,6 +50,7 @@ public class InterpreterQueueDTO {
         this.noteName = path.substring(path.lastIndexOf(File.separator) + 1);
         this.paragraphId = paragraphId;
         this.paragraphUuid = paragraphUuid;
+        this.paragraphTitle = paragraphTitle;
         this.paragraphPosition = paragraphPosition;
         this.shebang = shebang;
         this.username = username;

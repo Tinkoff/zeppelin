@@ -33,6 +33,7 @@ public class InterpreterQueueDAO {
             "  N.PATH AS NOTE_PATH,\n" +
             "  J.PARAGRAPH_ID,\n" +
             "  P.UUID as PARAGRAPH_UUID,\n" +
+            "  P.TITLE as PARAGRAPH_TITLE,\n" +
             "  J.INDEX_NUMBER AS PARAGRAPH_POSITION,\n" +
             "  J.SHEBANG,\n" +
             "  J.USER_NAME,\n" +
@@ -62,6 +63,7 @@ public class InterpreterQueueDAO {
         final String notePath = resultSet.getString("NOTE_PATH");
         final Long paragraphId = resultSet.getLong("PARAGRAPH_ID");
         final String paragraphUuid = resultSet.getString("PARAGRAPH_UUID");
+        final String paragraphTitle = resultSet.getString("PARAGRAPH_TITLE");
         final Long paragraphPosition = resultSet.getLong("PARAGRAPH_POSITION");
         final String shebang = resultSet.getString("SHEBANG");
         final String username = resultSet.getString("USER_NAME");
@@ -76,6 +78,7 @@ public class InterpreterQueueDAO {
                 notePath,
                 paragraphId,
                 paragraphUuid,
+                paragraphTitle,
                 paragraphPosition,
                 shebang,
                 username,

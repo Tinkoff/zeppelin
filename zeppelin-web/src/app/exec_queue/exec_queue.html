@@ -36,8 +36,7 @@ limitations under the License.
 
                 <thead>
                 <tr>
-                  <th style="width:4%;text-align: center; border: 1px solid black;">Note id</th>
-                  <th style="width:10%;text-align: center; border: 1px solid black;">Note Uuid</th>
+                  <th style="width:4%;text-align: center; border: 1px solid black;">№</th>
                   <th style="width:15%;text-align: center; border: 1px solid black;">Note Name</th>
                   <th style="width:25%;text-align: center; border: 1px solid black;">Paragraph Uuid</th>
                   <th style="width:12%;text-align: center; border: 1px solid black;">Paragraph position in note</th>
@@ -49,17 +48,15 @@ limitations under the License.
                 <tbody>
                 <tr ng-repeat="paragraph in value">
                   <td style="vertical-align: middle; border: 1px solid black;">
-                    {{paragraph.noteId}}
+                    {{$index + 1}}
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
                     <a href="../#/notebook/{{paragraph.noteUuid}}">
-                      {{paragraph.noteUuid}}</a>
+                      {{paragraph.noteName}}</a>
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
-                    {{paragraph.noteName}}
-                  </td>
-                  <td style="vertical-align: middle; border: 1px solid black;">
-                    {{paragraph.paragraphUuid}}
+                    <a href="../#notebook/{{paragraph.noteUuid}}?paragraph={{paragraph.paragraphUuid}}">
+                    {{paragraph.paragraphTitle || paragraph.paragraphUuid}}</a>
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.paragraphPosition}}
@@ -72,7 +69,6 @@ limitations under the License.
                   </td>
                 </tr>
                 </tbody>
-
               </table>
           </div>
         </div>
