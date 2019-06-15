@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -41,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInstallation;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInterpolation;
+import ru.tinkoff.zeppelin.commons.jdbc.JDBCUtil;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
@@ -294,6 +294,11 @@ public class JDBCSimpleInterpreter extends Interpreter {
    */
   @Nonnull
   private InterpreterResult executeQuery(@Nonnull final String queryString, final boolean processResult) {
+    final String errorMessage = JDBCUtil.checkSyntax(queryString);
+    if (errorMessage != null) {
+      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
+    }
+
     ResultSet resultSet = null;
     final StringBuilder exception = new StringBuilder();
     try {
@@ -303,7 +308,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
       final InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
 
       // queryString may consist of multiple statements, so it's needed to process all results.
-      final List<String> statements = splitStatements(queryString);
+      final List<String> statements = JDBCUtil.splitStatements(queryString);
       for (final String statement : statements) {
         final boolean results = this.query.execute(statement);
         int updateCount = 0;
@@ -351,18 +356,6 @@ public class JDBCSimpleInterpreter extends Interpreter {
     // reachable if smth went wrong during query processing.
     return new InterpreterResult(Code.ERROR, Collections.singletonList(
             new Message(Type.TEXT, exception.toString())));
-  }
-
-  /**
-   * Splits query by semicolon and filter empty statements.
-   *
-   * @param query, query which may consist of multiple statements
-   * @return statements.
-   */
-  private List<String> splitStatements(@Nonnull final String query) {
-    return Arrays.stream(query.split(";"))
-        .filter(s -> !s.trim().isEmpty())
-        .collect(Collectors.toList());
   }
 
   /**

@@ -35,13 +35,12 @@ import java.util.Objects;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInstallation;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInterpolation;
+import ru.tinkoff.zeppelin.commons.jdbc.JDBCUtil;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
@@ -295,10 +294,9 @@ public class JDBCInterpreter extends Interpreter {
    */
   @Nonnull
   private InterpreterResult executeQuery(@Nonnull final String queryString, final boolean processResult) {
-    try {
-      CCJSqlParserUtil.parse(queryString);
-    } catch (final JSQLParserException e) {
-      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, e.getCause().getMessage()));
+    final String errorMessage = JDBCUtil.checkSyntax(queryString);
+    if (errorMessage != null) {
+      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
     }
 
     ResultSet resultSet = null;
