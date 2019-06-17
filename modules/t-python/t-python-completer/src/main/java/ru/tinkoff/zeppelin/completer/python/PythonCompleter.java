@@ -35,8 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SuppressWarnings("unused")
 public class PythonCompleter extends Completer {
 
-  private static final String LIBRARY_NAME = "jep.so";
-
   private final static AtomicBoolean libraryIsLoaded = new AtomicBoolean(false);
   private JepInThread jep;
   private final Gson gson = new Gson();
@@ -250,7 +248,7 @@ public class PythonCompleter extends Completer {
   }
 
 
-  private static void addDir(String s) throws IOException {
+  private static void addDir(final String s) throws IOException {
     try {
       final  Field field = ClassLoader.class.getDeclaredField("usr_paths");
       field.setAccessible(true);

@@ -64,7 +64,6 @@ class JepInThread {
   }
 
   class JepThread extends Thread {
-    private Jep jep;
     private final List<JepConsumer> actions;
     private Throwable exception;
 
@@ -78,6 +77,7 @@ class JepInThread {
     @Override
     public void run() {
       // create Jep
+      final Jep jep;
       try {
         jep = new Jep();
       } catch (final Throwable e) {
