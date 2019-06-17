@@ -310,7 +310,8 @@ export function initParameterConfig(config) {
 
     for (let i = 0; i < paramSpecs.length; i++) {
       const paramSpec = paramSpecs[i];
-      if (!config.parameter[chartName][paramSpec.name]) {
+      if (config.parameter[chartName][paramSpec.name] === undefined ||
+        config.parameter[chartName][paramSpec.name] === null) {
         config.parameter[chartName][paramSpec.name] = paramSpec.defaultValue;
       }
     }
