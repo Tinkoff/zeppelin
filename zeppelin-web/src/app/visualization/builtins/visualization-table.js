@@ -12,6 +12,7 @@
  * limitations under the License.
  */
 
+import moment from 'moment';
 import Visualization from '../visualization';
 import PassthroughTransformation from '../../tabledata/passthrough';
 
@@ -107,7 +108,7 @@ export default class TableVisualization extends Visualization {
       flatEntityAccess: true,
       fastWatch: false,
       treeRowHeaderAlwaysVisible: false,
-      exporterExcelFilename: 'myFile.xlsx',
+      exporterExcelFilename: 'myFile_' + moment().format().toString() + '.xlsx',
 
       columnDefs: columnNames.map((colName, index) => {
         const self = this;
@@ -165,6 +166,10 @@ export default class TableVisualization extends Visualization {
       saveFilter: true,
       saveSelection: false,
     };
+
+    setInterval(function() {
+      gridOptions.exporterExcelFilename = 'myFile_' + moment().format().toString() + '.xlsx';
+    }, 1000);
 
     return gridOptions;
   }
