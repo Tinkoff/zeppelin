@@ -104,11 +104,11 @@ public class NotebookRestApi extends AbstractRestApi {
 
       final NoteRequest request = NoteRequest.fromJson(message);
       final Note note = request.getAsNote();
-      LOGGER.info("noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
 
       addCurrentUserToOwners(note);
       noteService.persistNote(note);
 
+      LOGGER.info("noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
       final JsonObject response = new JsonObject();
       response.addProperty("note_id", note.getId());
       return new JsonResponse(HttpStatus.OK, "Note created", response).build();

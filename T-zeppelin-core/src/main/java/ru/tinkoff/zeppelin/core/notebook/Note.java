@@ -78,7 +78,7 @@ public class Note implements Serializable {
     this.uuid = uuid;
   }
 
-  public long getId() {
+  public Long getId() {
     return id;
   }
 
