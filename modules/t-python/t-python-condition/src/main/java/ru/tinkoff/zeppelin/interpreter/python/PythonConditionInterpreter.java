@@ -18,8 +18,6 @@ package ru.tinkoff.zeppelin.interpreter.python;
 
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,7 +28,7 @@ public class PythonConditionInterpreter extends AbstractPythonInterpreter {
     super();
   }
 
-  private volatile AtomicBoolean interrupted = new AtomicBoolean(false);
+  private final AtomicBoolean interrupted = new AtomicBoolean(false);
 
   @Override
   public void cancel() {
@@ -54,35 +52,34 @@ public class PythonConditionInterpreter extends AbstractPythonInterpreter {
   }
 
   @Override
-  public InterpreterResult interpretV2(String st,
-                                       Map<String, String> noteContext,
-                                       Map<String, String> userContext,
-                                       Map<String, String> configuration) {
+  public InterpreterResult interpretV2(final String st,
+                                       final Map<String, String> noteContext,
+                                       final Map<String, String> userContext,
+                                       final Map<String, String> configuration) {
     final int maxLife = Integer.parseInt(configuration.get("python.condition.timeout"));
     final int cycleTime = Integer.parseInt(configuration.get("python.condition.cycle.timeout"));
     final int waitExitCode = Integer.parseInt(configuration.get("python.condition.wait.exit.code"));
 
     interrupted.set(false);
 
+    final StringBuilder buffer = new StringBuilder();
     final long startTime = java.time.Instant.now().getEpochSecond();
-    final List<InterpreterResult.Message> messages = new LinkedList<>();
     while (java.time.Instant.now().getEpochSecond() < startTime + maxLife && !interrupted.get()) {
-      final PythonInterpreterResult result = super.execute(st, noteContext, userContext, configuration);
 
-      // override messages
-      messages.addAll(result.getInterpreterResult().message());
-      result.getInterpreterResult().message().clear();
-      result.getInterpreterResult().message().addAll(messages);
+      final PythonInterpreterResult result = super.execute(st, noteContext, userContext, configuration);
+      result.getInterpreterResult().message().stream()
+              .filter(m -> m.getType() == InterpreterResult.Message.Type.TEXT)
+              .forEach(m -> buffer.append(m.getData()).append("\n"));
+
       if (result.getExitCode() != waitExitCode) {
-        return result.getInterpreterResult();
+        return new InterpreterResult(
+                result.getInterpreterResult().code(),
+                new InterpreterResult.Message(InterpreterResult.Message.Type.TEXT, buffer.toString())
+        );
       }
 
       // publish tempText
-      final StringBuilder tempText = new StringBuilder();
-      messages.stream()
-              .filter(m -> m.getType() == InterpreterResult.Message.Type.TEXT)
-              .forEach(m -> tempText.append(m.getData()).append("\n"));
-      getTempTextPublisher().accept(tempText.toString());
+      getTempTextPublisher().accept(buffer.toString());
 
       int cycles = 0;
       while (cycles <= cycleTime && !interrupted.get()) {
@@ -95,13 +92,11 @@ public class PythonConditionInterpreter extends AbstractPythonInterpreter {
       }
     }
 
-    messages.add(new InterpreterResult.Message(
-            InterpreterResult.Message.Type.TEXT,
-            "Killed by user/timeout")
+    // Here process killed by watchdog / interrupt
+    buffer.append("Killed by user/timeout");
+    return new InterpreterResult(
+            InterpreterResult.Code.ERROR,
+            new InterpreterResult.Message(InterpreterResult.Message.Type.TEXT, buffer.toString())
     );
-
-    final InterpreterResult result = new InterpreterResult(InterpreterResult.Code.ERROR);
-    result.message().addAll(messages);
-    return result;
   }
 }
