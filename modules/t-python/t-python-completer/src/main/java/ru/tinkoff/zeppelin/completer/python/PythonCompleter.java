@@ -19,6 +19,7 @@ package ru.tinkoff.zeppelin.completer.python;
 
 import com.google.gson.Gson;
 import jep.JepException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import ru.tinkoff.zeppelin.interpreter.Completer;
 import ru.tinkoff.zeppelin.interpreter.InterpreterCompletion;
@@ -200,6 +201,8 @@ public class PythonCompleter extends Completer {
     final String jepLibPath = configuration.get("python.jep.library.file");
     final String workDirPath = configuration.get("python.working.dir");
     final String newJepLibPath = workDirPath + "/" + System.mapLibraryName("jep");
+
+    FileUtils.forceMkdir(new File(workDirPath));
 
     // copy Jep library
     Files.copy(Paths.get(jepLibPath), Paths.get(newJepLibPath), StandardCopyOption.REPLACE_EXISTING);
