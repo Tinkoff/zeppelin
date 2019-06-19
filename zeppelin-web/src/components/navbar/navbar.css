@@ -230,3 +230,8 @@ a.navbar-brand:hover {
   font-size: 30px;
   margin: 0 auto;
 }
+
+/*fix bokeh body width*/
+body {
+  width: 100% !important;
+}
