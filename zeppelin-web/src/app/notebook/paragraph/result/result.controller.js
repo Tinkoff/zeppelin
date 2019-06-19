@@ -468,6 +468,8 @@ function ResultCtrl($scope, $rootScope, $route, $window, $routeParams, $location
     handleData(data, DefaultDisplayType.HTML,
       (generated) => {
         elem.html(generated);
+        // try one more time (bokeh js script fix)
+        setTimeout(() => elem.html(generated), 200);
         elem.find('pre code').each(function(i, e) {
           hljs.highlightBlock(e);
         });
