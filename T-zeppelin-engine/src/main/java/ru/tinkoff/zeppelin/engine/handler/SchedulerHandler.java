@@ -28,6 +28,7 @@ import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
+import ru.tinkoff.zeppelin.engine.BaseConfigurationService;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 import ru.tinkoff.zeppelin.storage.JobBatchDAO;
 import ru.tinkoff.zeppelin.storage.JobDAO;
@@ -50,6 +51,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 public class SchedulerHandler extends AbstractHandler {
 
   private final SchedulerDAO schedulerDAO;
+  private final BaseConfigurationService baseConfigurationService;
 
   public SchedulerHandler(final JobBatchDAO jobBatchDAO,
                           final JobDAO jobDAO,
@@ -58,9 +60,12 @@ public class SchedulerHandler extends AbstractHandler {
                           final NoteDAO noteDAO,
                           final ParagraphDAO paragraphDAO,
                           final FullParagraphDAO fullParagraphDAO,
-                          final SchedulerDAO schedulerDAO) {
+                          final SchedulerDAO schedulerDAO,
+                          final BaseConfigurationService baseConfigurationService
+  ) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
     this.schedulerDAO = schedulerDAO;
+    this.baseConfigurationService = baseConfigurationService;
   }
 
   public List<Scheduler> loadJobs() {
@@ -69,6 +74,9 @@ public class SchedulerHandler extends AbstractHandler {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void handle(final Scheduler scheduler) {
+    if (!baseConfigurationService.get("SCHEDULER_ENABLE_FLAG", false)){
+      return;
+    }
     final Note note = noteDAO.get(scheduler.getNoteId());
     final List<Paragraph> paragraphs = paragraphDAO.getByNoteId(note.getId());
 

@@ -41,11 +41,26 @@ limitations under the License.
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="key in configurations | sortByKey" >
-              <td>{{key}}</td>
+            <tr ng-repeat="key in configrations | sortByKey" >
+              <td>{{configrations[key].description}}</td>
               <td>
-                <div class="hiding_overflow">
-                  {{configurations[key]}}
+                <div ng-switch="configrations[key].valueType">
+                  <div  ng-switch-when='BOOLEAN' class="hiding_overflow">
+                      <span class="check-button"
+                            uib-tooltip="Enable/disable {{configrations[key].name}} configuration parameter "
+                            ng-click="setConfigurationParam(key)"><i id="fa" class="fa {{configrations[key].value ? 'fa-check-square-o':'fa-square-o'}}" aria-hidden="true"></i></span>
+                  </div>
+                  <div ng-switch-when='STRING'>
+                    <input type="text"  value="{{configrations[key].value}}" id="{{key}}_input"/>
+                    <button ng-click="setConfigurationParam(key)">Set</button>
+                  </div>
+                  <div ng-switch-when='NUMBER'>
+                    <input type="text"  value="{{configrations[key].value}}" id="{{key}}_number_input"/>
+                    <button ng-click="setConfigurationParam(key)">Set</button>
+                  </div>
+                  <div ng-switch-default>
+                      {{configrations[key].value}}
+                  </div>
                 </div>
               </td>
             </tr>
