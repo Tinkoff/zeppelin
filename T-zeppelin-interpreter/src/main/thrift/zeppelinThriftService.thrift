@@ -26,6 +26,44 @@ struct RegisterInfo {
   5: string processUUID
 }
 
+enum RunNoteResultStatus {
+    ACCEPT,
+    ERROR
+}
+
+struct RunNoteResult {
+  1: RunNoteResultStatus status,
+  2: i64 batchId,
+  3: string message
+}
+
+enum AbortBatchResultStatus {
+    ACCEPT,
+    ERROR
+}
+
+struct AbortBatchResult {
+  1: AbortBatchResultStatus status,
+  2: string message
+}
+
+enum BatchResultStatus {
+    ACCEPT,
+    ERROR
+}
+
+enum BatchStatus {
+    DONE,
+    RUNNING,
+    ERROR
+}
+
+struct BatchStatusResult {
+  1: BatchResultStatus status,
+  2: BatchStatus batchStatus,
+  3: string message
+}
+
 service ZeppelinThriftService {
 
   void registerInterpreterProcess(1: RegisterInfo registerInfo);
@@ -33,5 +71,9 @@ service ZeppelinThriftService {
   void handleInterpreterResult(1: string UUID, 2: string payload);
 
   void handleInterpreterTempOutput(1: string UUID, 2: string tempOutput);
+
+  RunNoteResult handleRunNote(1: string noteUUID, 2: string userName, 3: set<string> userGroups);
+  AbortBatchResult handleAbortBatch(1: i64 batchId, 2: string userName, 3: set<string> userGroups);
+  BatchStatusResult handleGetBatchStatus(1: i64 batchId, 2: string userName, 3: set<string> userGroups);
 
 }

@@ -47,6 +47,7 @@ import './app/notebook/paragraph/clipboard.controller.js';
 import './app/notebook/paragraph/resizable.directive.js';
 import './app/notebook/paragraph/result/result.controller.js';
 import './app/notebook/paragraph/code-editor/code-editor.directive.js';
+import './app/notebook/wait-paragraph/wait-paragraph.controller.js';
 import './app/notebook/save-as/save-as.service.js';
 import './app/notebook/save-as/browser-detect.service.js';
 import './app/notebook/elastic-input/elastic-input.controller.js';

@@ -1,0 +1,44 @@
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div ng-class="note_folder_renderer">
+  <!-- note -->
+  <div ng-if="node.children == null && isFilterNote(node)" ng-mouseenter="showNoteButton=true"
+       ng-mouseleave="showNoteButton=false">
+    <a style="text-decoration: none;">
+      <i style="font-size: 10px;"
+         ng-class="query.q && node.isTrash ? 'fa fa-trash-o' : 'icon-doc'"></i> {{getNoteName(node)}}
+    </a>
+
+    <a>
+      <i style="color:green; margin-left:10px" class="fa fa-check"  ng-show="showNoteButton"
+         ng-click="changeNote(node.path)" tooltip-placement="bottom" uib-tooltip="Wait for this note"></i>
+    </a>
+  </div>
+
+  <!-- folder -->
+  <div ng-if="node.children != null && node.id !== TRASH_FOLDER_ID">
+    <div ng-mouseenter="showFolderButton=true"
+         ng-mouseleave="showFolderButton=false">
+      <a style="text-decoration: none; cursor: pointer;" ng-click="toggleFolderNode(node)">
+        <i style="font-size: 10px;" ng-class="node.hidden ? 'fa fa-folder' : 'fa fa-folder-open'"></i> {{getNoteName(node)}}
+      </a>
+    </div>
+    <div ng-if="!node.hidden">
+      <ul style="list-style-type: none; padding-left:15px;">
+        <li ng-repeat="node in node.children | orderBy:node:false:noteComparator" ng-include="'app/notebook/wait-paragraph/notebook-template.html'" ng-class="'note_folder_renderer'"></li>
+      </ul>
+    </div>
+  </div>
+</div>

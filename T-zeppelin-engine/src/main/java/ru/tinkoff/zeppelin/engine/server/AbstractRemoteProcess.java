@@ -187,6 +187,7 @@ public abstract class AbstractRemoteProcess<T extends RemoteProcessThriftService
   void releaseConnection(final RemoteProcessThriftService.Client connection) {
     try {
       connection.getOutputProtocol().getTransport().close();
+      connection.getInputProtocol().getTransport().close();
     } catch (final Throwable t) {
       ZLog.log(ET.FAILED_TO_RELEASE_CONNECTION,
           String.format("Ошибка при зкарытии соедниения по адресу %s:%s", host, port),

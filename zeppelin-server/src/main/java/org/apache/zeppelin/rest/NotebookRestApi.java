@@ -17,19 +17,8 @@
 
 package org.apache.zeppelin.rest;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -42,15 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
@@ -58,6 +39,14 @@ import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.engine.search.LuceneSearch;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
+
+import java.lang.reflect.Type;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/notebook")
@@ -73,11 +62,11 @@ public class NotebookRestApi extends AbstractRestApi {
 
   @Autowired
   public NotebookRestApi(
-      final LuceneSearch luceneSearch,
-      final ConnectionManager connectionManager,
-      final NoteService noteService,
-      final SchedulerDAO schedulerDAO,
-      final NoteEventService noteEventService) {
+          final LuceneSearch luceneSearch,
+          final ConnectionManager connectionManager,
+          final NoteService noteService,
+          final SchedulerDAO schedulerDAO,
+          final NoteEventService noteEventService) {
     super(noteService, connectionManager);
     this.luceneSearch = luceneSearch;
     this.schedulerDAO = schedulerDAO;
@@ -86,6 +75,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   /**
    * Create new note | Endpoint: <b>POST - /api/notebook</b>
+   *
    * @param message Json with parameters for creating note
    *                <table border="1">
    *                <tr><td><b> Name </b></td><td><b> Type </b></td><td><b> Required </b></td><td><b> Description </b></td><tr>
@@ -119,14 +109,15 @@ public class NotebookRestApi extends AbstractRestApi {
 
   /**
    * Update note by id | Endpoint: <b>PUT /api/notebook/{noteId}</b>
-   * @param noteId Notes id
+   *
+   * @param noteId  Notes id
    * @param message Json with parameters for updating note. Description in {@link #createNote(String)}
    * @return Success message
    */
   @PutMapping(value = "/{noteId}", produces = "application/json")
   public ResponseEntity updateNote(
-      @PathVariable("noteId") final long noteId,
-      @RequestBody final String message) {
+          @PathVariable("noteId") final long noteId,
+          @RequestBody final String message) {
     final NoteRequest request = NoteRequest.fromJson(message);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
     LOGGER.info("Обновление ноута noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid());
@@ -154,25 +145,25 @@ public class NotebookRestApi extends AbstractRestApi {
 
   /**
    * Clone note by id | Endpoint: <b>POST - /api/notebook/{noteId}/clone</b>
-   * @param noteId Notes id
+   *
+   * @param noteId  Notes id
    * @param message Json with one parameter <code>path</code>. New path for cloned note
    * @return Json with cloned notes id. Example: <code>{"note_id" : 768}</code>
    */
   @SuppressWarnings("Duplicates")
   @PostMapping(value = "/{noteId}/clone", produces = "application/json")
   public ResponseEntity cloneNote(
-      @PathVariable("noteId") final long noteId,
-      @RequestBody final String message) throws IllegalArgumentException {
+          @PathVariable("noteId") final long noteId,
+          @RequestBody final String message) throws IllegalArgumentException {
 
     final Note note = secureLoadNote(noteId, Permission.READER);
     final NoteRequest request = NoteRequest.fromJson(message);
 
     Note cloneNote = new Note(request.getPath());
     LOGGER.info("Клонирование ноута noteId: {}, noteUuid {},новый ноут noteId: {}, noteUuid: {} через RestApi",
-        note.getId(), note.getUuid(), cloneNote.getId(), cloneNote.getUuid());
+            note.getId(), note.getUuid(), cloneNote.getId(), cloneNote.getUuid());
 
     cloneNote.setPath(request.getPath());
-    cloneNote.setScheduler(note.getScheduler());
     cloneNote.getReaders().clear();
     cloneNote.getRunners().clear();
     cloneNote.getWriters().clear();
@@ -203,6 +194,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   /**
    * Get note info by id | Endpoint: <b>GET - /api/notebook/{noteId}</b>
+   *
    * @param noteId Notes id
    * @return All info about note
    */
@@ -210,12 +202,14 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity getNote(@PathVariable("noteId") final long noteId) {
     LOGGER.info("Получение информации о ноуте по ID noteId: {} (GET)", noteId);
 
-    final NoteRequest noteRequest = new NoteRequest(secureLoadNote(noteId, Permission.READER));
+    final Note note = secureLoadNote(noteId, Permission.READER);
+    final NoteRequest noteRequest = new NoteRequest(note);
     return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
 
   /**
    * Get note info by uuid | Endpoint: <b>GET - /api/notebook/{noteUUID}</b>
+   *
    * @param noteUUID Notes uuid
    * @return All info about note
    */
@@ -227,11 +221,13 @@ public class NotebookRestApi extends AbstractRestApi {
     if (!userHasReaderPermission(note)) {
       return new JsonResponse(HttpStatus.UNAUTHORIZED, "You can't see this note").build();
     }
-    return new JsonResponse(HttpStatus.OK, "Note info", new NoteRequest(note)).build();
+    final NoteRequest noteRequest = new NoteRequest(note);
+    return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
 
   /**
    * Get all notes | Endpoint: <b>GET - /api/notebook</b>
+   *
    * @return List of all the current user’s readable notes
    */
   @GetMapping(produces = "application/json")
@@ -239,20 +235,21 @@ public class NotebookRestApi extends AbstractRestApi {
     LOGGER.info("Получение списка доступных для чтения ноутов через RestApi(GET)");
 
     final List<JsonObject> response = noteService.getAllNotes().stream()
-        .filter(this::userHasReaderPermission)
-        .map(n -> {
-          JsonObject json = new JsonObject();
-          json.addProperty("path", n.getPath());
-          json.addProperty("id", n.getId());
-          json.addProperty("uuid", n.getUuid());
-          return json;
-        })
-        .collect(Collectors.toList());
+            .filter(this::userHasReaderPermission)
+            .map(n -> {
+              JsonObject json = new JsonObject();
+              json.addProperty("path", n.getPath());
+              json.addProperty("id", n.getId());
+              json.addProperty("uuid", n.getUuid());
+              return json;
+            })
+            .collect(Collectors.toList());
     return new JsonResponse(HttpStatus.OK, "List of all available for read notes", response).build();
   }
 
   /**
    * Export note to json | Endpoint: <b>GET - /api/notebook/{noteId}/export</b>
+   *
    * @param noteId Notes id
    * @return Json сontaining a serialized note with paragraphs
    */
@@ -265,8 +262,8 @@ public class NotebookRestApi extends AbstractRestApi {
     final JsonObject json = gson.toJsonTree(noteRequest).getAsJsonObject();
 
     final List<ParagraphRequest> paragraphs = noteService.getParagraphs(note).stream()
-        .map(ParagraphRequest::new)
-        .collect(Collectors.toList());
+            .map(ParagraphRequest::new)
+            .collect(Collectors.toList());
 
     json.add("paragraphs", gson.toJsonTree(paragraphs));
     return new JsonResponse(HttpStatus.OK, "Note with paragraphs json data", gson.toJson(json)).build();
@@ -274,6 +271,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   /**
    * Import note from json | Endpoint: <b>POST /api/notebook/import</b>
+   *
    * @param noteJson Json сontaining a serialized note with paragraphs
    *                 derived from that {@link #exportNote(long)} method
    * @return New notes info
@@ -293,9 +291,9 @@ public class NotebookRestApi extends AbstractRestApi {
     note = noteService.persistNote(note);
 
     final JsonElement paragraphsJson = new JsonParser()
-        .parse(noteJson)
-        .getAsJsonObject()
-        .get("paragraphs");
+            .parse(noteJson)
+            .getAsJsonObject()
+            .get("paragraphs");
 
     final Type type = new TypeToken<List<ParagraphRequest>>() {
     }.getType();
@@ -316,6 +314,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   /**
    * Delete note by id | Endpoint: <b>DELETE - /api/notebook/{noteId}</b>
+   *
    * @param noteId Notes id
    * @return Success message
    */

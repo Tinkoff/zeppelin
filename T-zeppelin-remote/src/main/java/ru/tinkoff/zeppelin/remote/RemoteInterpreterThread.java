@@ -98,6 +98,8 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
                 //SKIP
               }
             });
+            interpreter.setZeppelinSupplier(this::getZeppelin);
+            interpreter.setZeppelinConsumer(this::releaseZeppelin);
             workingInstances.offer(interpreter);
 
             InterpreterResult result;

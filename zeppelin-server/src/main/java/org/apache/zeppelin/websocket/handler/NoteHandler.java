@@ -194,7 +194,6 @@ public class NoteHandler extends AbstractHandler {
 
     Note cloneNote = new Note(path);
     cloneNote.setPath(path);
-    cloneNote.setScheduler(note.getScheduler());
     cloneNote.getReaders().clear();
     cloneNote.getRunners().clear();
     cloneNote.getWriters().clear();

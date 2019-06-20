@@ -47,6 +47,18 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.interpreterQueueDTO = null;
   $scope.interpreterQueuePromise = null;
 
+  $scope.isWaiting = function(paragraph) {
+    if (paragraph.config && paragraph.config.editorSetting && paragraph.config.editorSetting.language) {
+      return paragraph.config.editorSetting.action === 'wait';
+    }
+  };
+
+  $scope.isRunner = function(paragraph) {
+    if (paragraph.config && paragraph.config.editorSetting && paragraph.config.editorSetting.language) {
+      return paragraph.config.editorSetting.action === 'runs';
+    }
+  };
+
   $scope.formatRevisionDate = function(date) {
     if (!date) {
       return 'Unidentified';
@@ -905,6 +917,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         runners: data.body.runners,
         writers: data.body.writers,
       };
+      $scope.$emit('updatePermissions', $scope.note.databaseId, $scope.permissions);
       $scope.permissionsOrig = angular.copy($scope.permissions); // to check dirty
 
       let selectJson = getSelectConfiguration();
@@ -1674,6 +1687,13 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       position: newIndex,
       shebang: paragraphShebang,
     });
+  });
+
+  $scope.$on('updateCron', function(event, noteId, expression, isEnabled) {
+    if ($scope.note.databaseId === noteId) {
+      $scope.note.scheduler.isEnabled = isEnabled;
+      $scope.note.scheduler.expression = expression;
+    }
   });
 
   $scope.$on('setNoteContent', function(event, note) {

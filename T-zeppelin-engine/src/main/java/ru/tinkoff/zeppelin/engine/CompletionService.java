@@ -19,6 +19,8 @@ package ru.tinkoff.zeppelin.engine;
 
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
+import ru.tinkoff.zeppelin.interpreter.NoteContext;
+import ru.tinkoff.zeppelin.interpreter.UserContext;
 import ru.tinkoff.zeppelin.storage.ModuleConfigurationDAO;
 import ru.tinkoff.zeppelin.storage.ModuleInnerConfigurationDAO;
 import ru.tinkoff.zeppelin.storage.ModuleSourcesDAO;
@@ -90,17 +92,17 @@ public class CompletionService {
         // prepare notecontext
         final Map<String, String> noteContext = new HashMap<>();
 
-        noteContext.put("Z_ENV_NOTE_ID", String.valueOf(note.getId()));
-        noteContext.put("Z_ENV_NOTE_UUID", String.valueOf(note.getUuid()));
-        noteContext.put("Z_ENV_PARAGRAPH_ID", String.valueOf(paragraph.getId()));
-        noteContext.put("Z_ENV_PARAGRAPH_SHEBANG", paragraph.getShebang());
+        noteContext.put(NoteContext.Z_ENV_NOTE_ID.name(), String.valueOf(note.getId()));
+        noteContext.put(NoteContext.Z_ENV_NOTE_UUID.name(), String.valueOf(note.getUuid()));
+        noteContext.put(NoteContext.Z_ENV_PARAGRAPH_ID.name(), String.valueOf(paragraph.getId()));
+        noteContext.put(NoteContext.Z_ENV_PARAGRAPH_SHEBANG.name(), paragraph.getShebang());
 
-        noteContext.put("Z_ENV_MARKER_PREFIX", Configuration.getInstanceMarkerPrefix());
+        noteContext.put(NoteContext.Z_ENV_MARKER_PREFIX.name(), Configuration.getInstanceMarkerPrefix());
 
         // prepare usercontext
         final Map<String, String> userContext = new HashMap<>();
-        userContext.put("Z_ENV_USER_NAME", user);
-        userContext.put("Z_ENV_USER_ROLES", roles.toString());
+        userContext.put(UserContext.Z_ENV_USER_NAME.name(), user);
+        userContext.put(UserContext.Z_ENV_USER_ROLES.name(), roles.toString());
 
         // prepare configuration
         final Map<String, String> configuration = new HashMap<>();

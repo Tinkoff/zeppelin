@@ -17,17 +17,18 @@
 
 package ru.tinkoff.zeppelin.engine;
 
-import org.springframework.scheduling.annotation.Scheduled;
-import ru.tinkoff.zeppelin.core.notebook.Scheduler;
-import ru.tinkoff.zeppelin.storage.ModuleRepositoryDAO;
+import org.slf4j.ILoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.engine.server.RemoteProcessServer;
+import ru.tinkoff.zeppelin.storage.ModuleRepositoryDAO;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.util.List;
 
 @Lazy(false)
 @DependsOn("configuration")
@@ -43,6 +44,7 @@ class ThriftServerBootstrap {
 
   @PostConstruct
   public void init() throws Exception {
+
     server = new RemoteProcessServer();
     server.initSources(repositoryDAO.getAll());
     server.start();

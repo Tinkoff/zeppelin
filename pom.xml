@@ -74,7 +74,10 @@
     <module>modules/t-python/t-python-interpreter</module>
     <module>modules/t-python/t-python-condition</module>
     <module>modules/t-python/t-python-completer</module>
+
     <module>modules/markdown</module>
+
+    <module>modules/t-runner/t-runner-interpreter</module>
   </modules>
 
   <properties>

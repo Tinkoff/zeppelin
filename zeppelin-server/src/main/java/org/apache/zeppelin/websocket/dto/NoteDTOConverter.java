@@ -27,24 +27,12 @@ import ru.tinkoff.zeppelin.storage.*;
 @Component
 public class NoteDTOConverter {
 
-    private final JobBatchDAO jobBatchDAO;
-    private final JobDAO jobDAO;
-    private final JobPayloadDAO jobPayloadDAO;
-    private final JobResultDAO jobResultDAO;
     private final NoteService noteService;
 
     private final FullParagraphDAO fullParagraphDAO;
 
-    public NoteDTOConverter(JobBatchDAO jobBatchDAO,
-                            JobDAO jobDAO,
-                            JobPayloadDAO jobPayloadDAO,
-                            JobResultDAO jobResultDAO,
-                            NoteService noteService,
+    public NoteDTOConverter(NoteService noteService,
                             FullParagraphDAO fullParagraphDAO) {
-        this.jobBatchDAO = jobBatchDAO;
-        this.jobDAO = jobDAO;
-        this.jobPayloadDAO = jobPayloadDAO;
-        this.jobResultDAO = jobResultDAO;
         this.noteService = noteService;
         this.fullParagraphDAO = fullParagraphDAO;
     }
@@ -60,7 +48,6 @@ public class NoteDTOConverter {
         for (final Paragraph p : noteService.getParagraphs(note)) {
             noteDTO.getParagraphs().add(fullParagraphDAO.getById(p.getId()));
         }
-        noteDTO.setScheduler(note.getScheduler());
         noteDTO.getConfig().put("looknfeel", false);
 
         return noteDTO;

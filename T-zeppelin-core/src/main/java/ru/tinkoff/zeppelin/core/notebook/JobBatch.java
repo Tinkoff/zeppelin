@@ -31,7 +31,6 @@ public class JobBatch {
     PENDING,
     RUNNING,
     DONE,
-    HANDLE_ERROR,
     ERROR,
     ABORTING,
     ABORTED,

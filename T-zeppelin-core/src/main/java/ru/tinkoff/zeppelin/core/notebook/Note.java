@@ -42,8 +42,6 @@ public class Note implements Serializable {
 
   private Map<String, Object> formParams;
 
-  private Scheduler scheduler;
-
   /********************************** user permissions info *************************************/
   private final Set<String> owners;
   private final Set<String> readers;
@@ -66,8 +64,6 @@ public class Note implements Serializable {
     this.readers = new HashSet<>();
     this.runners = new HashSet<>();
     this.writers = new HashSet<>();
-
-    this.scheduler = null;
   }
 
   public String getUuid() {
@@ -92,14 +88,6 @@ public class Note implements Serializable {
 
   public Map<String, Object> getFormParams() {
     return formParams;
-  }
-
-  public void setScheduler(final Scheduler scheduler) {
-    this.scheduler = scheduler;
-  }
-
-  public Scheduler getScheduler() {
-    return scheduler;
   }
 
   public Set<String> getOwners() {

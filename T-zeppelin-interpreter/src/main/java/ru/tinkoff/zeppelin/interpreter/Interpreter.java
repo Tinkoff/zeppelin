@@ -16,8 +16,11 @@
  */
 package ru.tinkoff.zeppelin.interpreter;
 
+import ru.tinkoff.zeppelin.interpreter.thrift.ZeppelinThriftService;
+
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public abstract class Interpreter extends Base {
 
@@ -37,12 +40,26 @@ public abstract class Interpreter extends Base {
   protected Consumer<String> getTempTextPublisher() {
     return tempTextPublisher;
   }
-
   public void setTempTextPublisher(final Consumer<String> tempTextPublisher) {
     this.tempTextPublisher = tempTextPublisher;
   }
 
-  public Interpreter() { }
+  private Supplier<ZeppelinThriftService.Client> zeppelinSupplier;
+  protected Supplier<ZeppelinThriftService.Client> getZeppelin() { return zeppelinSupplier; }
+  public void setZeppelinSupplier(final Supplier<ZeppelinThriftService.Client> s) {
+    this.zeppelinSupplier = s;
+  }
+
+  private Consumer<ZeppelinThriftService.Client> zeppelinConsumer;
+  protected Consumer<ZeppelinThriftService.Client> releaseZeppelin() {
+    return zeppelinConsumer;
+  }
+  public void setZeppelinConsumer(final Consumer<ZeppelinThriftService.Client> c) {
+    this.zeppelinConsumer = c;
+  }
+
+  public Interpreter() {
+  }
 
   public abstract boolean isAlive();
 
@@ -52,7 +69,7 @@ public abstract class Interpreter extends Base {
 
   public abstract boolean isReusableForConfiguration(final Map<String, String> configuration);
 
-  public abstract void  cancel();
+  public abstract void cancel();
 
   public abstract void close();
 

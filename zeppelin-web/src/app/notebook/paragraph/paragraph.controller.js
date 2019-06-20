@@ -1322,9 +1322,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     }
     if ($scope.interpreterSettings[index].config.editor.language) {
       setEditorLanguage(session, $scope.interpreterSettings[index].config.editor.language);
-      _.merge($scope.paragraph.config.editorSetting,
-      $scope.interpreterSettings[index].config.editor);
     }
+    _.merge($scope.paragraph.config.editorSetting, $scope.interpreterSettings[index].config.editor);
   };
 
   const autoAdjustEditorHeight = function(editor) {

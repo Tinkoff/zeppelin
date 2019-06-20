@@ -137,33 +137,62 @@ limitations under the License.
   </div>
 
   <!-- Include the paragraphs according to the note, pass the note to init function -->
-  <div id="{{currentParagraph.id}}_paragraphColumn_main"
-       ng-repeat="currentParagraph in note.paragraphs"
-       ng-controller="ParagraphCtrl"
-       ng-init="init(currentParagraph, note)"
-       ng-class="columnWidthClass(currentParagraph.config.colWidth)"
-       style="margin: 0; padding: 0;">
+  <div ng-repeat="currentParagraph in note.paragraphs">
+    <div ng-if="(isWaiting(currentParagraph) || isRunner(currentParagraph))">
+      <div id="{{currentParagraph.id}}_paragraphColumn_main"
+           ng-controller="WaitingParagraphCtrl"
+           ng-init="init(currentParagraph, note, permissions)"
+           ng-class="columnWidthClass(currentParagraph.config.colWidth)"
+           style="margin: 0; padding: 0;">
+        <div class="new-paragraph"
+             ng-click="insertNew('above')"
+             ng-hide="viewOnly || asIframe || revisionView"
+             ng-class="{'first-paragraph': $first}">
+          <h4 class="plus-sign" ng-class="{'new-paragraph-disable': isNoteRunning}">&#43; Add Paragraph</h4>
+        </div>
 
-       <!-- see ZEPPELIN-2806
-       viewport-watch>
-       -->
-    <div class="new-paragraph"
-         ng-click="insertNew('above')"
-         ng-hide="viewOnly || asIframe || revisionView"
-         ng-class="{'first-paragraph': $first}">
-      <h4 class="plus-sign" ng-class="{'new-paragraph-disable': isNoteRunning}">&#43; Add Paragraph</h4>
+        <div id="{{currentParagraph.id}}_paragraphColumn"
+             ng-include src="'app/notebook/wait-paragraph/wait-paragraph.html'"
+             ng-class="{'paragraph-space box paragraph-margin': !asIframe, 'focused': paragraphFocused,
+                        'lastEmptyParagraph': !paragraph.text && !paragraph.result,
+                        'selected-paragraph': selectedParagraphsIds.has(currentParagraph.id)}"
+             ng-hide="currentParagraph.config.tableHide && viewOnly"
+             ng-dblclick="paragraphOnDoubleClick(currentParagraph.id);">
+        </div>
+        <div class="new-paragraph last-paragraph" ng-click="insertNew('below');" ng-hide="!$last || viewOnly || asIframe || revisionView">
+          <h4 class="plus-sign" ng-class="{'new-paragraph-disable': isNoteRunning}">&#43; Add Paragraph</h4>
+        </div>
+      </div>
     </div>
-    <div id="{{currentParagraph.id}}_paragraphColumn"
-         ng-include src="'app/notebook/paragraph/paragraph.html'"
-         ng-class="{'paragraph-space box paragraph-margin': !asIframe, 'focused': paragraphFocused,
-                    'lastEmptyParagraph': !paragraph.text && !paragraph.result,
-                    'selected-paragraph': selectedParagraphsIds.has(currentParagraph.id)}"
-         ng-hide="currentParagraph.config.tableHide && viewOnly"
-         ng-dblclick="paragraphOnDoubleClick(currentParagraph.id);">
-    </div>
-    <div class="new-paragraph last-paragraph" ng-click="insertNew('below');" ng-hide="!$last || viewOnly || asIframe || revisionView">
-      <h4 class="plus-sign" ng-class="{'new-paragraph-disable': isNoteRunning}">&#43; Add Paragraph</h4>
+    <div ng-if="!(isWaiting(currentParagraph) || isRunner(currentParagraph))">
+      <div id="{{currentParagraph.id}}_paragraphColumn_main"
+           ng-controller="ParagraphCtrl"
+           ng-init="init(currentParagraph, note)"
+           ng-class="columnWidthClass(currentParagraph.config.colWidth)"
+           style="margin: 0; padding: 0;">
+           <!-- see ZEPPELIN-2806
+           viewport-watch>
+           -->
+        <div class="new-paragraph"
+             ng-click="insertNew('above')"
+             ng-hide="viewOnly || asIframe || revisionView"
+             ng-class="{'first-paragraph': $first}">
+          <h4 class="plus-sign" ng-class="{'new-paragraph-disable': isNoteRunning}">&#43; Add Paragraph</h4>
+        </div>
+        <div id="{{currentParagraph.id}}_paragraphColumn"
+             ng-include src="'app/notebook/paragraph/paragraph.html'"
+             ng-class="{'paragraph-space box paragraph-margin': !asIframe, 'focused': paragraphFocused,
+                        'lastEmptyParagraph': !paragraph.text && !paragraph.result,
+                        'selected-paragraph': selectedParagraphsIds.has(currentParagraph.id)}"
+             ng-hide="currentParagraph.config.tableHide && viewOnly"
+             ng-dblclick="paragraphOnDoubleClick(currentParagraph.id);">
+        </div>
+        <div class="new-paragraph last-paragraph" ng-click="insertNew('below');" ng-hide="!$last || viewOnly || asIframe || revisionView">
+          <h4 class="plus-sign" ng-class="{'new-paragraph-disable': isNoteRunning}">&#43; Add Paragraph</h4>
+        </div>
+      </div>
     </div>
   </div>
+
   <div style="clear:both;height:10px"></div>
 </div>

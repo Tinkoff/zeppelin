@@ -16,7 +16,6 @@
  */
 package ru.tinkoff.zeppelin.engine;
 
-import java.util.List;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
 import ru.tinkoff.zeppelin.core.notebook.Note;
@@ -26,6 +25,8 @@ import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 import ru.tinkoff.zeppelin.storage.NoteDAO;
 import ru.tinkoff.zeppelin.storage.NoteRevisionDAO;
 import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+
+import java.util.List;
 
 /**
  * Service for operations on storage
@@ -43,9 +44,9 @@ public class NoteService {
   private final NoteRevisionDAO noteRevisionDAO;
 
   public NoteService(final NoteDAO noteDAO,
-      final ParagraphDAO paragraphDAO,
-      final FullParagraphDAO fullParagraphDAO,
-      final NoteRevisionDAO noteRevisionDAO) {
+                     final ParagraphDAO paragraphDAO,
+                     final FullParagraphDAO fullParagraphDAO,
+                     final NoteRevisionDAO noteRevisionDAO) {
     this.noteDAO = noteDAO;
     this.paragraphDAO = paragraphDAO;
     this.fullParagraphDAO = fullParagraphDAO;
@@ -65,13 +66,11 @@ public class NoteService {
   }
 
   public Note persistNote(final Note note) {
-    final Note saved = noteDAO.persist(note);
-    return saved;
+    return noteDAO.persist(note);
   }
 
-  public Note updateNote(final Note note) {
-    final Note updated = noteDAO.update(note);
-    return updated;
+  public void updateNote(final Note note) {
+    noteDAO.update(note);
   }
 
   public void deleteNote(final Note note) {
@@ -97,15 +96,13 @@ public class NoteService {
     return savedParagraph;
   }
 
-  public Paragraph updateParagraph(final Note note, final Paragraph paragraph) {
+  public void updateParagraph(final Note note, final Paragraph paragraph) {
     final ParagraphDTO before = fullParagraphDAO.getById(paragraph.getId());
 
-    final Paragraph savedParagraph = paragraphDAO.update(paragraph);
+    paragraphDAO.update(paragraph);
 
     final ParagraphDTO after = fullParagraphDAO.getById(paragraph.getId());
     EventService.publish(note.getId(), before, after);
-
-    return savedParagraph;
   }
 
   public void removeParagraph(final Note note, final Paragraph paragraph) {
@@ -118,8 +115,8 @@ public class NoteService {
   }
 
   public void persistRevision(final Note note, final String message) {
-    NoteRevision revision = noteRevisionDAO.createRevision(note, message);
-    List<Paragraph> paragraphs = paragraphDAO.getByNoteId(note.getId());
+    final NoteRevision revision = noteRevisionDAO.createRevision(note, message);
+    final List<Paragraph> paragraphs = paragraphDAO.getByNoteId(note.getId());
     paragraphs.stream()
         .peek(p -> p.setRevisionId(revision.getId()))
         .peek(p -> p.setJobId(null))

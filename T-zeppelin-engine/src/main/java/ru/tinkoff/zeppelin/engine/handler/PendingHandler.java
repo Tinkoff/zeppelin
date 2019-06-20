@@ -16,10 +16,6 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,16 +31,15 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
+import ru.tinkoff.zeppelin.interpreter.NoteContext;
+import ru.tinkoff.zeppelin.interpreter.UserContext;
 import ru.tinkoff.zeppelin.interpreter.thrift.PushResult;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+import ru.tinkoff.zeppelin.storage.*;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Class for handle pending jobs
@@ -100,17 +95,17 @@ public class PendingHandler extends AbstractHandler {
     final Note note = noteDAO.get(job.getNoteId());
     final Map<String, String> noteContext = new HashMap<>();
 
-    noteContext.put("Z_ENV_NOTE_ID", String.valueOf(job.getNoteId()));
-    noteContext.put("Z_ENV_NOTE_UUID", String.valueOf(note.getUuid()));
-    noteContext.put("Z_ENV_PARAGRAPH_ID", String.valueOf(job.getParagraphId()));
-    noteContext.put("Z_ENV_PARAGRAPH_SHEBANG", job.getShebang());
+    noteContext.put(NoteContext.Z_ENV_NOTE_ID.name(), String.valueOf(job.getNoteId()));
+    noteContext.put(NoteContext.Z_ENV_NOTE_UUID.name(), String.valueOf(note.getUuid()));
+    noteContext.put(NoteContext.Z_ENV_PARAGRAPH_ID.name(), String.valueOf(job.getParagraphId()));
+    noteContext.put(NoteContext.Z_ENV_PARAGRAPH_SHEBANG.name(), job.getShebang());
 
-    noteContext.put("Z_ENV_MARKER_PREFIX", Configuration.getInstanceMarkerPrefix());
+    noteContext.put(NoteContext.Z_ENV_MARKER_PREFIX.name(), Configuration.getInstanceMarkerPrefix());
 
     // prepare usercontext
     final Map<String, String> userContext = new HashMap<>();
-    userContext.put("Z_ENV_USER_NAME", job.getUsername());
-    userContext.put("Z_ENV_USER_ROLES", job.getRoles().toString());
+    userContext.put(UserContext.Z_ENV_USER_NAME.name(), job.getUsername());
+    userContext.put(UserContext.Z_ENV_USER_ROLES.name(), job.getRoles().toString());
 
     // prepare configuration
 

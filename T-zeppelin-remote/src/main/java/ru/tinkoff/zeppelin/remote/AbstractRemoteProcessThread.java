@@ -64,16 +64,21 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
 
   protected abstract TProcessor getProcessor();
 
-  protected ZeppelinThriftService.Client getZeppelin() throws Exception {
-    final TTransport transport = new TSocket(zeppelinServerHost, Integer.parseInt(zeppelinServerPort));
-    transport.open();
+  protected ZeppelinThriftService.Client getZeppelin() {
+    try {
+      final TTransport transport = new TSocket(zeppelinServerHost, Integer.parseInt(zeppelinServerPort));
+      transport.open();
 
-    return new ZeppelinThriftService.Client(new TBinaryProtocol(transport));
+      return new ZeppelinThriftService.Client(new TBinaryProtocol(transport));
+    } catch (final Throwable e) {
+      return null;
+    }
   }
 
   void releaseZeppelin(final ZeppelinThriftService.Client connection) {
     try {
       connection.getOutputProtocol().getTransport().close();
+      connection.getInputProtocol().getTransport().close();
     } catch (final Throwable t) {
       // SKIP
     }

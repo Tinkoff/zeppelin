@@ -16,22 +16,27 @@
  */
 package ru.tinkoff.zeppelin.engine.server;
 
+import ch.qos.logback.classic.Level;
 import com.google.gson.Gson;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zeppelin.Repository;
+import org.slf4j.ILoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.handler.InterpreterRequestsHandler;
 import ru.tinkoff.zeppelin.engine.handler.InterpreterResultHandler;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
-import ru.tinkoff.zeppelin.interpreter.thrift.RegisterInfo;
-import ru.tinkoff.zeppelin.interpreter.thrift.ZeppelinThriftService;
+import ru.tinkoff.zeppelin.interpreter.thrift.*;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
 import ru.tinkoff.zeppelin.storage.ZLog;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Thrift server for external interpreter process
@@ -58,12 +63,13 @@ public class RemoteProcessServer {
 
     final Thread startingThread = new Thread(() -> {
       ZLog.log(ET.REMOTE_PROCESS_SERVER_STARTING,
-          String.format("RemoteProcessServer запускается по адресу %s:%s",
-              serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-              serverSocket.getServerSocket().getLocalPort()), SystemEvent.SYSTEM_USERNAME);
+              String.format("RemoteProcessServer запускается по адресу %s:%s",
+                      serverSocket.getServerSocket().getInetAddress().getHostAddress(),
+                      serverSocket.getServerSocket().getLocalPort()), SystemEvent.SYSTEM_USERNAME);
 
       final ZeppelinThriftService.Processor<ZeppelinThriftService.Iface> processor;
       processor = new ZeppelinThriftService.Processor<>(new ZeppelinThriftService.Iface() {
+
         @Override
         public void registerInterpreterProcess(final RegisterInfo registerInfo) {
           AbstractRemoteProcess.handleRegisterEvent(registerInfo);
@@ -88,6 +94,36 @@ public class RemoteProcessServer {
             // SKIP
           }
         }
+
+        @Override
+        public RunNoteResult handleRunNote(final String noteUUID, final String userName, final Set<String> userGroups) {
+          try {
+            return InterpreterRequestsHandler.getInstance().handleRunNote(noteUUID, userName, userGroups);
+          } catch (final Throwable e) {
+            return new RunNoteResult(RunNoteResultStatus.ERROR, -1L,  e.getCause().toString());
+          }
+        }
+
+        @Override
+        public AbortBatchResult handleAbortBatch(final long batchId, final String userName, final Set<String> userGroups)  {
+          try {
+            return InterpreterRequestsHandler.getInstance().handleAbortBatch(batchId, userName, userGroups);
+          } catch (final Throwable e) {
+            return new AbortBatchResult(AbortBatchResultStatus.ERROR, e.getCause().toString());
+          }
+        }
+
+        @Override
+        public BatchStatusResult handleGetBatchStatus(final long batchId, final String userName, final Set<String> userGroups)  {
+          try {
+            Logger rootLogger = LoggerFactory.getILoggerFactory().getLogger("org.apache.thrift");
+            ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.OFF);
+
+            return InterpreterRequestsHandler.getInstance().handleGetBatchStatus(batchId, userName, userGroups);
+          } catch (final Throwable e) {
+            return new BatchStatusResult(BatchResultStatus.ERROR, BatchStatus.ERROR, e.getCause().toString());
+          }
+        }
       });
 
       thriftServer = new TThreadPoolServer(new TThreadPoolServer.Args(serverSocket).processor(processor));
@@ -104,13 +140,13 @@ public class RemoteProcessServer {
       } catch (final InterruptedException e) {
 
         ZLog.log(ET.REMOTE_PROCESS_SERVER_START_FAILED,
-            String.format("Не удалось запустить RemoteProcessServer по адресу %s:%s",
-                serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                serverSocket.getServerSocket().getLocalPort()),
-            String.format("Ошибка при запуске RemoteProcessServer по адресу %s:%s, ошибка:%s",
-                serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                serverSocket.getServerSocket().getLocalPort(), e.getMessage()),
-            SystemEvent.SYSTEM_USERNAME);
+                String.format("Не удалось запустить RemoteProcessServer по адресу %s:%s",
+                        serverSocket.getServerSocket().getInetAddress().getHostAddress(),
+                        serverSocket.getServerSocket().getLocalPort()),
+                String.format("Ошибка при запуске RemoteProcessServer по адресу %s:%s, ошибка:%s",
+                        serverSocket.getServerSocket().getInetAddress().getHostAddress(),
+                        serverSocket.getServerSocket().getLocalPort(), e.getMessage()),
+                SystemEvent.SYSTEM_USERNAME);
       }
     }
 
@@ -118,10 +154,10 @@ public class RemoteProcessServer {
       throw new TTransportException("Fail to start InterpreterEventServer in 30 seconds.");
     }
     ZLog.log(ET.REMOTE_PROCESS_SERVER_STARTED,
-        String.format("RemoteProcessServer успешно запущен по адресу %s:%s",
-            serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-            serverSocket.getServerSocket().getLocalPort()),
-        SystemEvent.SYSTEM_USERNAME);
+            String.format("RemoteProcessServer успешно запущен по адресу %s:%s",
+                    serverSocket.getServerSocket().getInetAddress().getHostAddress(),
+                    serverSocket.getServerSocket().getLocalPort()),
+            SystemEvent.SYSTEM_USERNAME);
   }
 
   public void stop() {
@@ -129,10 +165,10 @@ public class RemoteProcessServer {
       thriftServer.stop();
     }
     ZLog.log(ET.REMOTE_PROCESS_SERVER_STOPPED,
-        String.format("RemoteProcessServer по адресу %s:%s успешно остановлен",
-            serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-            serverSocket.getServerSocket().getLocalPort()),
-        SystemEvent.SYSTEM_USERNAME
+            String.format("RemoteProcessServer по адресу %s:%s успешно остановлен",
+                    serverSocket.getServerSocket().getInetAddress().getHostAddress(),
+                    serverSocket.getServerSocket().getLocalPort()),
+            SystemEvent.SYSTEM_USERNAME
     );
   }
 

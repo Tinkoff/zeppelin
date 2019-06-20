@@ -1,0 +1,27 @@
+{
+  "className": "ru.tinkoff.zeppelin.interpreter.runner.RunnerInterpreter",
+  "properties": {
+    "runner.check.timeout": {
+      "envName": "RUNNER_CHECK_TIMEOUT",
+      "propertyName": "runner.check.timeout",
+      "defaultValue": "1800",
+      "currentValue": "1800",
+      "description": "Max execution time of interpreter(sec). MUST be > 0 && < INT_MAX",
+      "type": "number"
+    },
+    "runner.check.cycle.timeout": {
+      "envName": "RUNNER_CHECK_CYCLE_TIMEOUT",
+      "propertyName": "runner.check.cycle.timeout",
+      "defaultValue": "300",
+      "currentValue": "300",
+      "description": "Time between status check(sec). MUST be > 0 && < INT_MAX",
+      "type": "number"
+    }
+  },
+  "editor": {
+    "action" : "runs",
+    "language" : "generic",
+    "warning" : "Внимание у вас нет прав запуска ноута!",
+    "warning_condition": "!$scope.permissions.runners.includes($rootScope.ticket.principal.trim())"
+  }
+}

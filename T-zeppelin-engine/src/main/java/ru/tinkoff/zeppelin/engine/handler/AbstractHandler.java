@@ -195,7 +195,7 @@ abstract class AbstractHandler {
     }
   }
 
-  void publishBatch(
+  long publishBatch(
           final Note note,
           final List<Paragraph> paragraphs,
           final String username,
@@ -257,13 +257,15 @@ abstract class AbstractHandler {
     // delete batch and return
     if (!hasParagraphToExecute) {
       jobBatchDAO.delete(saved.getId());
-      return;
+      return -1;
     }
 
     saved.setStatus(JobBatch.Status.PENDING);
     jobBatchDAO.update(saved);
     note.setBatchJobId(batch.getId());
     noteDAO.update(note);
+
+    return saved.getId();
   }
 
   void abortingBatch(final Note note) {
