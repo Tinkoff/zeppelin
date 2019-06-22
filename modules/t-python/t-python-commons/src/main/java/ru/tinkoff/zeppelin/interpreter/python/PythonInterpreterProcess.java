@@ -24,7 +24,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 
-public class PythonInterpreterProcess {
+public final class PythonInterpreterProcess {
 
   @SuppressWarnings("unchecked")
   public static void main(final String[] args) throws JepException {
@@ -89,7 +89,7 @@ public class PythonInterpreterProcess {
     CommandLine cmd = null;
     try {
       cmd = new DefaultParser().parse(options, args);
-    } catch (ParseException e) {
+    } catch (final ParseException e) {
       new HelpFormatter().printHelp("utility-name", options);
       System.exit(1);
     }
@@ -107,7 +107,7 @@ public class PythonInterpreterProcess {
             .addIncludePaths(jepIncludePaths.split(":"));
 
     if (!"".equals(jepPythonHome)) {
-      PyConfig pyConfig = new PyConfig();
+      final PyConfig pyConfig = new PyConfig();
       pyConfig.setPythonHome(jepPythonHome);
       MainInterpreter.setInitParams(pyConfig);
     }
@@ -117,40 +117,17 @@ public class PythonInterpreterProcess {
          final BufferedOutputStream bos = new BufferedOutputStream(fos);
          final PrintStream ps = new PrintStream(bos)) {
 
-      System.setOut(ps);
-      System.setErr(ps);
-      Signal.handle(new Signal("TERM"), signal -> {
-        ps.println("Process terminated by external signal / watchdog timeout");
-        ps.close();
-        System.exit(1);
-      });
-
-      // Lambda Runnable
-      final Runnable flusher = () -> {
-        while (!Thread.interrupted()) {
-          try {
-            ps.flush();
-            bos.flush();
-            fos.flush();
-            Thread.sleep(10);
-          } catch (final Exception e) {
-            //Skip
-          }
-        }
-      };
-      final Thread flusherThread = new Thread(flusher);
-      flusherThread.start();
 
       try (final Jep jep = new Jep(jepConfig)) {
         jep.setInteractive(true);
 
         // inject values into python
         // load runtime properties from file
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         properties.load(new FileInputStream(pathToParamsFile));
 
         // inject values into python
-        for (String key : properties.stringPropertyNames()) {
+        for (final String key : properties.stringPropertyNames()) {
           if (properties.get(key).toString().equals("ZEPPELIN_NULL")) {
             continue;
           }
@@ -179,74 +156,113 @@ public class PythonInterpreterProcess {
         final Map<String, PythonInterpreterEnvObject> envObjects = new HashMap<>();
         final File noteContextFile = new File(noteStorage + "/note.context");
         if (noteContextFile.exists()) {
-          FileInputStream fis = new FileInputStream(noteContextFile);
-          ObjectInputStream ois = new ObjectInputStream(fis);
+          final FileInputStream fis = new FileInputStream(noteContextFile);
+          final ObjectInputStream ois = new ObjectInputStream(fis);
 
           envObjects.putAll((Map<String, PythonInterpreterEnvObject>) ois.readObject());
 
           for (final PythonInterpreterEnvObject envObject : envObjects.values()) {
-            switch (envObject.getClassName()) {
-              case "FUNC":
-                jep.set(envObject.getName() + "_ZZ", new NDArray<>(envObject.getPayload()));
-                jep.eval(envObject.getName() + " =  zdill.loads(" + envObject.getName() + "_ZZ)");
-                jep.eval("del " + envObject.getName() + "_ZZ");
-                break;
-              case "MODULE":
-                final String[] pair = new String(envObject.getPayload()).split(":");
-                jep.eval(String.format("import %s as %s", pair[0], pair[1]));
-                break;
-              default:
-                jep.set(envObject.getName() + "_ZZ", new NDArray<>(envObject.getPayload()));
-                jep.eval(envObject.getName() + " =  zpickle.loads(" + envObject.getName() + "_ZZ)");
-                jep.eval("del " + envObject.getName() + "_ZZ");
+            try {
+              switch (envObject.getClassName()) {
+                case "FUNC":
+                  jep.set(envObject.getName() + "_ZZ", new NDArray<>(envObject.getPayload()));
+                  jep.eval(envObject.getName() + " =  zdill.loads(" + envObject.getName() + "_ZZ)");
+                  jep.eval("del " + envObject.getName() + "_ZZ");
+                  break;
+                case "MODULE":
+                  final String[] pair = new String(envObject.getPayload()).split(":");
+                  jep.eval(String.format("import %s as %s", pair[0], pair[1]));
+                  break;
+                default:
+                  jep.set(envObject.getName() + "_ZZ", new NDArray<>(envObject.getPayload()));
+                  jep.eval(envObject.getName() + " =  zpickle.loads(" + envObject.getName() + "_ZZ)");
+                  jep.eval("del " + envObject.getName() + "_ZZ");
+              }
+            } catch (final Throwable th) {
+              // SKIP
             }
           }
         }
 
+        final PrintStream stdOut = System.out;
+        final PrintStream stdErr = System.err;
+
+        System.setOut(ps);
+        System.setErr(ps);
+        Signal.handle(new Signal("TERM"), signal -> {
+          ps.println("Process terminated by external signal / watchdog timeout");
+          ps.close();
+          System.exit(1);
+        });
+
+        // Lambda Runnable
+        final Runnable flusher = () -> {
+          while (!Thread.interrupted()) {
+            try {
+              ps.flush();
+              bos.flush();
+              fos.flush();
+              Thread.sleep(10);
+            } catch (final Exception e) {
+              //Skip
+            }
+          }
+        };
+
+        final Thread flusherThread = new Thread(flusher);
+        flusherThread.start();
 
         // execute script
         jep.runScript(pathToScript);
+
         flusherThread.interrupt();
+
+        System.setOut(stdOut);
+        System.setErr(stdErr);
 
         final Set<String> envAfterEval = new HashSet<>((List<String>)jep.getValue("list(locals().keys())"));
         envAfterEval.removeAll(envBeforeEval);
 
         for (final String env : envAfterEval) {
-          final String type = jep.getValue("type(" + env + ")").toString();
-          switch (type) {
-            case "<class 'function'>":
-              final PythonInterpreterEnvObject pieoF = new PythonInterpreterEnvObject(
-                      env,
-                      "FUNC",
-                      jep.getValue_bytearray("zdill.dumps(" + env + ")")
-              );
-              envObjects.put(pieoF.getName(), pieoF);
-              break;
-            case "<class 'module'>":
-              final String val = ((String) jep.getValue(env));
-              final int startIndex = val.indexOf("'") + 1;
-              final int endIndex = val.indexOf("'", startIndex);
-              final String module = val.substring(startIndex, endIndex);
+          try {
+            final String type = jep.getValue("type(" + env + ")").toString();
+            switch (type) {
+              case "<class 'function'>":
+                final PythonInterpreterEnvObject pieoF = new PythonInterpreterEnvObject(
+                        env,
+                        "FUNC",
+                        jep.getValue_bytearray("zdill.dumps(" + env + ")")
+                );
+                envObjects.put(pieoF.getName(), pieoF);
+                break;
+              case "<class 'module'>":
+                final String val = ((String) jep.getValue(env));
+                final int startIndex = val.indexOf("'") + 1;
+                final int endIndex = val.indexOf("'", startIndex);
+                final String module = val.substring(startIndex, endIndex);
 
-              final String payload = module + ":" + env;
-              final PythonInterpreterEnvObject pieoM = new PythonInterpreterEnvObject(
-                      env,
-                      "MODULE",
-                      payload.getBytes()
-              );
-              envObjects.put(pieoM.getName(), pieoM);
-              break;
-            default:
-              final PythonInterpreterEnvObject pieoD = new PythonInterpreterEnvObject(
-                      env,
-                      "OBJECT",
-                      jep.getValue_bytearray("zpickle.dumps(" + env + ", protocol=0)")
-              );
-              envObjects.put(pieoD.getName(), pieoD);
+                final String payload = module + ":" + env;
+                final PythonInterpreterEnvObject pieoM = new PythonInterpreterEnvObject(
+                        env,
+                        "MODULE",
+                        payload.getBytes()
+                );
+                envObjects.put(pieoM.getName(), pieoM);
+                break;
+              default:
+                final PythonInterpreterEnvObject pieoD = new PythonInterpreterEnvObject(
+                        env,
+                        "OBJECT",
+                        jep.getValue_bytearray("zpickle.dumps(" + env + ", protocol=0)")
+                );
+                envObjects.put(pieoD.getName(), pieoD);
+            }
+          } catch (final Throwable th) {
+            // SKIP
           }
         }
-        FileOutputStream fout = new FileOutputStream(noteContextFile);
-        ObjectOutputStream oos = new ObjectOutputStream(fout);
+        final FileOutputStream fout = new FileOutputStream(noteContextFile);
+        final ObjectOutputStream oos = new ObjectOutputStream(fout);
         oos.writeObject(envObjects);
 
         // sleep for 100 ms
