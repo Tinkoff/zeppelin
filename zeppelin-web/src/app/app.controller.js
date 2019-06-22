@@ -68,6 +68,13 @@ function MainCtrl($scope, $rootScope, $window, arrayOrderingSrv) {
     }
   };
 
+  // FIXME https://github.com/angular/angular.js/issues/8869
+  $rootScope.goTo = function(uuid) {
+    $window.location.href = '/#/notebook/' + uuid;
+    // allow cache
+    $window.location.reload(false);
+  };
+
   BootstrapDialog.defaultOptions.onshown = function() {
     angular.element('#' + this.id).find('.btn:last').focus();
   };
