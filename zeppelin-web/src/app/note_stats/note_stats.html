@@ -22,7 +22,7 @@ limitations under the License.
     </div>
     <div class="row">
       <div class="col-md-12">
-        Note Statistics.
+        Statistics on recent and favorite notes that have been run at least once.
       </div>
     </div>
   </div>
@@ -58,7 +58,7 @@ limitations under the License.
               <h4 class="panel-title">
                 <a data-toggle="collapse" title="{{note.notePath}}" data-parent="#favorite" href="#fav-{{note.noteUuid}}">
                   {{note.noteName}}</a>
-                <a href="../#/notebook/{{note.noteUuid}}" class="button">
+                <a href="#/notebook/{{note.noteUuid}}" class="button" ng-click="goTo(note.noteUuid)">
                   <i class="fa fa-arrow-right" style="color: green; margin-left: 10px"></i>
                 </a>
 
@@ -87,7 +87,7 @@ limitations under the License.
 
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.paragraphUuid}}
-                    <a href="../#/notebook/{{note.noteUuid}}/?paragraph={{paragraph.paragraphUuid}}" class="button">
+                    <a href="../#/notebook/{{note.noteUuid}}/?paragraph={{paragraph.paragraphUuid}}" class="button" ng-click="goTo(note.noteUuid + '/?paragraph=' + paragraph.paragraphUuid)">
                       <i class="fa fa-arrow-right" style="color:green; margin-left:10px"></i>
                     </a>
                   </td>
@@ -133,7 +133,7 @@ limitations under the License.
               <h4 class="panel-title">
                 <a data-toggle="collapse" title="{{note.notePath}}" data-parent="#recent" href="#rec-{{note.noteUuid}}">
                   {{note.noteName}}</a>
-                <a href="../#/notebook/{{note.noteUuid}}" class="button">
+                <a href="#/notebook/{{note.noteUuid}}" class="button" ng-click="goTo(note.noteUuid)">
                   <i class="fa fa-arrow-right" style="color: green; margin-left: 10px"></i>
                 </a>
 
@@ -161,7 +161,7 @@ limitations under the License.
                 <tr ng-repeat="paragraph in note.inner">
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.paragraphUuid}}
-                    <a href="../#/notebook/{{note.noteUuid}}/?paragraph={{paragraph.paragraphUuid}}" class="button">
+                    <a href="../#/notebook/{{note.noteUuid}}/?paragraph={{paragraph.paragraphUuid}}" class="button" ng-click="goTo(note.noteUuid + '/?paragraph=' + paragraph.paragraphUuid)">
                       <i class="fa fa-arrow-right" style="color:green; margin-left:10px"></i>
                     </a>
                   </td>
