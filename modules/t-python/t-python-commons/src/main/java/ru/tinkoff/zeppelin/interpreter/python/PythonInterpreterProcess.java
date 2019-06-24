@@ -117,6 +117,11 @@ public final class PythonInterpreterProcess {
          final BufferedOutputStream bos = new BufferedOutputStream(fos);
          final PrintStream ps = new PrintStream(bos)) {
 
+      final PrintStream stdOut = System.out;
+      final PrintStream stdErr = System.err;
+
+      System.setOut(ps);
+      System.setErr(ps);
 
       try (final Jep jep = new Jep(jepConfig)) {
         jep.setInteractive(true);
@@ -184,11 +189,6 @@ public final class PythonInterpreterProcess {
           }
         }
 
-        final PrintStream stdOut = System.out;
-        final PrintStream stdErr = System.err;
-
-        System.setOut(ps);
-        System.setErr(ps);
         Signal.handle(new Signal("TERM"), signal -> {
           ps.println("Process terminated by external signal / watchdog timeout");
           ps.close();
