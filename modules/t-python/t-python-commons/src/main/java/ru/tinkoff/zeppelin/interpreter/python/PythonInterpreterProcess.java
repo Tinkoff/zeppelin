@@ -115,13 +115,29 @@ public final class PythonInterpreterProcess {
     final File output = new File(pathToOutput);
     try (final FileOutputStream fos = new FileOutputStream(output, true);
          final BufferedOutputStream bos = new BufferedOutputStream(fos);
-         final PrintStream ps = new PrintStream(bos)) {
-
-      final PrintStream stdOut = System.out;
-      final PrintStream stdErr = System.err;
+         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+         final PrintStream ps = new PrintStream(baos)) {
 
       System.setOut(ps);
       System.setErr(ps);
+
+      Signal.handle(new Signal("TERM"), signal -> {
+        ps.println("Process terminated by external signal / watchdog timeout");
+        ps.close();
+        System.exit(1);
+      });
+
+      final Runnable flusher = () -> {
+        while (!Thread.interrupted()) {
+          try {
+            flush(fos, bos, baos, ps);
+            Thread.sleep(10);
+          } catch (final Exception e) {
+            //Skip
+          }
+        }
+      };
+      final Thread flusherThread = new Thread(flusher);
 
       try (final Jep jep = new Jep(jepConfig)) {
         jep.setInteractive(true);
@@ -138,7 +154,6 @@ public final class PythonInterpreterProcess {
           }
           jep.set(key, properties.get(key).toString());
         }
-        jep.eval("import dill as zpickle");
         jep.eval("import dill as zdill");
 
         // inject autiomported modules
@@ -155,7 +170,6 @@ public final class PythonInterpreterProcess {
 
         // load current environment
         final Set<String> envBeforeEval = new HashSet<>((List<String>)jep.getValue("list(locals().keys())"));
-
 
         Files.createDirectories(new File(noteStorage).toPath());
         final Map<String, PythonInterpreterEnvObject> envObjects = new HashMap<>();
@@ -180,7 +194,7 @@ public final class PythonInterpreterProcess {
                   break;
                 default:
                   jep.set(envObject.getName() + "_ZZ", new NDArray<>(envObject.getPayload()));
-                  jep.eval(envObject.getName() + " =  zpickle.loads(" + envObject.getName() + "_ZZ)");
+                  jep.eval(envObject.getName() + " =  zdill.loads(" + envObject.getName() + "_ZZ)");
                   jep.eval("del " + envObject.getName() + "_ZZ");
               }
             } catch (final Throwable th) {
@@ -189,36 +203,15 @@ public final class PythonInterpreterProcess {
           }
         }
 
-        Signal.handle(new Signal("TERM"), signal -> {
-          ps.println("Process terminated by external signal / watchdog timeout");
-          ps.close();
-          System.exit(1);
-        });
-
-        // Lambda Runnable
-        final Runnable flusher = () -> {
-          while (!Thread.interrupted()) {
-            try {
-              ps.flush();
-              bos.flush();
-              fos.flush();
-              Thread.sleep(10);
-            } catch (final Exception e) {
-              //Skip
-            }
-          }
-        };
-
-        final Thread flusherThread = new Thread(flusher);
+        ps.flush();
+        baos.reset();
         flusherThread.start();
 
         // execute script
         jep.runScript(pathToScript);
 
         flusherThread.interrupt();
-
-        System.setOut(stdOut);
-        System.setErr(stdErr);
+        flush(fos, bos, baos, ps);
 
         final Set<String> envAfterEval = new HashSet<>((List<String>)jep.getValue("list(locals().keys())"));
         envAfterEval.removeAll(envBeforeEval);
@@ -253,7 +246,7 @@ public final class PythonInterpreterProcess {
                 final PythonInterpreterEnvObject pieoD = new PythonInterpreterEnvObject(
                         env,
                         "OBJECT",
-                        jep.getValue_bytearray("zpickle.dumps(" + env + ", protocol=0)")
+                        jep.getValue_bytearray("zdill.dumps(" + env + ", protocol=0)")
                 );
                 envObjects.put(pieoD.getName(), pieoD);
             }
@@ -270,10 +263,12 @@ public final class PythonInterpreterProcess {
 
       } catch (final JepException je) {
         ps.println(je.getLocalizedMessage());
+        flush(fos, bos, baos, ps);
         throw new RuntimeException("Error");
 
       } catch (final Throwable e) {
         e.printStackTrace(ps);
+        flush(fos, bos, baos, ps);
         throw new RuntimeException("Error");
       }
 
@@ -281,5 +276,18 @@ public final class PythonInterpreterProcess {
       System.exit(1);
     }
     System.exit(0);
+  }
+
+  private static void flush(final FileOutputStream fos,
+                            final BufferedOutputStream bos,
+                            final ByteArrayOutputStream baos,
+                            final PrintStream ps) throws IOException {
+    ps.flush();
+    if(baos.size() > 0 ) {
+      bos.write(baos.toByteArray());
+      baos.reset();
+    }
+    bos.flush();
+    fos.flush();
   }
 }
