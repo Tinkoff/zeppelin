@@ -294,10 +294,10 @@ public class JDBCSimpleInterpreter extends Interpreter {
    */
   @Nonnull
   private InterpreterResult executeQuery(@Nonnull final String queryString, final boolean processResult) {
-    final String errorMessage = JDBCUtil.checkSyntax(queryString);
-    if (errorMessage != null) {
-      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
-    }
+    //final String errorMessage = JDBCUtil.checkSyntax(queryString);
+    //if (errorMessage != null) {
+    // return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
+    //}
 
     ResultSet resultSet = null;
     final StringBuilder exception = new StringBuilder();
