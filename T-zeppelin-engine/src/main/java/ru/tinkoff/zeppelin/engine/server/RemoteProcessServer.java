@@ -16,15 +16,11 @@
  */
 package ru.tinkoff.zeppelin.engine.server;
 
-import ch.qos.logback.classic.Level;
 import com.google.gson.Gson;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zeppelin.Repository;
-import org.slf4j.ILoggerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.engine.handler.InterpreterRequestsHandler;
@@ -116,9 +112,6 @@ public class RemoteProcessServer {
         @Override
         public BatchStatusResult handleGetBatchStatus(final long batchId, final String userName, final Set<String> userGroups)  {
           try {
-            Logger rootLogger = LoggerFactory.getILoggerFactory().getLogger("org.apache.thrift");
-            ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.OFF);
-
             return InterpreterRequestsHandler.getInstance().handleGetBatchStatus(batchId, userName, userGroups);
           } catch (final Throwable e) {
             return new BatchStatusResult(BatchResultStatus.ERROR, BatchStatus.ERROR, e.getCause().toString());

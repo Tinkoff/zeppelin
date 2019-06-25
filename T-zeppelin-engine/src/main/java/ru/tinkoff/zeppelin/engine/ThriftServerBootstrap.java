@@ -17,7 +17,7 @@
 
 package ru.tinkoff.zeppelin.engine;
 
-import org.slf4j.ILoggerFactory;
+import ch.qos.logback.classic.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.DependsOn;
@@ -44,6 +44,9 @@ class ThriftServerBootstrap {
 
   @PostConstruct
   public void init() throws Exception {
+    // disable logging
+    Logger rootLogger = LoggerFactory.getILoggerFactory().getLogger("org.apache.thrift");
+    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.OFF);
 
     server = new RemoteProcessServer();
     server.initSources(repositoryDAO.getAll());
