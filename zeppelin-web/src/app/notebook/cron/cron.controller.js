@@ -68,7 +68,7 @@ function CronCtrl($rootScope, $scope, $http, baseUrlSrv) {
     expression: '',
     enable: false,
     dirtyExpression: '',
-    user: 'empty' ,
+    user: 'empty',
     roles: [],
     isValidCronExpression: false,
 
@@ -328,13 +328,9 @@ function CronCtrl($rootScope, $scope, $http, baseUrlSrv) {
       {
         expression: null,
         enable: null,
-        doUpdateUser: true
+        doUpdateUser: true,
       }
-    ).then((response) => {
-      if (response.data.status === 'OK') {
-        debugger;
-      }
-    });
+    );
   };
 
   $scope.updateCron = function(expression, isEnable) {
@@ -343,7 +339,7 @@ function CronCtrl($rootScope, $scope, $http, baseUrlSrv) {
       {
         expression: expression,
         enable: isEnable,
-        doUpdateUser: false
+        doUpdateUser: false,
       }
     ).then((response) => {
       if (response.data.status === 'OK') {
