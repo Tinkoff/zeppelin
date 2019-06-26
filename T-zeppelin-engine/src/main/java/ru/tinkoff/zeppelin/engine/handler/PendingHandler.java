@@ -25,6 +25,7 @@ import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleInnerConfigurati
 import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.server.AbstractRemoteProcess;
 import ru.tinkoff.zeppelin.engine.server.InterpreterRemoteProcess;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
@@ -58,8 +59,9 @@ public class PendingHandler extends AbstractHandler {
                         final JobPayloadDAO jobPayloadDAO,
                         final NoteDAO noteDAO,
                         final ParagraphDAO paragraphDAO,
-                        final FullParagraphDAO fullParagraphDAO) {
-    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
+                        final FullParagraphDAO fullParagraphDAO,
+                        final NoteEventService noteEventService) {
+    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
   }
 
   public List<Job> loadJobs() {

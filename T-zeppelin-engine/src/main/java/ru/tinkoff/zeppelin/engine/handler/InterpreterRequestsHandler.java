@@ -25,6 +25,7 @@ import ru.tinkoff.zeppelin.core.notebook.JobPriority;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.interpreter.thrift.*;
 import ru.tinkoff.zeppelin.storage.*;
 
@@ -57,8 +58,9 @@ public class InterpreterRequestsHandler extends AbstractHandler {
                                     final JobPayloadDAO jobPayloadDAO,
                                     final NoteDAO noteDAO,
                                     final ParagraphDAO paragraphDAO,
-                                    final FullParagraphDAO fullParagraphDAO) {
-    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
+                                    final FullParagraphDAO fullParagraphDAO,
+                                    final NoteEventService noteEventService) {
+    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
     this.applicationContext = applicationContext;
   }
 

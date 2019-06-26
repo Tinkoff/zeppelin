@@ -52,7 +52,6 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 public class SchedulerHandler extends AbstractHandler {
 
   private final SchedulerDAO schedulerDAO;
-  private final NoteEventService noteEventService;
 
   public SchedulerHandler(final JobBatchDAO jobBatchDAO,
                           final JobDAO jobDAO,
@@ -63,9 +62,8 @@ public class SchedulerHandler extends AbstractHandler {
                           final FullParagraphDAO fullParagraphDAO,
                           final SchedulerDAO schedulerDAO,
                           final NoteEventService noteEventService) {
-    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
+    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
     this.schedulerDAO = schedulerDAO;
-    this.noteEventService = noteEventService;
   }
 
   public List<Scheduler> loadJobs() {
@@ -87,7 +85,7 @@ public class SchedulerHandler extends AbstractHandler {
     ZLog.log(ET.JOB_READY_FOR_EXECUTION_BY_SCHEDULER,
         String.format("Ноут[id=%s] готов к исполнению по РАСПИСАНИЮ (автор задачи=%s)",
             scheduler.getNoteId(), scheduler.getUser()), SystemEvent.SYSTEM_USERNAME);
-    noteEventService.successOnNoteScheduleExecution(note.getId());
+    noteEventService.runNoteScheduleExecution(note.getId());
     publishBatch(note, paragraphs, scheduler.getUser(), scheduler.getRoles(), JobPriority.SCHEDULER.getIndex());
 
     final CronExpression cronExpression;

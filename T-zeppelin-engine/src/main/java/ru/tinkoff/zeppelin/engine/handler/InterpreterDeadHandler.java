@@ -19,6 +19,7 @@ package ru.tinkoff.zeppelin.engine.handler;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.storage.*;
 
 import java.util.List;
@@ -39,8 +40,9 @@ public class InterpreterDeadHandler extends AbstractHandler {
                                 final JobPayloadDAO jobPayloadDAO,
                                 final NoteDAO noteDAO,
                                 final ParagraphDAO paragraphDAO,
-                                final FullParagraphDAO fullParagraphDAO) {
-    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
+                                final FullParagraphDAO fullParagraphDAO,
+                                final NoteEventService noteEventService) {
+    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)

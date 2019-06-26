@@ -20,16 +20,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
-import ru.tinkoff.zeppelin.core.notebook.Job;
-import ru.tinkoff.zeppelin.core.notebook.JobBatch;
+import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.core.notebook.JobBatch.Status;
-import ru.tinkoff.zeppelin.core.notebook.JobPayload;
-import ru.tinkoff.zeppelin.core.notebook.JobResult;
-import ru.tinkoff.zeppelin.core.notebook.Note;
-import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.EventService;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.forms.FormsProcessor;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
@@ -56,6 +53,7 @@ abstract class AbstractHandler {
   final NoteDAO noteDAO;
   final ParagraphDAO paragraphDAO;
   private final FullParagraphDAO fullParagraphDAO;
+  final NoteEventService noteEventService;
 
   public AbstractHandler(final JobBatchDAO jobBatchDAO,
                          final JobDAO jobDAO,
@@ -63,7 +61,8 @@ abstract class AbstractHandler {
                          final JobPayloadDAO jobPayloadDAO,
                          final NoteDAO noteDAO,
                          final ParagraphDAO paragraphDAO,
-                         final FullParagraphDAO fullParagraphDAO) {
+                         final FullParagraphDAO fullParagraphDAO,
+                         final NoteEventService noteEventService) {
     this.jobBatchDAO = jobBatchDAO;
     this.jobDAO = jobDAO;
     this.jobResultDAO = jobResultDAO;
@@ -71,6 +70,7 @@ abstract class AbstractHandler {
     this.noteDAO = noteDAO;
     this.paragraphDAO = paragraphDAO;
     this.fullParagraphDAO = fullParagraphDAO;
+    this.noteEventService = noteEventService;
   }
 
   void setRunningState(final Job job,
@@ -114,10 +114,14 @@ abstract class AbstractHandler {
     EventService.publish(job.getNoteId(), before, after);
 
     final List<Job> jobs = jobDAO.loadByBatch(job.getBatchId());
+    final boolean isStartedByCron = jobs.stream().anyMatch(j -> j.getPriority() == JobPriority.SCHEDULER.getIndex());
     final boolean isDone = jobs.stream().noneMatch(j -> j.getStatus() != Job.Status.DONE);
     if (isDone) {
       batch.setStatus(JobBatch.Status.DONE);
       batch.setEndedAt(LocalDateTime.now());
+      if (isStartedByCron) {
+        noteEventService.successNoteScheduleExecution(batch.getNoteId());
+      }
       jobBatchDAO.update(batch);
     }
   }
@@ -291,7 +295,7 @@ abstract class AbstractHandler {
             .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
             .collect(Collectors.toList());
 
-    if(results.isEmpty()) {
+    if (results.isEmpty()) {
       final JobResult jobResult = new JobResult();
       jobResult.setJobId(job.getId());
       jobResult.setCreatedAt(LocalDateTime.now());

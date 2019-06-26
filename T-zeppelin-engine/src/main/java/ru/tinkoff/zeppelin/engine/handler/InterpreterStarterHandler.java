@@ -25,6 +25,7 @@ import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleSource;
 import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.JobBatch;
 import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.server.RemoteProcessStarter;
 import ru.tinkoff.zeppelin.engine.server.RemoteProcessType;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
@@ -46,8 +47,9 @@ public class InterpreterStarterHandler extends AbstractHandler {
                                    final JobPayloadDAO jobPayloadDAO,
                                    final NoteDAO noteDAO,
                                    final ParagraphDAO paragraphDAO,
-                                   final FullParagraphDAO fullParagraphDAO) {
-    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
+                                   final FullParagraphDAO fullParagraphDAO,
+                                   final NoteEventService noteEventService) {
+    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
   }
 
 

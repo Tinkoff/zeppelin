@@ -7,6 +7,7 @@ public class NoteEvent {
     public enum Type {
         RUN,
         ERROR,
+        SUCCESS,
         SCHEDULE_CHANGE;
 
         public static boolean containsName(final String value) {

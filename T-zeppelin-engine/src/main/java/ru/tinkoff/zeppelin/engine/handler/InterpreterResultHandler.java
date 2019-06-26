@@ -50,7 +50,6 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 public class InterpreterResultHandler extends AbstractHandler {
 
   private ApplicationContext applicationContext;
-  private final NoteEventService noteEventService;
 
   private static InterpreterResultHandler instance;
 
@@ -67,9 +66,8 @@ public class InterpreterResultHandler extends AbstractHandler {
                                   final FullParagraphDAO fullParagraphDAO,
                                   final ApplicationContext applicationContext,
                                   final NoteEventService noteEventService) {
-    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO);
+    super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
     this.applicationContext = applicationContext;
-    this.noteEventService = noteEventService;
   }
 
   @PostConstruct
