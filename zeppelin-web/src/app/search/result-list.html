@@ -20,6 +20,7 @@ limitations under the License.
             <h4>
               <i style="font-size: 10px;" class="icon-doc"></i>
               <a class="search-results-header"
+                 ng-click="goTo(note.id)"
                  href="#/notebook/{{note.id}}">
                   {{note.name.trim()==='' && 'Note ' + note.id.split('/',2)[0] || note.name}}
               </a>
