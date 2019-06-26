@@ -285,6 +285,14 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
     $scope.$emit('insertParagraph', $scope.paragraph.id, position);
   };
 
+  $scope.$on('focusParagraph', function(event, paragraphId, cursorPosRow, cursorPosCol, mouseEvent) {
+    if ($scope.paragraph.id === paragraphId) {
+      // focus editor
+      $scope.paragraphFocused = true;
+    } else {
+      $scope.paragraphFocused = false;
+    }
+  });
 
   $scope.$on('keyEvent', function(event, keyEvent) {
     if ($scope.paragraphFocused) {

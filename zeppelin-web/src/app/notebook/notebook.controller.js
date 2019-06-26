@@ -388,6 +388,12 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     console.log('received note revision %o', data);
     if (data.note) {
       $scope.note = data.note;
+      if (!$scope.note.scheduler) {
+        $scope.note.scheduler = {
+          isEnabled: false,
+          expression: '',
+        };
+      }
       initializeLookAndFeel();
       getSubscriptions();
     } else {
@@ -1720,6 +1726,13 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     let isPersonalized = $scope.note.config.personalizedMode;
     isPersonalized = isPersonalized === undefined ? 'false' : isPersonalized;
     $scope.note.config.personalizedMode = isPersonalized;
+
+    if (!$scope.note.scheduler) {
+      $scope.note.scheduler = {
+        isEnabled: false,
+        expression: '',
+      };
+    }
   });
 
   $scope.$on('$routeChangeStart', function(event, next, current) {
