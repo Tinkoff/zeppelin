@@ -214,7 +214,8 @@ abstract class AbstractHandler {
     for (int i = 0; i < paragraphs.size(); i++) {
       final Paragraph p = paragraphs.get(i);
 
-      if (!(boolean) p.getConfig().getOrDefault("enabled", true)) {
+      if (!(boolean) p.getConfig().getOrDefault("enabled", true)
+          || StringUtils.isEmpty(p.getText().trim())) {
         continue;
       }
 
