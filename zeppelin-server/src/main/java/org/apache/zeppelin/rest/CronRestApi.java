@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -147,6 +148,34 @@ public class CronRestApi extends AbstractRestApi {
     response.put("newCronExpression", scheduler.getExpression());
     response.put("enable", scheduler.isEnabled());
     return new JsonResponse(HttpStatus.OK, response).build();
+  }
+
+  @PutMapping(value = "/notebook/{noteId}/cron/user", produces = "application/json")
+  public ResponseEntity updateCronUser(
+      @PathVariable("noteId") final String noteIdParam,
+      @RequestBody final Map<String, Object> params) {
+    final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
+
+    if ("anonymous".equals(authenticationInfo.getUser())) {
+      new JsonResponse(HttpStatus.UNAUTHORIZED, "Only anonymous support this method").build();
+    }
+
+    final String user = (String) params.get("user");
+    //noinspection unchecked,MismatchedQueryAndUpdateOfCollection
+    final Set<String> roles =  params.containsKey("roles") ? new HashSet<>((ArrayList<String>) params.get("roles")) : Collections.emptySet();
+
+    if (StringUtils.isEmpty(user)) {
+      new JsonResponse(HttpStatus.BAD_REQUEST, "'user' parameter is empty").build();
+    }
+
+    final long noteId = Long.parseLong(noteIdParam);
+    final Scheduler scheduler = schedulerDAO.getByNote(noteId);
+
+    scheduler.setUser(user);
+    scheduler.setRoles(roles);
+    schedulerDAO.update(scheduler);
+
+    return new JsonResponse(HttpStatus.OK, "cron user changed").build();
   }
 
   /**
