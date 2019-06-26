@@ -26,7 +26,7 @@ import java.util.Set;
  */
 public class Scheduler implements Serializable {
 
-  private final Long id;
+  private Long id;
   private final Long noteId;
 
   private boolean isEnabled;
