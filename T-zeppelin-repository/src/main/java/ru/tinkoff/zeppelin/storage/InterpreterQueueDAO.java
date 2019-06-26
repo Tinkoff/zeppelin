@@ -16,6 +16,7 @@ package ru.tinkoff.zeppelin.storage;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.externalDTO.InterpreterQueueDTO;
+import ru.tinkoff.zeppelin.core.notebook.JobBatch;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,7 +38,8 @@ public class InterpreterQueueDAO {
             "  J.INDEX_NUMBER AS PARAGRAPH_POSITION,\n" +
             "  J.SHEBANG,\n" +
             "  J.USER_NAME,\n" +
-            "  J.CREATED_AT\n" +
+            "  J.CREATED_AT,\n" +
+            "  JB.STATUS\n" +
             "FROM JOB_BATCH JB\n" +
             "LEFT JOIN JOB J \n" +
             "   ON JB.ID = J.BATCH_ID\n" +
@@ -47,7 +49,7 @@ public class InterpreterQueueDAO {
             "   ON P.ID = J.PARAGRAPH_ID\n" +
             "WHERE JB.STATUS IN ('PENDING', 'RUNNING')\n" +
             "      AND J.STATUS != 'DONE'" +
-            "      AND NOT EXISTS(SELECT * FROM JOB J2 WHERE J2.BATCH_ID = JB.ID AND J2.STATUS IN('RUNNING', 'ERROR'))\n" +
+            "      AND NOT EXISTS(SELECT * FROM JOB J2 WHERE J2.BATCH_ID = JB.ID AND J2.STATUS =  'ERROR')\n" +
             "ORDER BY J.BATCH_ID, J.PRIORITY DESC, J.INDEX_NUMBER;";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -67,6 +69,7 @@ public class InterpreterQueueDAO {
         final Long paragraphPosition = resultSet.getLong("PARAGRAPH_POSITION");
         final String shebang = resultSet.getString("SHEBANG");
         final String username = resultSet.getString("USER_NAME");
+        final JobBatch.Status status = JobBatch.Status.valueOf(resultSet.getString("STATUS"));
         final LocalDateTime startedAt =
                 resultSet.getTimestamp("CREATED_AT") != null
                         ? resultSet.getTimestamp("CREATED_AT").toLocalDateTime()
@@ -82,7 +85,8 @@ public class InterpreterQueueDAO {
                 paragraphPosition,
                 shebang,
                 username,
-                startedAt);
+                startedAt,
+                status);
     }
 
     public Map<String, List<InterpreterQueueDTO>> getInterpreterQueue() {

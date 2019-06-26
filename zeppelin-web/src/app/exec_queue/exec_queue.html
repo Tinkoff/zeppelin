@@ -42,6 +42,7 @@ limitations under the License.
                   <th style="width:12%;text-align: center; border: 1px solid black;">Paragraph position in note</th>
                   <th style="width:5%;text-align: center; border: 1px solid black;">Username</th>
                   <th style="width:20%;text-align: center; border: 1px solid black;">Started at</th>
+                  <th style="width:4%;text-align: center; border: 1px solid black;">Status</th>
                 </tr>
                 </thead>
 
@@ -66,6 +67,9 @@ limitations under the License.
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
                     {{paragraph.startedAt}}
+                  </td>
+                  <td style="vertical-align: middle; text-align:left; border: 1px solid black;" ng-style="{'color': (paragraph.status === 'RUNNING') ? 'green' : 'goldenrod'}">
+                    {{paragraph.status}}
                   </td>
                 </tr>
                 </tbody>

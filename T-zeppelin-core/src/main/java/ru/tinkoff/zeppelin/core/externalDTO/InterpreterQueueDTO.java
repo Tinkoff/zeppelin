@@ -16,6 +16,8 @@ package ru.tinkoff.zeppelin.core.externalDTO;
  * limitations under the License.
  */
 
+import ru.tinkoff.zeppelin.core.notebook.JobBatch;
+
 import java.io.File;
 import java.time.LocalDateTime;
 
@@ -32,6 +34,7 @@ public class InterpreterQueueDTO {
     private final String shebang;
     private final String username;
     private final LocalDateTime startedAt;
+    private final JobBatch.Status status;
 
     public InterpreterQueueDTO(final Long id,
                                final Long noteId,
@@ -43,7 +46,8 @@ public class InterpreterQueueDTO {
                                final Long paragraphPosition,
                                final String shebang,
                                final String username,
-                               final LocalDateTime startedAt) {
+                               final LocalDateTime startedAt,
+                               final JobBatch.Status status) {
         this.id = id;
         this.noteId = noteId;
         this.noteUuid = noteUuid;
@@ -55,6 +59,7 @@ public class InterpreterQueueDTO {
         this.shebang = shebang;
         this.username = username;
         this.startedAt = startedAt;
+        this.status = status;
     }
 
     public Long getId() {
@@ -84,4 +89,6 @@ public class InterpreterQueueDTO {
     public String getNoteUuid() {
         return noteUuid;
     }
+
+    public JobBatch.Status getStatus() { return status; }
 }
