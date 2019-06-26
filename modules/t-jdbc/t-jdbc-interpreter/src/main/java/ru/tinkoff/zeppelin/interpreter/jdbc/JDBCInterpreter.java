@@ -293,7 +293,9 @@ public class JDBCInterpreter extends Interpreter {
    * @return Result of query execution, never {@code null}.
    */
   @Nonnull
-  private InterpreterResult executeQuery(@Nonnull final String queryString, final boolean processResult) {
+  private InterpreterResult executeQuery(@Nonnull final String queryString,
+                                         final boolean processResult) {
+
     final String errorMessage = JDBCUtil.checkSyntax(queryString);
     if (errorMessage != null) {
       return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
@@ -311,6 +313,7 @@ public class JDBCInterpreter extends Interpreter {
       int updateCount = 0;
       do {
         if (results) {
+
           // if result is ResultSet.
           resultSet = Objects.requireNonNull(this.query).getResultSet();
           if (resultSet != null && processResult) {
@@ -354,8 +357,10 @@ public class JDBCInterpreter extends Interpreter {
       }
     }
     // reachable if smth went wrong during query processing.
-    return new InterpreterResult(Code.ERROR, Collections.singletonList(
-            new Message(Type.TEXT, exception.toString())));
+    return new InterpreterResult(
+            Code.ERROR,
+            new Message(Type.TEXT, exception.toString())
+    );
   }
 
   /**

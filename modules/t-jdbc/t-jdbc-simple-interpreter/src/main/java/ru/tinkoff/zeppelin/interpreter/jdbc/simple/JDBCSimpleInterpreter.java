@@ -17,25 +17,23 @@
 package ru.tinkoff.zeppelin.interpreter.jdbc.simple;
 
 import com.google.common.collect.Lists;
+
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
+import java.nio.file.Paths;
+import java.sql.*;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.h2.tools.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInstallation;
@@ -46,6 +44,7 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
+import ru.tinkoff.zeppelin.interpreter.NoteContext;
 
 
 /**
@@ -76,13 +75,16 @@ public class JDBCSimpleInterpreter extends Interpreter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JDBCSimpleInterpreter.class);
 
+  private final Pattern TBL_NAME_PATTERN = Pattern.compile("(?=(" + "--#localh2.[_a-zA-Z0-9]+" + "))");
+  private final Pattern LOCAL_TBL_NAME_PATTERN = Pattern.compile("(?=(" + "localh2.[_a-zA-Z0-9]+" + "))");
+
   /**
    * Database connection.
    *
    * @see JDBCSimpleInterpreter#cancel()
    * @see JDBCSimpleInterpreter#close()
    * @see JDBCSimpleInterpreter#open(Map, String)
-   * @see JDBCSimpleInterpreter#executeQuery(String, boolean)
+   * @see JDBCSimpleInterpreter#executeQuery(String, Connection, boolean)
    */
   @Nullable
   private volatile Connection connection = null;
@@ -101,6 +103,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
 
   private static final String QUERY_TIMEOUT_KEY = "query.timeout";
   private static final String QUERY_ROWLIMIT_KEY = "query.rowlimit";
+  private static final String QUERY_MAX_SAVE_ROW_LIMIT_KEY = "query.maxsaverowlimit";
 
   public JDBCSimpleInterpreter() {
     super();
@@ -258,6 +261,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
     if (precode != null && !precode.trim().equals("")) {
       final InterpreterResult precodeResult = executeQuery(
               JDBCInterpolation.interpolate(precode, params),
+              null,
               false
       );
       if (precodeResult.code().equals(Code.ERROR)) {
@@ -265,15 +269,45 @@ public class JDBCSimpleInterpreter extends Interpreter {
       }
     }
 
-    final InterpreterResult queryResult = executeQuery(
-            JDBCInterpolation.interpolate(st, params),
-            true
-    );
+    final String noteContextPath =
+            noteContext.get(NoteContext.Z_ENV_NOTES_STORE_PATH.name())
+                    + File.separator
+                    + noteContext.get(NoteContext.Z_ENV_NOTE_UUID.name())
+            + File.separator
+            + "outputDB";
+
+    final InterpreterResult queryResult;
+    Connection con = null;
+    try {
+      con = DriverManager.getConnection(
+              "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath(),
+              "sa",
+              ""
+      );
+
+      queryResult = executeQuery(
+              JDBCInterpolation.interpolate(st, params),
+              con,
+              true
+      );
+
+    } catch (final Throwable th) {
+      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, th.toString()));
+    } finally {
+      if (con != null) {
+        try {
+          con.close();
+        } catch (final Exception e) {
+          // SKIP
+        }
+      }
+    }
 
     final String postcode = configuration.get("query.postcode");
     if (postcode != null && !postcode.trim().equals("")) {
       final InterpreterResult postcodeResult = executeQuery(
               JDBCInterpolation.interpolate(postcode, params),
+              null,
               false
       );
       if (postcodeResult.code().equals(Code.ERROR)) {
@@ -293,7 +327,9 @@ public class JDBCSimpleInterpreter extends Interpreter {
    * @return Result of query execution, never {@code null}.
    */
   @Nonnull
-  private InterpreterResult executeQuery(@Nonnull final String queryString, final boolean processResult) {
+  private InterpreterResult executeQuery(@Nonnull final String queryString,
+                                         final Connection h2conn,
+                                         final boolean processResult) {
     final String errorMessage = JDBCUtil.checkSyntax(queryString);
     if (errorMessage != null) {
       return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
@@ -307,30 +343,70 @@ public class JDBCSimpleInterpreter extends Interpreter {
 
       final InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
 
-      // queryString may consist of multiple statements, so it's needed to process all results.
+      /**
+       * Divide statement into parts by ';'
+       */
       final List<String> statements = JDBCUtil.splitStatements(queryString);
-      for (final String statement : statements) {
+      for (String statement : statements) {
+
+
+        /**
+         * prepare this statment
+         *
+         *Format :  '#define tblName -> statement
+         */
+        String tblName = null;
+        final Matcher saveToMatcher = TBL_NAME_PATTERN.matcher(statement);
+        while (saveToMatcher.find()) {
+          tblName = saveToMatcher.group(1).replace("--#localh2.", "");
+          statement = statement.replaceFirst("--#localh2." + tblName, "--");
+        }
+
+        // RESTORE TABLES
+        String str = null;
+
+        final Matcher usedTablesMather = LOCAL_TBL_NAME_PATTERN.matcher(statement);
+        final Set<String> tableNames = new HashSet<>();
+        while (usedTablesMather.find()) {
+          tableNames.add(usedTablesMather.group(1).replace("localh2.", ""));
+          statement = statement.replace(usedTablesMather.group(1), usedTablesMather.group(1).replace("localh2.", ""));
+        }
+
+        for (final String s : tableNames) {
+          final Statement statement1 = h2conn.createStatement();
+          statement1.execute("SELECT * FROM " + s + ";");
+          queryResult.add( new Message(Type.TEXT, getResultTable(statement1.getResultSet(), s, connection)));
+        }
         final boolean results = this.query.execute(statement);
-        int updateCount = 0;
+        final int updateCount;
         if (results) {
           // if result is ResultSet.
           resultSet = this.query.getResultSet();
           if (resultSet != null && processResult) {
+
             // if it is needed to process result to table format.
+            final Message msg = new Message(Type.TEXT, getResultTable(connection.createStatement().executeQuery(statement), tblName, h2conn));
+            queryResult.add(msg);
             final String processedTable = getResults(resultSet);
             if (processedTable == null) {
-              queryResult.add(new Message(Type.TEXT, "Failed to process query result"));
+              queryResult.message().add(new Message(Type.TEXT, "Failed to process query result"));
             }
-            queryResult.add(new Message(Type.TABLE, processedTable));
+            queryResult.message().add(new Message(Type.TABLE, processedTable));
           }
         } else {
           // if result is empty or if it is update statement, e.g. insert.
           updateCount = this.query.getUpdateCount();
           if (updateCount != -1) {
             queryResult.add(new Message(Type.TEXT,
-                "Query executed successfully. Affected rows: " + updateCount));
+                    "Query executed successfully. Affected rows: " + updateCount));
           }
         }
+        //TODO: ok?
+//        if (!tableNames.isEmpty()){
+//          for (final String name : tableNames){
+//            this.query.execute("DROP TABLE IF EXISTS " + name + ';');
+//          }
+//        }
       }
       return queryResult;
     } catch (final Exception e) {
@@ -424,6 +500,75 @@ public class JDBCSimpleInterpreter extends Interpreter {
     } catch (final Exception e) {
       LOGGER.error("Failed to parse result", e);
       return null;
+    }
+  }
+
+
+  /**
+   * Write data into H2/inner_datasource
+   */
+  private String getResultTable(final ResultSet resultSet,
+                              final String tableName,
+                              final Connection connection) throws Exception {
+
+    if (StringUtils.isEmpty(tableName)) {
+      return null;
+    }
+    int rowLimit = Integer.parseInt(configuration.getOrDefault(QUERY_MAX_SAVE_ROW_LIMIT_KEY, "0"));
+    if (rowLimit < 0) {
+      rowLimit = 0;
+    }
+    final Statement statement = connection.createStatement();
+    statement.execute("DROP TABLE IF EXISTS " + tableName + ";");
+
+    // create schema script text
+    final StringBuilder createTable = new StringBuilder();
+    createTable.append("CREATE TABLE ").append(tableName).append(" ( \n");
+    final ResultSetMetaData md = resultSet.getMetaData();
+    for (int i = 1; i < md.getColumnCount() + 1; i++) {
+      createTable.append(
+              StringUtils.isNotEmpty(md.getColumnLabel(i))
+                      ? md.getColumnLabel(i)
+                      : md.getColumnName(i)
+      );
+      createTable.append(" \t");
+
+      createTable.append(md.getColumnTypeName(i));
+
+      if (i != md.getColumnCount()) {
+        createTable.append(", \n");
+      }
+    }
+    createTable.append(");");
+
+    statement.execute(createTable.toString());
+
+    final List<String> columns = new ArrayList<>();
+    for (int i = 1; i <= md.getColumnCount(); i++) {
+      columns.add(md.getColumnName(i));
+    }
+
+    try (final PreparedStatement s2 = connection.prepareStatement(
+            "INSERT INTO " + tableName + " ("
+                    + String.join(", ", columns)
+                    + ") VALUES ("
+                    + columns.stream().map(c -> "?").collect(Collectors.joining(", "))
+                    + ")"
+    )) {
+      int rowsCount = 0;
+      while (resultSet.getRow() < rowLimit && resultSet.next()) {
+        for (int i = 1; i <= md.getColumnCount(); i++){
+          s2.setObject(i, resultSet.getObject(i));
+        }
+        rowsCount++;
+        s2.addBatch();
+      }
+
+      s2.executeBatch();
+      return createTable.toString()
+              .replace(("CREATE TABLE " + tableName + " ( \n"),
+                      "Table " + tableName + " successfully created/loaded to join\nColumns :\n")
+              .replace(");","") + "\n" + rowsCount + " rows affected";
     }
   }
 
