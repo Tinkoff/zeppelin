@@ -103,6 +103,7 @@ public class PendingHandler extends AbstractHandler {
     noteContext.put(NoteContext.Z_ENV_PARAGRAPH_SHEBANG.name(), job.getShebang());
 
     noteContext.put(NoteContext.Z_ENV_MARKER_PREFIX.name(), Configuration.getInstanceMarkerPrefix());
+    noteContext.put(NoteContext.Z_ENV_NOTES_STORE_PATH.name(), Configuration.getNoteStorePath());
 
     // prepare usercontext
     final Map<String, String> userContext = new HashMap<>();

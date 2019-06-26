@@ -22,5 +22,6 @@ public enum  NoteContext {
   Z_ENV_PARAGRAPH_ID,
   Z_ENV_PARAGRAPH_SHEBANG,
   Z_ENV_MARKER_PREFIX,
+  Z_ENV_NOTES_STORE_PATH
   ;
 }

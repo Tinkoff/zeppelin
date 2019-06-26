@@ -73,6 +73,14 @@
         "description": "Max query row count, 0 means no limit",
         "type": "number"
       },
+      "query.maxsaverowlimit": {
+        "envName": null,
+        "propertyName": "query.maxsaverowlimit",
+        "defaultValue": "0",
+        "currentValue": "0",
+        "description": "Max query row count, available to save, 0 means no limit",
+        "type": "number"
+      },
       "query.precode": {
         "envName": null,
         "propertyName": "query.precode",

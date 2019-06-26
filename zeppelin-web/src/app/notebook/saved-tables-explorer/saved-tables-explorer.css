@@ -1,0 +1,147 @@
+#dbExplorerResizer {
+  width: 15px;
+  height: 100%;
+  position: absolute;
+  right: 1px;
+  top: 0px;
+  cursor: col-resize;
+
+}
+
+#jstree {
+  padding-left: 10px;
+  margin-top: 5px;
+}
+
+#jstree a {
+  user-select: none;
+  white-space: pre;
+  font-family: monospace;
+}
+
+#inputJstreeSearch {
+  width: 182px;
+  display: inline-block;
+}
+
+#buttonJstreeSearch {
+  display: inline-block;
+  float: right;
+}
+
+#databaseSelect {
+  margin-bottom: 5px;
+  margin-right: 5px;
+  width: 226px;
+  float: left;
+  border: 2px solid #5bc0de;
+  height: 38px;
+}
+
+#jstreeDiv {
+  flex-grow: 1;
+  overflow: auto;
+  background-color: white;
+  border-radius: 4px;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #5bc0de;
+}
+
+#jstreeMaxElementDiv {
+  visibility: collapse;
+  vertical-align:middle;
+  display: table-cell;
+  padding: 15px;
+  width: 1000px;
+  height: 100px;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(0,32,255,0.15),
+    rgba(0,32,255,0.15) 10px,
+    rgba(255,114,0,0.15) 10px,
+    rgba(255,114,0,0.15) 20px
+  );
+}
+
+.jstree-icon.jstree-themeicon.jstree-themeicon-custom {
+  background-size: 24px !important;
+}
+
+#jstreeMaxElementDiv h4 {
+  user-select: none;
+  font-size: 25px;
+  text-align: center;
+  color: white;
+  text-shadow: 1px 1px 5px black, -1px -1px 5px black
+}
+
+.metaserver-unavailable-div {
+  margin: 40% 15px;
+  background: rgba(0, 32, 204, 0.06);
+  padding: 10px;
+  border: 2px solid rgba(7, 7, 7, 0.4);
+  border-radius: 30px;
+}
+
+.metaserver-unavailable-div>span {
+  font-size: 35px;
+  text-align: center;
+  display: block;
+}
+
+.metaserver-unavailable-div>i {
+  font-size: 50px;
+  display: block;
+  text-align: center;
+  padding-top: 25px;
+  color: red;
+}
+
+.db-explorer .form-group {
+  margin-bottom: 5px;
+}
+
+.cool-border {
+  background-color: #5bc0de;
+  border-radius: 5px;
+  padding: 2px 2px 1px 2px;;
+}
+
+.db-explorer {
+  flex-direction: column;
+  display: none;
+  width: 300px;
+  position: fixed;
+  left: 10px;
+  bottom: -10px;
+  top: 116px;
+  background-color: rgb(229, 243, 255) !important;
+  padding: 12px 12px 10px 10px;
+}
+
+
+.db-explorer-full-size {
+  top: 10px;
+}
+
+.my-glyphicon-color-tasks {
+  color: #4f84ec !important;
+}
+
+.my-glyphicon-color-tag {
+  color: #007a90a3 !important;
+}
+
+.my-glyphicon-color-alt {
+  color: #d370e2 !important;
+}
+
+.my-glyphicon-color-comment {
+  color: rgba(0, 0, 0, 0.34) !important;
+}
+
+.column-type-span {
+  color: #2400d473;
+  font-weight: bold;
+}
