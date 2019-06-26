@@ -19,10 +19,8 @@ package org.apache.zeppelin.rest;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
+
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -87,6 +85,7 @@ public class CronRestApi extends AbstractRestApi {
 
     final String expression = params.get("expression");
     final Boolean isEnable = params.get("enable") != null ? Boolean.parseBoolean(params.get("enable")) : null;
+    final boolean doUpdateUser = params.get("doUpdateUser") != null && Boolean.parseBoolean(params.get("doUpdateUser"));
 
     final long noteId = Long.parseLong(noteIdParam);
     final Note note = secureLoadNote(noteId, Permission.OWNER);
@@ -100,16 +99,8 @@ public class CronRestApi extends AbstractRestApi {
     boolean isNewCronScheduler = false;
     if (scheduler == null) {
       isNewCronScheduler = true;
-      scheduler = new Scheduler(
-          null,
-          note.getId(),
-          true,
-          null,
-          authenticationInfo.getUser(),
-          new HashSet<>(authenticationInfo.getRoles()),
-          null,
-          null
-      );
+      scheduler = new Scheduler(note.getId());
+      scheduler.setEnabled(true);
     }
 
     // get CronExpression
@@ -124,6 +115,12 @@ public class CronRestApi extends AbstractRestApi {
 
     updateIfNotNull(() -> expression, scheduler::setExpression);
     updateIfNotNull(() -> isEnable, scheduler::setEnabled);
+
+    // update user and roles
+    if (isNewCronScheduler || doUpdateUser) {
+      scheduler.setUser(authenticationInfo.getUser());
+      scheduler.setRoles(authenticationInfo.getRoles());
+    }
 
     // update execution date
     final Date nextExecutionDate = cronExpression.getNextValidTimeAfter(new Date());
@@ -181,8 +178,10 @@ public class CronRestApi extends AbstractRestApi {
     LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     final Map<String, Object> response = new HashMap<>();
-    response.put("cron", scheduler == null ? null : scheduler.getExpression());
     response.put("enable", scheduler != null && scheduler.isEnabled());
+    response.put("cron", scheduler == null ? null : scheduler.getExpression());
+    response.put("user", scheduler == null ? null : scheduler.getUser());
+    response.put("roles", scheduler == null ? Collections.emptySet() : scheduler.getRoles());
 
     return new JsonResponse(HttpStatus.OK, response).build();
   }

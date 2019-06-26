@@ -14,7 +14,7 @@
 
 angular.module('zeppelinWebApp').controller('CronCtrl', CronCtrl);
 
-function CronCtrl($scope, $http, baseUrlSrv) {
+function CronCtrl($rootScope, $scope, $http, baseUrlSrv) {
   $scope.$on('initCron', function(event, note) {
     noteId = note.databaseId;
     loadCronConfiguration();
@@ -27,11 +27,14 @@ function CronCtrl($scope, $http, baseUrlSrv) {
   function loadCronConfiguration() {
     $http.get(`${baseUrlSrv.getRestApiBase()}/notebook/${noteId}/cron/`).then((response) => {
       $scope.cron.enable = response.data.body.enable;
+      $scope.cron.user = response.data.body.user;
+      $scope.cron.roles = response.data.roles;
       $scope.initCron(response.data.body.cron);
     });
   }
 
   let noteId;
+  $scope.ticket = $rootScope.ticket;
   $scope.cron = {
     timePeriod: {
       list: ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Custom'],
@@ -65,6 +68,8 @@ function CronCtrl($scope, $http, baseUrlSrv) {
     expression: '',
     enable: false,
     dirtyExpression: '',
+    user: 'empty' ,
+    roles: [],
     isValidCronExpression: false,
 
     // https://gist.github.com/andrew-templeton/ae4126a8efe219b796a3
@@ -317,12 +322,28 @@ function CronCtrl($scope, $http, baseUrlSrv) {
     }
   };
 
+  $scope.setCurrentUserAsOwner = function() {
+    $http.put(
+      `${baseUrlSrv.getRestApiBase()}/notebook/${noteId}/cron`,
+      {
+        expression: null,
+        enable: null,
+        doUpdateUser: true
+      }
+    ).then((response) => {
+      if (response.data.status === 'OK') {
+        debugger;
+      }
+    });
+  };
+
   $scope.updateCron = function(expression, isEnable) {
     $http.put(
       `${baseUrlSrv.getRestApiBase()}/notebook/${noteId}/cron`,
       {
         expression: expression,
         enable: isEnable,
+        doUpdateUser: false
       }
     ).then((response) => {
       if (response.data.status === 'OK') {

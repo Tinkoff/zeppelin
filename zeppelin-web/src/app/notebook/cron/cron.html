@@ -113,7 +113,19 @@ limitations under the License.
             </div>
           </div>
 
-          <!--buttons-->
+          <!-- Buttons: assign to me -->
+          <div style="position: absolute; bottom: 5px;">
+            <span style="font-size: 14px;position: relative;top: 6px;">{{cron.user}}</span>
+            <button type="button" class="btn btn-primary"
+                    style="padding: 2px;font-size: 13px;position: relative;top: 3px;"
+                    ng-hide="!cron.expression"
+                    ng-class="{'disabled' : ticket.screenUsername === cron.user}"
+                    ng-click="setCurrentUserAsOwner()">
+              sign to me
+            </button>
+          </div>
+
+          <!-- Buttons: Enable, Save Changes, Disable -->
           <div style="position: absolute; bottom: 5px; right: 5px;">
             <!--cron enable/disable checkbox-->
             <div style="margin-right: 10px; font-size: 1.2em; display: inline-block;" >

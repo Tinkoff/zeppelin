@@ -37,6 +37,9 @@ public class Scheduler implements Serializable {
   private LocalDateTime lastExecution;
   private LocalDateTime nextExecution;
 
+  public Scheduler(final Long noteId) {
+    this.noteId = noteId;
+  }
 
   public Scheduler(
           final Long id,
