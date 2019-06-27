@@ -16,10 +16,6 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.List;
 import org.quartz.CronExpression;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -30,16 +26,13 @@ import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
-import ru.tinkoff.zeppelin.storage.SchedulerDAO;
+import ru.tinkoff.zeppelin.storage.*;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Class for handle scheduled tasks
@@ -61,7 +54,8 @@ public class SchedulerHandler extends AbstractHandler {
                           final ParagraphDAO paragraphDAO,
                           final FullParagraphDAO fullParagraphDAO,
                           final SchedulerDAO schedulerDAO,
-                          final NoteEventService noteEventService) {
+                          final NoteEventService noteEventService
+  ) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
     this.schedulerDAO = schedulerDAO;
   }

@@ -44,6 +44,8 @@ public class Configuration {
   private final String metaserverLocation;
   private final String homeNodeId;
 
+  private final boolean isCronEnable;
+
   private static Configuration instance;
 
   private Configuration(@Value("${zeppelin.admin_users}") final String admin_users,
@@ -56,7 +58,8 @@ public class Configuration {
                         @Value("${zeppelin.note.defaultReaders}") final String defaultReaders,
                         @Value("${zeppelin.note.defaultWriters}") final String defaultWriters,
                         @Value("${zeppelin.note.defaultRunners}") final String defaultRunners,
-                        @Value("${zeppelin.note.defaultOwners}") final String defaultOwners
+                        @Value("${zeppelin.note.defaultOwners}") final String defaultOwners,
+                        @Value("${zeppelin.cron.enable:true}") final boolean isCronEnable
                         ) {
     this.adminUsers = parseString(admin_users, ",");
     this.adminGroups = parseString(admin_group, ",");
@@ -69,6 +72,7 @@ public class Configuration {
     this.defaultWriters = parseString(defaultWriters, ",");
     this.defaultRunners = parseString(defaultRunners, ",");
     this.defaultOwners = parseString(defaultOwners, ",");
+    this.isCronEnable = isCronEnable;
     instance = this;
   }
 
@@ -113,6 +117,8 @@ public class Configuration {
   public static Set<String> getDefaultRunners() { return instance.defaultRunners; }
 
   public static Set<String> getDefaultOwners() { return instance.defaultOwners; }
+
+  public static boolean isCronEnable() { return instance.isCronEnable; }
 
   private Set<String> parseString(final String param, final String delimeter) {
     return Arrays.stream(param.split(delimeter)).map(String::trim).collect(Collectors.toSet());

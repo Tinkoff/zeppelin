@@ -20,10 +20,10 @@ function ConfigurationCtrl($scope, $http, baseUrlSrv, ngToast) {
   $scope.configrations = [];
   ngToast.dismiss();
 
-  let getConfigurations = function() {
+  $scope.getConfigurations = function() {
     $http.get(baseUrlSrv.getRestApiBase() + '/configurations/all')
     .success(function(data, status, headers, config) {
-      $scope.configurations = data.body;
+      $scope.configrations = data.body;
     })
     .error(function(data, status, headers, config) {
       if (status === 401) {
@@ -36,12 +36,66 @@ function ConfigurationCtrl($scope, $http, baseUrlSrv, ngToast) {
           window.location = baseUrlSrv.getBase();
         }, 3000);
       }
-      console.log('Error %o %o', status, data.message);
     });
   };
 
+  $scope.setConfigurationParam = function(index) {
+    let value = null;
+    let reg = /^-?\d+\.?\d*$/;
+    if ($scope.configrations[index]['valueType'] === 'NUMBER') {
+      value = document.getElementById(index + '_number_input').value;
+      if (!reg.test(value)) {
+        alert('Parameter must be number.');
+        document.getElementById(index + '_number_input').value
+          = $scope.configrations[index]['value'];
+        return;
+      }
+    } else {
+      if ($scope.configrations[index]['valueType'] === 'BOOLEAN') {
+        value = !!$scope.configrations[index]['value'];
+        value = !value;
+      } else {
+        value = document.getElementById(index + '_input').value;
+      }
+    }
+    $http.post(baseUrlSrv.getRestApiBase() + '/configurations/set?name='
+      + $scope.configrations[index]['name'] + '&value='
+      + value)
+      .then(function(response) {
+        if (response.data.status === 'OK') {
+          if ($scope.configrations[index]['valueType'] === 'NUMBER') {
+            document.getElementById(index + '_number_input').value = value;
+          } else {
+            if ($scope.configrations[index]['valueType'] === 'BOOLEAN') {
+              if (!value) {
+                document.getElementById('fa').classList.add('fa-square-o');
+                document.getElementById('fa').classList.remove('fa-check-square-o');
+              } else {
+                document.getElementById('fa').classList.add('fa-check-square-o');
+                document.getElementById('fa').classList.remove('fa-square-o');
+              }
+            } else {
+              document.getElementById(index + '_input').value = value;
+            }
+          }
+          $scope.configrations[index]['value'] = value;
+        } else {
+          if (response.status === 401) {
+            ngToast.danger({
+              content: 'You don\'t have permission on this page',
+              verticalPosition: 'bottom',
+              timeout: '3000',
+            });
+            setTimeout(function() {
+              window.location = baseUrlSrv.getBase();
+            }, 3000);
+          }
+          console.log('Error %o %o', status, response.data.message);
+        }
+      });
+  };
   let init = function() {
-    getConfigurations();
+    $scope.getConfigurations();
   };
 
   init();
