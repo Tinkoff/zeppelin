@@ -16,15 +16,19 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
+import ru.tinkoff.zeppelin.engine.forms.FormsProcessor;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 import ru.tinkoff.zeppelin.storage.JobBatchDAO;
 import ru.tinkoff.zeppelin.storage.JobDAO;
@@ -59,21 +63,27 @@ public class ExecutionHandler extends AbstractHandler {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void run(final Note note, final List<Paragraph> paragraphs, final String username, final Set<String> roles) {
     if (noteIsRunning(note)) {
+
+      // only for single paragraph
       if (paragraphs.size() != 1) {
         return;
       }
 
+      // check user
       final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
       final List<Job> jobs = jobDAO.loadByBatch(jobBatch.getId());
       if (!jobs.get(0).getUsername().equals(username)) {
         return;
       }
 
+      // check is batch already contains job
       final Paragraph paragraph = paragraphs.get(0);
       final boolean contains = jobs.stream().anyMatch(j -> j.getParagraphId() == paragraph.getId());
       if (contains) {
         return;
       }
+
+      // append to existing batcb
       appendJob(jobBatch, note, paragraph, jobs.size(), JobPriority.USER.getIndex(), username, roles);
     } else {
 

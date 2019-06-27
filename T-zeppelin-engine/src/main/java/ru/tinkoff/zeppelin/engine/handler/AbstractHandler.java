@@ -17,7 +17,9 @@
 package ru.tinkoff.zeppelin.engine.handler;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -200,11 +202,11 @@ abstract class AbstractHandler {
   }
 
   long publishBatch(
-          final Note note,
-          final List<Paragraph> paragraphs,
-          final String username,
-          final Set<String> roles,
-          final int priority) {
+      final Note note,
+      final List<Paragraph> paragraphs,
+      final String username,
+      final Set<String> roles,
+      final int priority) {
     final JobBatch batch = new JobBatch();
     batch.setId(0L);
     batch.setNoteId(note.getId());
@@ -217,6 +219,7 @@ abstract class AbstractHandler {
     boolean hasParagraphToExecute = false;
     for (int i = 0; i < paragraphs.size(); i++) {
       final Paragraph p = paragraphs.get(i);
+
       hasParagraphToExecute = hasParagraphToExecute || appendJob(saved, note, p, i, priority, username, roles);
     }
 
@@ -236,12 +239,12 @@ abstract class AbstractHandler {
   }
 
   boolean appendJob(final JobBatch batch,
-                 final Note note,
-                 final Paragraph p,
-                 final int index,
-                 final long priority,
-                 final String username,
-                 final Set<String> roles) {
+                    final Note note,
+                    final Paragraph p,
+                    final int index,
+                    final long priority,
+                    final String username,
+                    final Set<String> roles) {
     if (!(boolean) p.getConfig().getOrDefault("enabled", true)
         || StringUtils.isEmpty(p.getText().trim())) {
       return false;
@@ -270,8 +273,24 @@ abstract class AbstractHandler {
     final JobPayload jobPayload = new JobPayload();
     jobPayload.setId(0L);
     jobPayload.setJobId(job.getId());
-    final String payload = StringUtils.firstNonEmpty(p.getSelectedText(), p.getText());
-    jobPayload.setPayload(FormsProcessor.injectFormValues(payload, p.getFormParams()));
+
+    // build forms params
+    final List<Paragraph> paragraphList = paragraphDAO.getByNoteId(note.getId());
+    final Map<String, Object> forms = new HashMap<>();
+    for (final Paragraph pl : paragraphList) {
+      forms.putAll(pl.getFormParams());
+      if(pl.getId().equals(p.getId())) {
+        break;
+      }
+    }
+
+    // build payload
+    final String payload = FormsProcessor.injectFormValues(
+        StringUtils.firstNonEmpty(p.getSelectedText(), p.getText()),
+        forms
+    );
+
+    jobPayload.setPayload(payload);
     jobPayloadDAO.persist(jobPayload);
 
     p.setJobId(job.getId());
@@ -289,11 +308,11 @@ abstract class AbstractHandler {
   }
 
   boolean noteIsRunning(final Note note) {
-    JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
+    final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
     if (jobBatch == null) {
       return false;
     }
-    Status status = jobBatch.getStatus();
+    final Status status = jobBatch.getStatus();
     return Status.running.contains(status);
   }
 
@@ -301,8 +320,8 @@ abstract class AbstractHandler {
     final ParagraphDTO before = fullParagraphDAO.getById(job.getParagraphId());
 
     final List<JobResult> results = jobResultDAO.getByJobId(job.getId()).stream()
-            .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
-            .collect(Collectors.toList());
+        .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
+        .collect(Collectors.toList());
 
     if (results.isEmpty()) {
       final JobResult jobResult = new JobResult();
@@ -323,7 +342,7 @@ abstract class AbstractHandler {
 
   void removeTempOutput(final Job job) {
     jobResultDAO.getByJobId(job.getId()).stream()
-            .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
-            .forEach(j -> jobResultDAO.delete(j.getId()));
+        .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
+        .forEach(j -> jobResultDAO.delete(j.getId()));
   }
 }
