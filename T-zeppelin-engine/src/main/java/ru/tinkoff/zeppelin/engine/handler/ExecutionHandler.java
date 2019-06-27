@@ -18,13 +18,12 @@ package ru.tinkoff.zeppelin.engine.handler;
 
 import java.util.List;
 import java.util.Set;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
-import ru.tinkoff.zeppelin.core.notebook.JobPriority;
-import ru.tinkoff.zeppelin.core.notebook.Note;
-import ru.tinkoff.zeppelin.core.notebook.Paragraph;
+import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 import ru.tinkoff.zeppelin.storage.JobBatchDAO;
@@ -44,7 +43,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
  * @since 1.0
  */
 @Component
-public class ExecutionHandler extends AbstractHandler{
+public class ExecutionHandler extends AbstractHandler {
 
   public ExecutionHandler(final JobBatchDAO jobBatchDAO,
                           final JobDAO jobDAO,
@@ -60,15 +59,28 @@ public class ExecutionHandler extends AbstractHandler{
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void run(final Note note, final List<Paragraph> paragraphs, final String username, final Set<String> roles) {
     if (noteIsRunning(note)) {
-      ZLog.log(ET.JOB_ALREADY_RUNNING,
-          String.format("Ноут[id=%s] уже исполняется. Задача не будет добавлена на исполнение [автор задачи=%s]", note.getId(), username),
-          SystemEvent.SYSTEM_USERNAME);
-      return;
-    }
+      if (paragraphs.size() != 1) {
+        return;
+      }
 
-    ZLog.log(ET.JOB_SUBMITTED_FOR_EXECUTION,
-        String.format("Задача добавлена в очередь на исполнение (ноут[id=%s], автор задачи=%s)", note.getId(), username),
-        SystemEvent.SYSTEM_USERNAME);
-    publishBatch(note, paragraphs, username, roles, JobPriority.USER.getIndex());
+      final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
+      final List<Job> jobs = jobDAO.loadByBatch(jobBatch.getId());
+      if (!jobs.get(0).getUsername().equals(username)) {
+        return;
+      }
+
+      final Paragraph paragraph = paragraphs.get(0);
+      final boolean contains = jobs.stream().anyMatch(j -> j.getParagraphId() == paragraph.getId());
+      if (contains) {
+        return;
+      }
+      appendJob(jobBatch, note, paragraph, jobs.size(), JobPriority.USER.getIndex(), username, roles);
+    } else {
+
+      ZLog.log(ET.JOB_SUBMITTED_FOR_EXECUTION,
+          String.format("Задача добавлена в очередь на исполнение (ноут[id=%s], автор задачи=%s)", note.getId(), username),
+          SystemEvent.SYSTEM_USERNAME);
+      publishBatch(note, paragraphs, username, roles, JobPriority.USER.getIndex());
+    }
   }
 }

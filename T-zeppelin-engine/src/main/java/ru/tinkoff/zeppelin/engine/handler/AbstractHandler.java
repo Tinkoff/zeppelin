@@ -217,45 +217,7 @@ abstract class AbstractHandler {
     boolean hasParagraphToExecute = false;
     for (int i = 0; i < paragraphs.size(); i++) {
       final Paragraph p = paragraphs.get(i);
-
-      if (!(boolean) p.getConfig().getOrDefault("enabled", true)
-          || StringUtils.isEmpty(p.getText().trim())) {
-        continue;
-      }
-
-      final ParagraphDTO before = fullParagraphDAO.getById(p.getId());
-
-      final Job job = new Job();
-      job.setId(0L);
-      job.setBatchId(saved.getId());
-      job.setNoteId(note.getId());
-      job.setParagraphId(p.getId());
-      job.setIndex(i);
-      job.setPriority(priority);
-      job.setShebang(p.getShebang());
-      job.setStatus(Job.Status.PENDING);
-      job.setInterpreterProcessUUID(null);
-      job.setInterpreterJobUUID(null);
-      job.setCreatedAt(LocalDateTime.now());
-      job.setStartedAt(null);
-      job.setEndedAt(null);
-      job.setUsername(username);
-      job.setRoles(roles);
-      jobDAO.persist(job);
-
-      final JobPayload jobPayload = new JobPayload();
-      jobPayload.setId(0L);
-      jobPayload.setJobId(job.getId());
-      String payload = StringUtils.firstNonEmpty(p.getSelectedText(), p.getText());
-      jobPayload.setPayload(FormsProcessor.injectFormValues(payload, p.getFormParams()));
-      jobPayloadDAO.persist(jobPayload);
-
-      p.setJobId(job.getId());
-      paragraphDAO.update(p);
-
-      final ParagraphDTO after = fullParagraphDAO.getById(job.getParagraphId());
-      EventService.publish(job.getNoteId(), before, after);
-      hasParagraphToExecute = true;
+      hasParagraphToExecute = hasParagraphToExecute || appendJob(saved, note, p, i, priority, username, roles);
     }
 
     // in case of empty note
@@ -271,6 +233,53 @@ abstract class AbstractHandler {
     noteDAO.update(note);
 
     return saved.getId();
+  }
+
+  boolean appendJob(final JobBatch batch,
+                 final Note note,
+                 final Paragraph p,
+                 final int index,
+                 final long priority,
+                 final String username,
+                 final Set<String> roles) {
+    if (!(boolean) p.getConfig().getOrDefault("enabled", true)
+        || StringUtils.isEmpty(p.getText().trim())) {
+      return false;
+    }
+
+    final ParagraphDTO before = fullParagraphDAO.getById(p.getId());
+
+    final Job job = new Job();
+    job.setId(0L);
+    job.setBatchId(batch.getId());
+    job.setNoteId(note.getId());
+    job.setParagraphId(p.getId());
+    job.setIndex(index);
+    job.setPriority(priority);
+    job.setShebang(p.getShebang());
+    job.setStatus(Job.Status.PENDING);
+    job.setInterpreterProcessUUID(null);
+    job.setInterpreterJobUUID(null);
+    job.setCreatedAt(LocalDateTime.now());
+    job.setStartedAt(null);
+    job.setEndedAt(null);
+    job.setUsername(username);
+    job.setRoles(roles);
+    jobDAO.persist(job);
+
+    final JobPayload jobPayload = new JobPayload();
+    jobPayload.setId(0L);
+    jobPayload.setJobId(job.getId());
+    final String payload = StringUtils.firstNonEmpty(p.getSelectedText(), p.getText());
+    jobPayload.setPayload(FormsProcessor.injectFormValues(payload, p.getFormParams()));
+    jobPayloadDAO.persist(jobPayload);
+
+    p.setJobId(job.getId());
+    paragraphDAO.update(p);
+
+    final ParagraphDTO after = fullParagraphDAO.getById(job.getParagraphId());
+    EventService.publish(job.getNoteId(), before, after);
+    return true;
   }
 
   void abortingBatch(final Note note) {
