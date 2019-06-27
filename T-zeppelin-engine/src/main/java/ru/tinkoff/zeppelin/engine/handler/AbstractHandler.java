@@ -220,7 +220,7 @@ abstract class AbstractHandler {
     for (int i = 0; i < paragraphs.size(); i++) {
       final Paragraph p = paragraphs.get(i);
 
-      hasParagraphToExecute = hasParagraphToExecute || appendJob(saved, note, p, i, priority, username, roles);
+      hasParagraphToExecute = appendJob(saved, note, p, i, priority, username, roles) || hasParagraphToExecute;
     }
 
     // in case of empty note
