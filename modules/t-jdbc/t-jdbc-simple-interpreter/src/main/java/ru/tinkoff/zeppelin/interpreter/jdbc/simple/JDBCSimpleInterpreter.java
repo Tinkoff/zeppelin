@@ -556,7 +556,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
                     + ")"
     )) {
       int rowsCount = 0;
-      while (resultSet.getRow() < rowLimit && resultSet.next()) {
+      while ((rowLimit == 0 || resultSet.getRow() < rowLimit) && resultSet.next()) {
         for (int i = 1; i <= md.getColumnCount(); i++){
           s2.setObject(i, resultSet.getObject(i));
         }

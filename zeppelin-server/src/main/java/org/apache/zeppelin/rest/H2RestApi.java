@@ -27,9 +27,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.tinkoff.zeppelin.core.content.Content;
 import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.NoteContext;
+import ru.tinkoff.zeppelin.storage.ContentDAO;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -45,88 +47,17 @@ import java.util.stream.Collectors;
 public class H2RestApi {
   Logger LOGGER = LoggerFactory.getLogger(H2RestApi.class);
   private final Configuration configuration;
+  private final ContentDAO contentDAO;
 
   @Autowired
-  public H2RestApi(final Configuration configuration) {
+  public H2RestApi(final Configuration configuration,
+                   final ContentDAO contentDAO) {
     this.configuration = configuration;
+    this.contentDAO = contentDAO;
   }
 
-  @GetMapping(value = "/get_tables_list/{noteUuid}", produces = "application/json")
-  public ResponseEntity getH2SavedTablesList(@PathVariable("noteUuid") final String noteUuid) {
-
-
-    final String noteContextPath =
-            configuration.getNoteStorePath()
-                    + File.separator
-                    + noteUuid
-                    + File.separator
-                    + "outputDB";
-    LOGGER.info("--------------connection url " + "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath());
-
-    HashMap<String, LinkedList<String>> tables = null;
-    final InterpreterResult queryResult;
-    Connection con = null;
-
-    try {
-      con = DriverManager.getConnection(
-              "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath(),
-              "sa",
-              "");
-
-      LOGGER.info("--------------connection " + con.toString());
-      tables = getResultTable(con);
-    } catch (final Throwable th) {
-      return new JsonResponse(HttpStatus.BAD_REQUEST,
-              "Error. Couldn't open connection to internal DB correctly")
-              .build();
-    } finally {
-      if (con != null) {
-        try {
-          con.close();
-        } catch (final Exception e) {
-          return new JsonResponse(HttpStatus.BAD_REQUEST,
-                  "Error. Couldn't close connection to internal DB correctly")
-                  .build();
-        }
-      }
-    }
-    return new JsonResponse(HttpStatus.OK, tables).build();
-  }
-
-
-  private HashMap<String, LinkedList<String>> getResultTable(final Connection connection) throws Exception {
-    final Statement statement = connection.createStatement();
-    statement.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC';");
-    final ResultSet resultSet = statement.getResultSet();
-    final LinkedList<String> tables = new LinkedList<>();
-    while (resultSet.next()) {
-      tables.add(resultSet.getString("TABLE_NAME"));
-    }
-
-    final HashMap<String, LinkedList<String>> result = new HashMap<>();
-    for (String table : tables) {
-      result.put(table, new LinkedList<String>());
-      final ResultSet tableResultSet = connection.createStatement().executeQuery(
-              "SELECT *  FROM " + table + ";");
-
-
-
-      final ResultSetMetaData md = tableResultSet.getMetaData();
-      for (int i = 1; i < md.getColumnCount() + 1; i++) {
-        final StringBuilder createTable = new StringBuilder();
-        createTable.append(
-                StringUtils.isNotEmpty(md.getColumnLabel(i))
-                        ? md.getColumnLabel(i)
-                        : md.getColumnName(i)
-        );
-
-        createTable.append(" \t");
-        createTable.append(md.getColumnTypeName(i));
-
-        result.get(table).add(createTable.toString());
-      }
-
-    }
-    return result;
+  @GetMapping(value = "/get_tables_list/{noteId}", produces = "application/json")
+  public ResponseEntity getH2SavedTablesList(@PathVariable("noteId") final Long noteId) {
+    return new JsonResponse(HttpStatus.OK,contentDAO.getContent(noteId)).build();
   }
 }

@@ -30,140 +30,148 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.content.Content;
 import ru.tinkoff.zeppelin.core.content.ContentType;
-import ru.tinkoff.zeppelin.core.notebook.Note;
 
 @Component
 public class ContentDAO {
+  //private static final Logger LOG = LoggerFactory.getLogger(ContentDAO.class);
+
 
   private static final String GET_NOTE_CONTENT = "" +
-      "SELECT ID,\n" +
-      "       TYPE,\n" +
-      "       DESCRIPTION,\n" +
-      "       LOCATION\n" +
-      "FROM CONTENT\n" +
-      "WHERE NOTE_ID = :NOTE_ID;";
+          "SELECT ID,\n" +
+          "       TYPE,\n" +
+          "       NOTE_ID,\n" +
+          "       DESCRIPTION,\n" +
+          "       LOCATION\n" +
+          "FROM CONTENT\n" +
+          "WHERE NOTE_ID = :NOTE_ID;";
 
   private static final String GET_CONTENT = "" +
-      "SELECT NOTE_ID,\n" +
-      "       TYPE,\n" +
-      "       DESCRIPTION,\n" +
-      "       LOCATION\n" +
-      "FROM CONTENT\n" +
-      "WHERE ID = :ID;";
+          "SELECT ID,\n" +
+          "       NOTE_ID,\n" +
+          "       TYPE,\n" +
+          "       DESCRIPTION,\n" +
+          "       LOCATION\n" +
+          "FROM CONTENT\n" +
+          "WHERE ID = :ID;";
 
   private static final String GET_CONTENT_BY_LOCATION = "" +
-      "SELECT ID,\n" +
-      "       NOTE_ID,\n" +
-      "       TYPE,\n" +
-      "       DESCRIPTION\n" +
-      "FROM CONTENT\n" +
-      "WHERE LOCATION = :LOCATION;";
+          "SELECT ID,\n" +
+          "       NOTE_ID,\n" +
+          "       TYPE,\n" +
+          "       DESCRIPTION,\n" +
+          "       LOCATION\n" +
+          "FROM CONTENT\n" +
+          "WHERE LOCATION = :LOCATION;";
 
-  private static final String ADD_CONTENT =  "" +
-      "INSERT INTO CONTENT (NOTE_ID,\n" +
-      "                     TYPE,\n" +
-      "                     DESCRIPTION,\n" +
-      "                     LOCATION)\n" +
-      "VALUES (:NOTE_ID,\n" +
-      "        :TYPE,\n" +
-      "        :DESCRIPTION,\n" +
-      "        :LOCATION);";
+  private static final String ADD_CONTENT = "" +
+          "INSERT INTO CONTENT (NOTE_ID,\n" +
+          "                     TYPE,\n" +
+          "                     DESCRIPTION,\n" +
+          "                     LOCATION)\n" +
+          "VALUES (:NOTE_ID,\n" +
+          "        :TYPE,\n" +
+          "        :DESCRIPTION,\n" +
+          "        :LOCATION);";
 
   private static final String DELETE = "" +
-      "DELETE\n" +
-      "FROM CONTENT\n" +
-      "WHERE ID = :ID;";
+          "DELETE\n" +
+          "FROM CONTENT\n" +
+          "WHERE ID = :ID;";
 
   private static final String UPDATE = "" +
-      "UPDATE CONTENT\n" +
-      "SET NOTE_ID                  = :NOTE_ID,\n" +
-      "    TYPE                     = :TYPE,\n" +
-      "    DESCRIPTION              = :DESCRIPTION,\n" +
-      "    LOCATION                 = :LOCATION\n" +
-      "WHERE ID = :ID;";
+          "UPDATE CONTENT\n" +
+          "SET NOTE_ID                  = :NOTE_ID,\n" +
+          "    TYPE                     = :TYPE,\n" +
+          "    DESCRIPTION              = :DESCRIPTION,\n" +
+          "    LOCATION                 = :LOCATION\n" +
+          "WHERE ID = :ID;";
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
+  private final ContentParamDAO contentParamDAO;
 
 
-  public ContentDAO(final NamedParameterJdbcTemplate jdbcTemplate) {
+  public ContentDAO(final NamedParameterJdbcTemplate jdbcTemplate,
+                    final ContentParamDAO contentParamDAO) {
     this.jdbcTemplate = jdbcTemplate;
+    this.contentParamDAO = contentParamDAO;
   }
 
-  private static Content mapRow(final ResultSet resultSet, final int i) throws SQLException {
+  private Content mapRow(final ResultSet resultSet, final int i) throws SQLException {
     final Long id = resultSet.getLong("ID");
     final Long noteId = resultSet.getLong("NOTE_ID");
     final String description = resultSet.getString("DESCRIPTION");
     final String location = resultSet.getString("LOCATION");
     final ContentType contentType = ContentType.valueOf(resultSet.getString("TYPE"));
-    return new Content(id, noteId, contentType, description, location);
+    return new Content(id, noteId, contentType, description, location, contentParamDAO.getContentParams(id));
   }
 
   public Content persist(@Nonnull final Content content) {
     final KeyHolder holder = new GeneratedKeyHolder();
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("NOTE_ID", content.getNoteId())
-        .addValue("TYPE", content.getType())
-        .addValue("DESCRIPTION", content.getDescription())
-        .addValue("LOCATION", content.getLocation());
+            .addValue("NOTE_ID", content.getNoteId())
+            .addValue("TYPE", content.getType().name())
+            .addValue("DESCRIPTION", content.getDescription())
+            .addValue("LOCATION", content.getLocation());
 
     jdbcTemplate.update(ADD_CONTENT, parameters, holder);
-    content.setDatabaseId((Long) holder.getKeys().get("ID"));
+    content.setId((Long) holder.getKeys().get("ID"));
     return content;
   }
 
   public Content update(@Nonnull final Content content) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("NOTE_ID", content.getNoteId())
-        .addValue("TYPE", content.getType())
-        .addValue("DESCRIPTION", content.getDescription())
-        .addValue("LOCATION", content.getLocation())
-        .addValue("ID", content.getDatabaseId());
+            .addValue("NOTE_ID", content.getNoteId())
+            .addValue("TYPE", content.getType())
+            .addValue("DESCRIPTION", content.getDescription())
+            .addValue("LOCATION", content.getLocation())
+            .addValue("ID", content.getId());
 
     jdbcTemplate.update(UPDATE, parameters);
     return content;
   }
 
   public void remove(@Nonnull final Content content) {
-    jdbcTemplate.update(DELETE, new MapSqlParameterSource("ID", content.getDatabaseId()));
+    jdbcTemplate.update(DELETE, new MapSqlParameterSource("ID", content.getId()));
   }
 
   @Nonnull
-  public List<Content> getNoteContent(@Nonnull final Note note) {
+  public List<Content> getNoteContent(@Nonnull final Long noteId) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("NOTE_ID", note.getId());
+            .addValue("NOTE_ID", noteId);
 
     return jdbcTemplate.query(
-        GET_NOTE_CONTENT,
-        parameters,
-        ContentDAO::mapRow
+            GET_NOTE_CONTENT,
+            parameters,
+            this::mapRow
     );
   }
 
   @Nullable
   public Content getContentByLocation(@Nonnull final String location) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("LOCATION", location);
+            .addValue("LOCATION", location);
 
     return jdbcTemplate.query(
-        GET_CONTENT_BY_LOCATION,
-        parameters,
-        ContentDAO::mapRow)
-        .stream()
-        .findFirst()
-        .orElse(null);
+            GET_CONTENT_BY_LOCATION,
+            parameters,
+            this::mapRow)
+            .stream()
+            .findFirst()
+            .orElse(null);
   }
+
 
   @Nullable
   public Content getContent(final long databaseId) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("ID", databaseId);
+            .addValue("ID", databaseId);
 
     return jdbcTemplate.query(
-        GET_CONTENT,
-        parameters,
-        ContentDAO::mapRow)
-        .stream()
-        .findFirst()
-        .orElse(null);
+            GET_CONTENT,
+            parameters,
+            this::mapRow)
+            .stream()
+            .findFirst()
+            .orElse(null);
   }
 }

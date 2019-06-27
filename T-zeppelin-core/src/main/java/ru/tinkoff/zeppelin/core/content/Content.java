@@ -17,95 +17,116 @@
 
 package ru.tinkoff.zeppelin.core.content;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import java.util.Map;
 import java.util.StringJoiner;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Represents user content.
  */
 public class Content {
 
-  @Nonnull
-  private Long databaseId;
+  private Long id;
 
-  @Nonnull
   private Long noteId;
 
-  @Nonnull
   private ContentType type;
 
-  @Nullable
   private String description;
 
-  @Nonnull
   private String location;
 
-  public Content(@Nonnull final Long databaseId,
-                 @Nonnull final Long noteId,
-                 @Nonnull final ContentType type,
-                 @Nullable final String description,
-                 @Nonnull final String location) {
-    this.databaseId = databaseId;
+  private final Map<String, JsonElement> params;
+
+  public static TableContent getAsTableContent(final Content content) {
+    return new TableContent(content);
+  }
+
+  public Content(final Long noteId,
+                 final ContentType type,
+                 final String description,
+                 final String location,
+                 final Map<String, JsonElement> params) {
     this.noteId = noteId;
     this.type = type;
     this.description = description;
     this.location = location;
+    this.params = params;
   }
 
-  @Nonnull
-  public Long getDatabaseId() {
-    return databaseId;
+  public Content(final Long id,
+                 final Long noteId,
+                 final ContentType type,
+                 final String description,
+                 final String location,
+                 final Map<String, JsonElement> params) {
+    this.noteId = noteId;
+    this.type = type;
+    this.description = description;
+    this.location = location;
+    this.id = id;
+    this.params = params;
   }
 
-  public void setDatabaseId(@Nonnull final Long databaseId) {
-    this.databaseId = databaseId;
+
+  public Long getId() {
+    return id;
   }
 
-  @Nonnull
+  public void setId(final Long id) {
+    this.id = id;
+  }
+
+
   public Long getNoteId() {
     return noteId;
   }
 
-  public void setNoteId(@Nonnull final Long noteId) {
+  public void setNoteId(final Long noteId) {
     this.noteId = noteId;
   }
 
-  @Nonnull
+
   public ContentType getType() {
     return type;
   }
 
-  public void setType(@Nonnull final ContentType type) {
+  public void setType(final ContentType type) {
     this.type = type;
   }
 
-  @Nullable
+
   public String getDescription() {
     return description;
   }
 
-  public void setDescription(@Nullable final String description) {
+  public void setDescription(final String description) {
     this.description = description;
   }
 
-  @Nonnull
+
   public String getLocation() {
     return location;
   }
 
-  public void setLocation(@Nonnull final String location) {
+  public void setLocation(final String location) {
     this.location = location;
+  }
+
+  public Map<String, JsonElement> getParams() {
+    return params;
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ", "{", "}")
-        .add("databaseId=" + databaseId)
-        .add("noteId=" + noteId)
-        .add("type=" + type)
-        .add("description='" + description + "'")
-        .add("location='" + location + "'")
-        .toString();
+            .add("id=" + id)
+            .add("noteId=" + noteId)
+            .add("type=" + type)
+            .add("description='" + description + "'")
+            .add("location='" + location + "'")
+            .toString();
   }
 }

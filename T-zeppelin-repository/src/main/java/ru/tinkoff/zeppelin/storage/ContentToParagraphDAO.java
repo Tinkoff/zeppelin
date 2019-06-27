@@ -50,11 +50,11 @@ public class ContentToParagraphDAO {
   public ContentToParagraphDTO persist(@Nonnull final Content content,
                                        @Nonnull final Paragraph paragraph) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("CONTENT_ID", content.getDatabaseId())
+        .addValue("CONTENT_ID", content.getId())
         .addValue("PARAGRAPH_ID", paragraph.getId());
 
     jdbcTemplate.update(INSERT, parameters);
-    return new ContentToParagraphDTO(content.getDatabaseId(), paragraph.getId());
+    return new ContentToParagraphDTO(content.getId(), paragraph.getId());
   }
 
 
@@ -73,7 +73,7 @@ public class ContentToParagraphDAO {
   @Nonnull
   public List<ContentToParagraphDTO> getContentParagraphs(@Nonnull final Content content) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("CONTENT_ID", content.getDatabaseId());
+        .addValue("CONTENT_ID", content.getId());
 
     return jdbcTemplate.query(
         GET_CONTENT_PARAGRAPHS,

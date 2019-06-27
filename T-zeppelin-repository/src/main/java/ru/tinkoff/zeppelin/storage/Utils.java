@@ -18,6 +18,7 @@ package ru.tinkoff.zeppelin.storage;
 
 import com.google.gson.Gson;
 import java.sql.SQLException;
+import com.google.gson.JsonElement;
 import org.postgresql.util.PGobject;
 
 class Utils {
@@ -25,11 +26,22 @@ class Utils {
 
   static PGobject generatePGjson(final Object value) {
     try {
-      PGobject pgObject = new PGobject();
+      final PGobject pgObject = new PGobject();
       pgObject.setType("jsonb");
       pgObject.setValue(gson.toJson(value));
       return pgObject;
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
+      throw new RuntimeException("Can't generate postgres json", e);
+    }
+  }
+
+  static PGobject getPGjson(final JsonElement value) {
+    try {
+      final PGobject pgObject = new PGobject();
+      pgObject.setType("jsonb");
+      pgObject.setValue(gson.toJson(value));
+      return pgObject;
+    } catch (final SQLException e) {
       throw new RuntimeException("Can't generate postgres json", e);
     }
   }
