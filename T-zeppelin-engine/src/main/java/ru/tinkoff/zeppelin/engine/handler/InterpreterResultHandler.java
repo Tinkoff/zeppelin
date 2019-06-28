@@ -17,10 +17,6 @@
 package ru.tinkoff.zeppelin.engine.handler;
 
 import javax.annotation.PostConstruct;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -28,23 +24,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
-import ru.tinkoff.zeppelin.core.content.Content;
-import ru.tinkoff.zeppelin.core.content.ContentType;
 import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.JobBatch;
 import ru.tinkoff.zeppelin.core.notebook.JobPriority;
-import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.H2MonitoringService;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
 import ru.tinkoff.zeppelin.storage.*;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-
-import java.io.File;
-import java.nio.file.Paths;
-import java.sql.*;
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Class for handle intepreter results
@@ -59,8 +47,7 @@ public class InterpreterResultHandler extends AbstractHandler {
 
 
   private final ApplicationContext applicationContext;
-  private final ContentDAO contentDAO;
-  private final ContentParamDAO contentParamDAO;
+  private final H2MonitoringService h2MonitoringService;
 
   private static InterpreterResultHandler instance;
 
@@ -77,12 +64,10 @@ public class InterpreterResultHandler extends AbstractHandler {
                                   final FullParagraphDAO fullParagraphDAO,
                                   final ApplicationContext applicationContext,
                                   final NoteEventService noteEventService,
-                                  final ContentDAO contentDAO,
-                                  final ContentParamDAO contentParamDAO) {
+                                  final H2MonitoringService h2MonitoringService) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
     this.applicationContext = applicationContext;
-    this.contentDAO = contentDAO;
-    this.contentParamDAO = contentParamDAO;
+    this.h2MonitoringService = h2MonitoringService;
   }
 
   @PostConstruct
@@ -126,7 +111,7 @@ public class InterpreterResultHandler extends AbstractHandler {
       setErrorResult(job, batch, PredefinedInterpreterResults.ERROR_WHILE_INTERPRET);
       return;
     }
-    scanH2(job.getNoteId());
+    h2MonitoringService.scanH2(job.getNoteId());
 
     switch (interpreterResult.code()) {
       case SUCCESS:
@@ -185,73 +170,5 @@ public class InterpreterResultHandler extends AbstractHandler {
       }
     }
     return job;
-  }
-
-  private void scanH2(final long noteId) {
-    final String noteContextPath =
-            Configuration.getNoteStorePath()
-                    + File.separator
-                    + noteDAO.get(noteId).getUuid()
-                    + File.separator
-                    + "outputDB";
-    try (final Connection con = DriverManager.getConnection(
-            "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath(),
-            "sa",
-            "")) {
-
-      compareH2ToContext(con, noteContextPath, noteId);
-    } catch (final Throwable th) {
-      //SKIP
-    }
-    //SKIP
-  }
-
-  private void compareH2ToContext(final Connection connection, final String locationBase, final long noteId) throws SQLException, NullPointerException {
-    final ResultSet schemas = connection.createStatement()
-            .executeQuery("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME != 'INFORMATION_SCHEMA';");
-    while (schemas.next()) {
-      final String schema = schemas.getString("SCHEMA_NAME");
-      final ResultSet resultSet = connection
-              .createStatement()
-              .executeQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + schema + "';");
-      final LinkedList<String> tables = new LinkedList<>();
-      while (resultSet.next()) {
-        tables.add(resultSet.getString("TABLE_NAME"));
-      }
-
-      final List<Content> contentList = contentDAO.getNoteContent(noteId);
-
-      for (final String tableName : tables) {
-        final String location = locationBase + ":" + schema + "." + tableName;
-        final ResultSet tableResultSet = connection.createStatement().executeQuery(
-                "SELECT *  FROM " + tableName + ";");
-
-        final ResultSetMetaData md = tableResultSet.getMetaData();
-
-        final List<String> columns = new LinkedList<>();
-
-        for (int i = 1; i < md.getColumnCount() + 1; i++) {
-
-          final String createTable = (StringUtils.isNotEmpty(md.getColumnLabel(i))
-                  ? md.getColumnLabel(i)
-                  : md.getColumnName(i)) +
-                  " \t" +
-                  md.getColumnTypeName(i);
-          columns.add(createTable);
-        }
-        contentList.stream()
-                .filter(j -> location.equals(j.getLocation()))
-                .findFirst().ifPresent(contentDAO::remove);
-        try {
-          contentDAO.persist(new Content(noteId, ContentType.TABLE, "rows", location, null));
-          final Content content = contentDAO.getContentByLocation(location);
-          if (content != null) {
-            contentParamDAO.persist(content.getId(), "TABLE_COLUMNS", new Gson().fromJson(new Gson().toJson(columns), JsonElement.class));
-          }
-        } catch (final Exception ex) {
-          LOG.info(ex.getMessage());
-        }
-      }
-    }
   }
 }

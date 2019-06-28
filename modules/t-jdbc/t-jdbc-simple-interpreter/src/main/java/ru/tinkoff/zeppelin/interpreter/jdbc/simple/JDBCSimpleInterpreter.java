@@ -30,10 +30,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.h2.tools.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInstallation;
@@ -273,8 +271,8 @@ public class JDBCSimpleInterpreter extends Interpreter {
             noteContext.get(NoteContext.Z_ENV_NOTES_STORE_PATH.name())
                     + File.separator
                     + noteContext.get(NoteContext.Z_ENV_NOTE_UUID.name())
-            + File.separator
-            + "outputDB";
+                    + File.separator
+                    + "outputDB";
 
     final InterpreterResult queryResult;
     Connection con = null;
@@ -330,10 +328,10 @@ public class JDBCSimpleInterpreter extends Interpreter {
   private InterpreterResult executeQuery(@Nonnull final String queryString,
                                          final Connection h2conn,
                                          final boolean processResult) {
-    //final String errorMessage = JDBCUtil.checkSyntax(queryString);
-    //if (errorMessage != null) {
-    // return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
-    //}
+    final String errorMessage = JDBCUtil.checkSyntax(queryString);
+    if (errorMessage != null) {
+      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
+    }
 
     ResultSet resultSet = null;
     final StringBuilder exception = new StringBuilder();
@@ -363,8 +361,6 @@ public class JDBCSimpleInterpreter extends Interpreter {
         }
 
         // RESTORE TABLES
-        String str = null;
-
         final Matcher usedTablesMather = LOCAL_TBL_NAME_PATTERN.matcher(statement);
         final Set<String> tableNames = new HashSet<>();
         while (usedTablesMather.find()) {
@@ -375,8 +371,24 @@ public class JDBCSimpleInterpreter extends Interpreter {
         for (final String s : tableNames) {
           final Statement statement1 = h2conn.createStatement();
           statement1.execute("SELECT * FROM " + s + ";");
-          queryResult.add( new Message(Type.TEXT, getResultTable(statement1.getResultSet(), s, connection)));
+          queryResult.add(new Message(Type.TEXT, getResultTable(statement1.getResultSet(), s, connection)));
         }
+
+        String createVirtualTableName = null;
+        if (statement.toUpperCase().contains("CREATE TABLE ")) {
+          final int StartIndex = statement.toUpperCase().indexOf("CREATE TABLE ");
+          final int EndIndex = statement.toUpperCase().indexOf(" AS");
+          createVirtualTableName = statement.substring(StartIndex + 13, EndIndex).trim();
+        }
+
+        String deleteVirtualTableName = null;
+        if (statement.toUpperCase().contains("DROP TABLE ")) {
+          final int StartIndex = statement.toUpperCase().indexOf("DROP TABLE ");
+          String name = statement.substring(StartIndex + 11).trim();
+          final int EndIndex = name.toUpperCase().indexOf(" ");
+          deleteVirtualTableName = statement.substring(0, EndIndex);
+        }
+
         final boolean results = this.query.execute(statement);
         final int updateCount;
         if (results) {
@@ -397,16 +409,15 @@ public class JDBCSimpleInterpreter extends Interpreter {
           // if result is empty or if it is update statement, e.g. insert.
           updateCount = this.query.getUpdateCount();
           if (updateCount != -1) {
+            if (deleteVirtualTableName == null) {
+              saveVirtualTable(connection.createStatement().executeQuery("SELECT * FROM " + createVirtualTableName + ";"), createVirtualTableName, h2conn, updateCount, true);
+            } else {
+              saveVirtualTable(resultSet, deleteVirtualTableName, h2conn, updateCount, false);
+            }
             queryResult.add(new Message(Type.TEXT,
                     "Query executed successfully. Affected rows: " + updateCount));
           }
         }
-        //TODO: ok?
-//        if (!tableNames.isEmpty()){
-//          for (final String name : tableNames){
-//            this.query.execute("DROP TABLE IF EXISTS " + name + ';');
-//          }
-//        }
       }
       return queryResult;
     } catch (final Exception e) {
@@ -508,8 +519,8 @@ public class JDBCSimpleInterpreter extends Interpreter {
    * Write data into H2/inner_datasource
    */
   private String getResultTable(final ResultSet resultSet,
-                              final String tableName,
-                              final Connection connection) throws Exception {
+                                final String tableName,
+                                final Connection connection) throws Exception {
 
     if (StringUtils.isEmpty(tableName)) {
       return null;
@@ -557,7 +568,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
     )) {
       int rowsCount = 0;
       while ((rowLimit == 0 || resultSet.getRow() < rowLimit) && resultSet.next()) {
-        for (int i = 1; i <= md.getColumnCount(); i++){
+        for (int i = 1; i <= md.getColumnCount(); i++) {
           s2.setObject(i, resultSet.getObject(i));
         }
         rowsCount++;
@@ -568,9 +579,54 @@ public class JDBCSimpleInterpreter extends Interpreter {
       return createTable.toString()
               .replace(("CREATE TABLE " + tableName + " ( \n"),
                       "Table " + tableName + " successfully created/loaded to join\nColumns :\n")
-              .replace(");","") + "\n" + rowsCount + " rows affected";
+              .replace(");", "") + "\n" + rowsCount + " rows affected";
     }
   }
+
+  private void saveVirtualTable(final ResultSet resultSet,
+                                final String tableName,
+                                final Connection connection,
+                                final int rowsCount,
+                                final boolean addTableFlg) throws Exception {
+
+    if (StringUtils.isEmpty(tableName)) {
+      return;
+    }
+    final Statement createTableStatement = connection.createStatement();
+    createTableStatement.execute("CREATE SCHEMA IF NOT EXISTS V_TABLES; CREATE TABLE IF NOT EXISTS V_TABLES.TABLES (" +
+            "TABLE_NAME VARCHAR(32) NOT NULL," +
+            "ROWS INTEGER NOT NULL," +
+            "COLUMNS VARCHAR(1024) NOT NULL," +
+            "UNIQUE(TABLE_NAME)" +
+            ");");
+
+    final Statement dropTableIfExists = connection.createStatement();
+    dropTableIfExists.execute("DELETE FROM V_TABLES.TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "';");
+
+    if (addTableFlg) {
+      final StringBuilder createTable = new StringBuilder();
+      final ResultSetMetaData md = resultSet.getMetaData();
+      for (int i = 1; i < md.getColumnCount() + 1; i++) {
+        createTable.append(
+                StringUtils.isNotEmpty(md.getColumnLabel(i))
+                        ? md.getColumnLabel(i)
+                        : md.getColumnName(i)
+        );
+        createTable.append(" \t");
+
+        createTable.append(md.getColumnTypeName(i));
+
+        if (i != md.getColumnCount()) {
+          createTable.append(", \n");
+        }
+      }
+
+      final Statement addTable = connection.createStatement();
+      addTable.execute("INSERT INTO V_TABLES.TABLES  " +
+              "VALUES ('" + tableName.toUpperCase() + "'," + rowsCount + ",'" + createTable.toString().toUpperCase() + "');");
+    }
+  }
+
 
   /**
    * For table response replace Tab and Newline characters from the content.
