@@ -87,6 +87,9 @@ body {
   visibility: visible;
 }
 
+.paragraph .cursorPos {
+  display: none;
+}
 
 .noteAction span,
 .noteAction button,

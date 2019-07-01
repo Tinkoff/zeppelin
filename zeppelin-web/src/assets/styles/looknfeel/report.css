@@ -56,6 +56,10 @@ body {
   visibility: hidden;
 }
 
+.paragraph .cursorPos {
+  display: none;
+}
+
 .noteAction span,
 .noteAction button,
 .noteAction form {

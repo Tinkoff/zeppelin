@@ -51,6 +51,12 @@ limitations under the License.
       ></code-editor>
     </div>
 
+    <div ng-show="!paragraph.config.tableHide && !viewOnly"
+         id="{{paragraph.id}}_cursorPos"
+         class="cursorPos">
+      {{cursorMsg}}
+    </div>
+
     <div ng-include src="'app/notebook/paragraph/paragraph-progress-bar.html'"></div>
     <div>
       <dynamic-forms
@@ -85,11 +91,6 @@ limitations under the License.
         ng-click="toggleSelection(paragraph.id)"><i class="fa {{selectedParagraphsIds.has(paragraph.id) ? 'fa-check-square-o' : 'fa-square-o'}}" aria-hidden="true"></i></span>
 
   <div ng-if="!asIframe" class="paragraphFooter">
-    <div ng-show="!paragraph.config.tableHide && !viewOnly"
-         id="{{paragraph.id}}_cursorPos"
-         class="cursorPos">
-      {{cursorMsg}}
-    </div>
     <div ng-show="!paragraph.config.tableHide && !viewOnly"
          id="{{paragraph.id}}_executionTime"
          class="executionTime" ng-bind-html="getExecutionTime(paragraph)">
