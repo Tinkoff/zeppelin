@@ -22,6 +22,10 @@ import java.time.ZoneId;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -34,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -215,4 +220,19 @@ public class CronRestApi extends AbstractRestApi {
     return new JsonResponse(HttpStatus.OK, response).build();
   }
 
+  /**
+   * Remove cron job REST API | Endpoint: <b>DELETE - /api/notebook/{noteId}/cron</b>
+   *
+   * @param noteIdParam ID of Note
+   * @return JSON with status.OK
+   */
+  @DeleteMapping(value = "/notebook/{noteId}/cron", produces = "application/json")
+  public ResponseEntity removeCronJob(@PathVariable("noteId") final String noteIdParam) {
+    final long noteId = Long.parseLong(noteIdParam);
+    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
+    final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
+    schedulerDAO.remove(scheduler);
+    return new JsonResponse(HttpStatus.OK).build();
+  }
 }

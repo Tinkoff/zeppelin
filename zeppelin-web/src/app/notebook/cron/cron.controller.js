@@ -333,6 +333,20 @@ function CronCtrl($rootScope, $scope, $http, baseUrlSrv) {
     );
   };
 
+  $scope.removeCron = function() {
+    $http.delete(`${baseUrlSrv.getRestApiBase()}/notebook/${noteId}/cron/`)
+    .then((response) => {
+      if(response.data.status === 'OK') {
+        $scope.cron.expression = '';
+        $scope.cron.enable = false;
+        $scope.cron.dirtyExpression = '';
+        $scope.cron.user = '';
+        $scope.cron.roles = [];
+        $scope.cron.isValidCronExpression = false;
+      }
+    });
+  };
+
   $scope.updateCron = function(expression, isEnable) {
     $http.put(
       `${baseUrlSrv.getRestApiBase()}/notebook/${noteId}/cron`,

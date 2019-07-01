@@ -142,6 +142,13 @@ limitations under the License.
                     ng-class="{'disabled' : !cron.isValidCronExpression || cron.expression === cron.dirtyExpression}"
                     ng-click="confirmNewExpression()">{{cron.expression === undefined ? 'Enable' : 'Save changes'}}
             </button>
+
+            <!--delete button-->
+            <button type="button" class="btn btn-danger btn-sm" aria-label="Remove"
+                    ng-if="cron.expression !== ''"
+                    ng-click="removeCron()">
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
 
         </div>

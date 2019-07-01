@@ -18,6 +18,11 @@ package ru.tinkoff.zeppelin.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -26,12 +31,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
-
-import java.lang.reflect.Type;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 public class SchedulerDAO {
@@ -62,6 +61,10 @@ public class SchedulerDAO {
           "    LAST_EXECUTION = :LAST_EXECUTION,\n" +
           "    NEXT_EXECUTION = :NEXT_EXECUTION\n" +
           "WHERE ID = :ID;";
+
+  private static final String DELETE = "" +
+      "DELETE FROM SCHEDULER\n" +
+      "WHERE ID = :ID;";
 
   private static final String SELECT_BY_ID = "" +
           "SELECT ID,\n" +
@@ -175,6 +178,12 @@ public class SchedulerDAO {
             .addValue("ID", scheduler.getId());
     namedParameterJdbcTemplate.update(UPDATE, parameters);
     return scheduler;
+  }
+
+  public void remove(final Scheduler scheduler) {
+    final SqlParameterSource parameters = new MapSqlParameterSource()
+        .addValue("ID", scheduler.getId());
+    namedParameterJdbcTemplate.update(DELETE, parameters);
   }
 
   public Scheduler get(final Long id) {
