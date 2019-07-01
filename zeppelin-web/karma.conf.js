@@ -91,6 +91,7 @@ module.exports = function(config) {
       'bower_components/jszip/dist/jszip.js',
       'bower_components/excel-builder-js/dist/excel-builder.dist.js',
       'bower_components/jstree/dist/jstree.js',
+      'bower_components/air-datepicker/dist/js/datepicker.js',
       'bower_components/angular-mocks/angular-mocks.js',
       // endbower
 

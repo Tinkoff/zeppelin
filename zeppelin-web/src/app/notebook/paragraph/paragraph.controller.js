@@ -884,6 +884,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
           options: f.options,
           runOnChange: f.autorun ? f.autorun === 'true' : f.options !== undefined,
           hidden: false,
+          pattern: f.pattern,
         };
       });
       setForms(formMap);

@@ -44,6 +44,7 @@ import './app/interpreter/widget/number-widget.directive.js';
 import './app/configuration/configuration.controller.js';
 import './app/notebook/revisions-comparator/revisions-comparator.component.js';
 import './app/notebook/paragraph/paragraph.controller.js';
+import './app/notebook/dynamic-forms/datetime-picker/datetime-picker.controller.js';
 import './app/notebook/paragraph/clipboard.controller.js';
 import './app/notebook/paragraph/resizable.directive.js';
 import './app/notebook/paragraph/result/result.controller.js';
