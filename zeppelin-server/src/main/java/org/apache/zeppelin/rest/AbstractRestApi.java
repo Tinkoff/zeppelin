@@ -56,6 +56,10 @@ abstract class AbstractRestApi {
       throw new NoteNotFoundException("Can't find note with id " + noteId);
     }
 
+    if (userHasOwnerPermission(note) || userHasAdminPermission()) {
+      return note;
+    }
+
     boolean isAllowed = false;
     Set<String> allowed = null;
     switch (permission) {
@@ -70,10 +74,6 @@ abstract class AbstractRestApi {
       case RUNNER:
         isAllowed = userHasRunnerPermission(note);
         allowed = note.getRunners();
-        break;
-      case OWNER:
-        isAllowed = userHasOwnerPermission(note);
-        allowed = note.getOwners();
         break;
     }
     if (!isAllowed) {
@@ -108,19 +108,19 @@ abstract class AbstractRestApi {
   }
 
   private boolean userHasOwnerPermission(final Note note) {
-    return userRolesContains(note.getOwners()) || userHasAdminPermission();
+    return userRolesContains(note.getOwners());
   }
 
   private boolean userHasWriterPermission(final Note note) {
-    return userRolesContains(note.getWriters()) || userHasAdminPermission();
+    return userRolesContains(note.getWriters());
   }
 
   private boolean userHasRunnerPermission(final Note note) {
-    return userRolesContains(note.getRunners()) || userHasAdminPermission();
+    return userRolesContains(note.getRunners());
   }
 
   boolean userHasReaderPermission(final Note note) {
-    return userRolesContains(note.getReaders()) || userHasAdminPermission();
+    return userRolesContains(note.getReaders());
   }
 
   private static Set<String> getUserAvailableRoles() {
