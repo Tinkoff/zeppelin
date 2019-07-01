@@ -19,6 +19,7 @@ package ru.tinkoff.zeppelin.core.notebook;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -76,6 +77,10 @@ public class Scheduler implements Serializable {
     return id;
   }
 
+  public void setId(final Long id) {
+    this.id = id;
+  }
+
   public Long getNoteId() {
     return noteId;
   }
@@ -126,5 +131,25 @@ public class Scheduler implements Serializable {
 
   public void setNextExecution(final LocalDateTime nextExecution) {
     this.nextExecution = nextExecution;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Scheduler)) return false;
+    final Scheduler scheduler = (Scheduler) o;
+    return isEnabled == scheduler.isEnabled &&
+        Objects.equals(id, scheduler.id) &&
+        Objects.equals(noteId, scheduler.noteId) &&
+        Objects.equals(expression, scheduler.expression) &&
+        Objects.equals(user, scheduler.user) &&
+        Objects.equals(roles, scheduler.roles) &&
+        Objects.equals(lastExecution, scheduler.lastExecution) &&
+        Objects.equals(nextExecution, scheduler.nextExecution);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, noteId, isEnabled, expression, user, roles, lastExecution, nextExecution);
   }
 }

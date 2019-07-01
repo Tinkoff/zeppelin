@@ -35,6 +35,8 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
+
 @Component
 public class JobDAO {
 
@@ -163,7 +165,7 @@ public class JobDAO {
           "FROM JOB_BATCH JB\n" +
           "  LEFT JOIN JOB J ON JB.ID = J.BATCH_ID\n" +
           "WHERE JB.STATUS IN ('PENDING', 'RUNNING')\n" +
-          "      AND J.STATUS != 'DONE'" +
+          "      AND J.STATUS != 'DONE'\n" +
           "      AND NOT EXISTS(SELECT * FROM JOB J2 WHERE J2.BATCH_ID = JB.ID AND J2.STATUS IN('RUNNING', 'ERROR'))\n" +
           "ORDER BY J.BATCH_ID, J.PRIORITY DESC, J.INDEX_NUMBER;";
 
@@ -225,8 +227,8 @@ public class JobDAO {
     this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
   }
 
-  private static Job mapRow(final ResultSet resultSet, final int i) throws SQLException {
-    Type rolesSetType = new TypeToken<Set<String>>() {
+  public static Job mapRow(final ResultSet resultSet, final int i) throws SQLException {
+    final Type rolesSetType = new TypeToken<Set<String>>() {
     }.getType();
 
     final Long id = resultSet.getLong("ID");
@@ -289,9 +291,9 @@ public class JobDAO {
             .addValue("USER_ROLES", new Gson().toJson(job.getRoles()))
             .addValue("INTERPRETER_PROCESS_UUID", job.getInterpreterProcessUUID())
             .addValue("INTERPRETER_JOB_UUID", job.getInterpreterJobUUID())
-            .addValue("CREATED_AT", job.getCreatedAt())
-            .addValue("STARTED_AT", job.getStartedAt())
-            .addValue("ENDED_AT", job.getEndedAt());
+            .addValue("CREATED_AT", toTimestamp(job.getCreatedAt()))
+            .addValue("STARTED_AT", toTimestamp(job.getStartedAt()))
+            .addValue("ENDED_AT", toTimestamp(job.getEndedAt()));
     namedParameterJdbcTemplate.update(PERSIST_JOB, parameters, holder);
 
     job.setId((Long) holder.getKeys().get("id"));
@@ -311,9 +313,9 @@ public class JobDAO {
             .addValue("USER_ROLES", new Gson().toJson(job.getRoles()))
             .addValue("INTERPRETER_PROCESS_UUID", job.getInterpreterProcessUUID())
             .addValue("INTERPRETER_JOB_UUID", job.getInterpreterJobUUID())
-            .addValue("CREATED_AT", job.getCreatedAt())
-            .addValue("STARTED_AT", job.getStartedAt())
-            .addValue("ENDED_AT", job.getEndedAt())
+            .addValue("CREATED_AT", toTimestamp(job.getCreatedAt()))
+            .addValue("STARTED_AT", toTimestamp(job.getStartedAt()))
+            .addValue("ENDED_AT", toTimestamp(job.getEndedAt()))
             .addValue("ID", job.getId());
     namedParameterJdbcTemplate.update(UPDATE_JOB, parameters);
     return job;

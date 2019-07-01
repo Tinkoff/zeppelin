@@ -106,7 +106,7 @@ public class ModuleInnerConfigurationDAO {
     final SqlParameterSource parameters = new MapSqlParameterSource();
 
     return namedParameterJdbcTemplate.query(
-            GET_BY_ID,
+            GET_ALL,
             parameters,
             ModuleInnerConfigurationDAO::mapRow
     );

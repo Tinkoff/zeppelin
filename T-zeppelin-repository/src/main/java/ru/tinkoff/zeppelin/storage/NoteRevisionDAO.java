@@ -28,6 +28,8 @@ import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.NoteRevision;
 
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
+
 @Component
 public class NoteRevisionDAO {
 
@@ -86,6 +88,6 @@ public class NoteRevisionDAO {
     return new MapSqlParameterSource()
         .addValue("note_id", revision.getNoteId())
         .addValue("message", revision.getMessage())
-        .addValue("date", revision.getDate());
+        .addValue("date", toTimestamp(revision.getDate()));
   }
 }

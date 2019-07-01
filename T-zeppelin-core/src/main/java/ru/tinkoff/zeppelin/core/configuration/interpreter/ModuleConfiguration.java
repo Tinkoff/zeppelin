@@ -20,6 +20,7 @@ package ru.tinkoff.zeppelin.core.configuration.interpreter;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.option.Permissions;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Full interpreter settings on interpreter page.
@@ -168,5 +169,27 @@ public class ModuleConfiguration implements Serializable {
 
   public void setEnabled(final boolean enabled) {
     isEnabled = enabled;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof ModuleConfiguration)) return false;
+    final ModuleConfiguration that = (ModuleConfiguration) o;
+    return id == that.id &&
+        concurrentTasks == that.concurrentTasks &&
+        moduleInnerConfigId == that.moduleInnerConfigId &&
+        moduleSourceId == that.moduleSourceId &&
+        isEnabled == that.isEnabled &&
+        Objects.equals(shebang, that.shebang) &&
+        Objects.equals(humanReadableName, that.humanReadableName) &&
+        Objects.equals(bindedTo, that.bindedTo) &&
+        Objects.equals(jvmOptions, that.jvmOptions) &&
+        Objects.equals(permissions, that.permissions);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, shebang, humanReadableName, bindedTo, jvmOptions, concurrentTasks, moduleInnerConfigId, moduleSourceId, permissions, isEnabled);
   }
 }

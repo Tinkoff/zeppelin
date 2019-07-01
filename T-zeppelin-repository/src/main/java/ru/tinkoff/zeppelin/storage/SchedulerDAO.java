@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -31,6 +32,8 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
+
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
 
 @Component
 public class SchedulerDAO {
@@ -151,20 +154,12 @@ public class SchedulerDAO {
             .addValue("EXPRESSION", scheduler.getExpression())
             .addValue("USER_NAME", scheduler.getUser())
             .addValue("USER_ROLES", gson.toJson(scheduler.getRoles()))
-            .addValue("LAST_EXECUTION", scheduler.getLastExecution())
-            .addValue("NEXT_EXECUTION", scheduler.getNextExecution());
+            .addValue("LAST_EXECUTION", toTimestamp(scheduler.getLastExecution()))
+            .addValue("NEXT_EXECUTION", toTimestamp(scheduler.getNextExecution()));
     namedParameterJdbcTemplate.update(PERSIST, parameters, holder);
 
-    return new Scheduler(
-            (Long) holder.getKeys().get("id"),
-            scheduler.getNoteId(),
-            scheduler.isEnabled(),
-            scheduler.getExpression(),
-            scheduler.getUser(),
-            scheduler.getRoles(),
-            scheduler.getLastExecution(),
-            scheduler.getNextExecution()
-    );
+    scheduler.setId((Long) Objects.requireNonNull(holder.getKeys()).get("id"));
+    return scheduler;
   }
 
   public Scheduler update(final Scheduler scheduler) {
@@ -173,8 +168,8 @@ public class SchedulerDAO {
             .addValue("EXPRESSION", scheduler.getExpression())
             .addValue("USER_NAME", scheduler.getUser())
             .addValue("USER_ROLES", gson.toJson(scheduler.getRoles()))
-            .addValue("LAST_EXECUTION", scheduler.getLastExecution())
-            .addValue("NEXT_EXECUTION", scheduler.getNextExecution())
+            .addValue("LAST_EXECUTION", toTimestamp(scheduler.getLastExecution()))
+            .addValue("NEXT_EXECUTION", toTimestamp(scheduler.getNextExecution()))
             .addValue("ID", scheduler.getId());
     namedParameterJdbcTemplate.update(UPDATE, parameters);
     return scheduler;
@@ -215,7 +210,7 @@ public class SchedulerDAO {
 
   public List<Scheduler> getReadyToExecute(final LocalDateTime time) {
     final SqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("NEXT_EXECUTION", time);
+            .addValue("NEXT_EXECUTION", toTimestamp(time));
 
     return namedParameterJdbcTemplate.query(
             SELECT_READY_TO_EXECUTE,

@@ -22,6 +22,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Paragraph is a POJO which represents Note's sub-element.
@@ -181,5 +182,32 @@ public class Paragraph implements Serializable {
 
   public void setRevisionId(final Long revisionId) {
     this.revisionId = revisionId;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Paragraph)) return false;
+    final Paragraph paragraph = (Paragraph) o;
+    return Objects.equals(id, paragraph.id) &&
+        Objects.equals(noteId, paragraph.noteId) &&
+        Objects.equals(uuid, paragraph.uuid) &&
+        Objects.equals(title, paragraph.title) &&
+        Objects.equals(text, paragraph.text) &&
+        Objects.equals(shebang, paragraph.shebang) &&
+        Objects.equals(created, paragraph.created) &&
+        Objects.equals(updated, paragraph.updated) &&
+        Objects.equals(position, paragraph.position) &&
+        Objects.equals(jobId, paragraph.jobId) &&
+        Objects.equals(revisionId, paragraph.revisionId) &&
+        Objects.equals(selectedText, paragraph.selectedText) &&
+        Objects.equals(config, paragraph.config) &&
+        Objects.equals(formParams, paragraph.formParams);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, noteId, uuid, title, text, shebang, created,
+        updated, position, jobId, revisionId, selectedText, config, formParams);
   }
 }

@@ -19,6 +19,8 @@ package ru.tinkoff.zeppelin.storage;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleSource;
 
@@ -136,7 +138,8 @@ public class ModuleSourcesDAO {
     namedParameterJdbcTemplate.update(UPDATE, parameters);
   }
 
-  public void persist(final ModuleSource source) {
+  public ModuleSource persist(final ModuleSource source) {
+    final KeyHolder holder = new GeneratedKeyHolder();
     final SqlParameterSource parameters = new MapSqlParameterSource()
             .addValue("NAME", source.getName())
             .addValue("TYPE", source.getType().name())
@@ -145,7 +148,9 @@ public class ModuleSourcesDAO {
             .addValue("PATH", source.getPath())
             .addValue("REINSTALL_ON_START", source.isReinstallOnStart());
 
-    namedParameterJdbcTemplate.update(PERSIST, parameters);
+    namedParameterJdbcTemplate.update(PERSIST, parameters, holder);
+    source.setId((Long) holder.getKeys().get("id"));
+    return source;
   }
 
   public void delete(final long id) {

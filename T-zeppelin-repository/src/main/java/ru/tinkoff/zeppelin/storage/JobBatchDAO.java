@@ -30,6 +30,8 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
+
 @Component
 public class JobBatchDAO {
 
@@ -58,7 +60,7 @@ public class JobBatchDAO {
 
     private static final String LOAD_BATCH_BY_ID = "SELECT * FROM job_batch WHERE ID = :ID;";
 
-    private static final String LOAD_ABORTING = "SELECT * FROM job_batch WHERE STATUS = :STATUS;";
+    private static final String LOAD_BY_STATUS = "SELECT * FROM job_batch WHERE STATUS = :STATUS;";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -100,9 +102,9 @@ public class JobBatchDAO {
         final SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("NOTE_ID", jobBatch.getNoteId())
                 .addValue("STATUS", jobBatch.getStatus().name())
-                .addValue("CREATED_AT", jobBatch.getCreatedAt())
-                .addValue("STARTED_AT", jobBatch.getStartedAt())
-                .addValue("ENDED_AT", jobBatch.getEndedAt());
+                .addValue("CREATED_AT", toTimestamp(jobBatch.getCreatedAt()))
+                .addValue("STARTED_AT", toTimestamp(jobBatch.getStartedAt()))
+                .addValue("ENDED_AT", toTimestamp(jobBatch.getEndedAt()));
         namedParameterJdbcTemplate.update(PERSIST_BATCH, parameters, holder);
 
         jobBatch.setId((Long) holder.getKeys().get("id"));
@@ -113,9 +115,9 @@ public class JobBatchDAO {
         final SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("NOTE_ID", jobBatch.getNoteId())
                 .addValue("STATUS", jobBatch.getStatus().name())
-                .addValue("CREATED_AT", jobBatch.getCreatedAt())
-                .addValue("STARTED_AT", jobBatch.getStartedAt())
-                .addValue("ENDED_AT", jobBatch.getEndedAt())
+                .addValue("CREATED_AT", toTimestamp(jobBatch.getCreatedAt()))
+                .addValue("STARTED_AT", toTimestamp(jobBatch.getStartedAt()))
+                .addValue("ENDED_AT", toTimestamp(jobBatch.getEndedAt()))
                 .addValue("ID", jobBatch.getId());
         namedParameterJdbcTemplate.update(UPDATE_BATCH, parameters);
         return jobBatch;
@@ -140,6 +142,6 @@ public class JobBatchDAO {
     public List<JobBatch> getAborting() {
         final SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("STATUS", JobBatch.Status.ABORTING.name());
-        return namedParameterJdbcTemplate.query(LOAD_ABORTING, parameters, JobBatchDAO::mapRow);
+        return namedParameterJdbcTemplate.query(LOAD_BY_STATUS, parameters, JobBatchDAO::mapRow);
     }
 }

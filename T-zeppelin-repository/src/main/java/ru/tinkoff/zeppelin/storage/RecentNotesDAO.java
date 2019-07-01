@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class RecentNotesDAO {
 
-  private static final int RECENT_NOTES_PER_USER_LIMIT = 5;
+  static final int RECENT_NOTES_PER_USER_LIMIT = 5;
 
   private static final String GET_USER_RECENT_NOTES = "" +
       "SELECT NOTE_UUID FROM RECENT_NOTES\n" +

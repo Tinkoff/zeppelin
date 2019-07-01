@@ -20,6 +20,7 @@ package ru.tinkoff.zeppelin.core.configuration.interpreter.option;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.StringJoiner;
 import javax.annotation.Nonnull;
 
@@ -72,5 +73,19 @@ public class Permissions implements Serializable {
         .add("owners: " + owners)
         .add("isEnabled: " + isEnabled)
         .toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Permissions)) return false;
+    final Permissions that = (Permissions) o;
+    return isEnabled == that.isEnabled &&
+        owners.equals(that.owners);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(owners, isEnabled);
   }
 }

@@ -17,6 +17,7 @@
 package ru.tinkoff.zeppelin.core.notebook;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -187,5 +188,34 @@ public class Job {
         .add("startedAt=" + startedAt)
         .add("endedAt=" + endedAt)
         .toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Job)) return false;
+    final Job job = (Job) o;
+    return id == job.id &&
+        batchId == job.batchId &&
+        noteId == job.noteId &&
+        paragraphId == job.paragraphId &&
+        index == job.index &&
+        priority == job.priority &&
+        Objects.equals(shebang, job.shebang) &&
+        status == job.status &&
+        Objects.equals(interpreterProcessUUID, job.interpreterProcessUUID) &&
+        Objects.equals(interpreterJobUUID, job.interpreterJobUUID) &&
+        Objects.equals(username, job.username) &&
+        Objects.equals(roles, job.roles) &&
+        Objects.equals(createdAt, job.createdAt) &&
+        Objects.equals(startedAt, job.startedAt) &&
+        Objects.equals(endedAt, job.endedAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, batchId, noteId, paragraphId, index, priority, shebang,
+        status, interpreterProcessUUID, interpreterJobUUID, username, roles,
+        createdAt, startedAt, endedAt);
   }
 }

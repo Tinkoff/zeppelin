@@ -18,6 +18,9 @@ package ru.tinkoff.zeppelin.storage;
 
 import com.google.gson.Gson;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+
 import org.postgresql.util.PGobject;
 
 class Utils {
@@ -32,5 +35,9 @@ class Utils {
     } catch (SQLException e) {
       throw new RuntimeException("Can't generate postgres json", e);
     }
+  }
+
+  static Timestamp toTimestamp(final LocalDateTime localDateTime) {
+    return localDateTime == null ? null : Timestamp.valueOf(localDateTime);
   }
 }

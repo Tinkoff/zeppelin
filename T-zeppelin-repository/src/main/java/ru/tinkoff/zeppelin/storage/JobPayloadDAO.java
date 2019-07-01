@@ -30,7 +30,7 @@ import java.sql.SQLException;
 @Component
 public class JobPayloadDAO {
 
-    private static final String PERISIT_PAYLOAD = "INSERT INTO JOB_PAYLOAD (JOB_ID, PAYLOAD) VALUES (:JOB_ID, :PAYLOAD);";
+    private static final String PERSIST_PAYLOAD = "INSERT INTO JOB_PAYLOAD (JOB_ID, PAYLOAD) VALUES (:JOB_ID, :PAYLOAD);";
 
     private static final String LOAD_PAYLOAD_BY_ID = "SELECT * FROM JOB_PAYLOAD WHERE ID = :ID;";
 
@@ -47,7 +47,7 @@ public class JobPayloadDAO {
         final SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("JOB_ID", jobPayload.getJobId())
                 .addValue("PAYLOAD", jobPayload.getPayload());
-        namedParameterJdbcTemplate.update(PERISIT_PAYLOAD, parameters, holder);
+        namedParameterJdbcTemplate.update(PERSIST_PAYLOAD, parameters, holder);
 
         jobPayload.setId((Long) holder.getKeys().get("id"));
         return jobPayload;

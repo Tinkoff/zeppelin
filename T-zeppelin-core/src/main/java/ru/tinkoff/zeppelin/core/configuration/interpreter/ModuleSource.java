@@ -18,6 +18,7 @@
 package ru.tinkoff.zeppelin.core.configuration.interpreter;
 
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 /**
@@ -140,5 +141,24 @@ public class ModuleSource implements Serializable {
         .add("status='" + status + "'")
         .add("reinstallOnStart='" + reinstallOnStart + "'")
         .toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof ModuleSource)) return false;
+    final ModuleSource source = (ModuleSource) o;
+    return id == source.id &&
+        reinstallOnStart == source.reinstallOnStart &&
+        Objects.equals(name, source.name) &&
+        type == source.type &&
+        Objects.equals(artifact, source.artifact) &&
+        status == source.status &&
+        Objects.equals(path, source.path);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name, type, artifact, status, path, reinstallOnStart);
   }
 }

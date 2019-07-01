@@ -19,6 +19,7 @@ package ru.tinkoff.zeppelin.core.notebook;
 import com.google.common.collect.Sets;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Set;
 
 public class JobBatch {
@@ -93,5 +94,23 @@ public class JobBatch {
 
   public void setEndedAt(LocalDateTime endedAt) {
     this.endedAt = endedAt;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof JobBatch)) return false;
+    final JobBatch jobBatch = (JobBatch) o;
+    return id == jobBatch.id &&
+        noteId == jobBatch.noteId &&
+        status == jobBatch.status &&
+        Objects.equals(createdAt, jobBatch.createdAt) &&
+        Objects.equals(startedAt, jobBatch.startedAt) &&
+        Objects.equals(endedAt, jobBatch.endedAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, noteId, status, createdAt, startedAt, endedAt);
   }
 }

@@ -29,10 +29,12 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
+
 @Component
 public class JobResultDAO {
 
-    private static final String PERISIT_PAYLOAD = "" +
+    private static final String PERSIST_PAYLOAD = "" +
             "INSERT INTO JOB_RESULT (JOB_ID,\n" +
             "                        CREATED_AT,\n" +
             "                        TYPE,\n" +
@@ -77,7 +79,7 @@ public class JobResultDAO {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
-    private static JobResult mapRow(ResultSet resultSet, int i) throws SQLException {
+    private static JobResult mapRow(final ResultSet resultSet, final int i) throws SQLException {
         final Long id = resultSet.getLong("ID");
         final Long job_Id = resultSet.getLong("JOB_ID");
         final LocalDateTime created_at = resultSet.getTimestamp("CREATED_AT").toLocalDateTime();
@@ -98,11 +100,12 @@ public class JobResultDAO {
         final KeyHolder holder = new GeneratedKeyHolder();
         final SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("JOB_ID", jobResult.getJobId())
-                .addValue("CREATED_AT", jobResult.getCreatedAt())
+                .addValue("CREATED_AT", toTimestamp((jobResult.getCreatedAt())))
                 .addValue("TYPE", jobResult.getType())
                 .addValue("RESULT", jobResult.getResult());
-        namedParameterJdbcTemplate.update(PERISIT_PAYLOAD, parameters, holder);
+        namedParameterJdbcTemplate.update(PERSIST_PAYLOAD, parameters, holder);
 
+        //noinspection ConstantConditions
         jobResult.setId((Long) holder.getKeys().get("id"));
         return jobResult;
     }
@@ -110,7 +113,7 @@ public class JobResultDAO {
     public JobResult update(final JobResult jobResult) {
         final SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("JOB_ID", jobResult.getJobId())
-                .addValue("CREATED_AT", jobResult.getCreatedAt())
+                .addValue("CREATED_AT", toTimestamp(jobResult.getCreatedAt()))
                 .addValue("TYPE", jobResult.getType())
                 .addValue("RESULT", jobResult.getResult())
                 .addValue("ID", jobResult.getId());

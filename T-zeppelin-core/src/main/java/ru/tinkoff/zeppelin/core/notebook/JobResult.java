@@ -17,6 +17,7 @@
 package ru.tinkoff.zeppelin.core.notebook;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class JobResult {
 
@@ -64,5 +65,22 @@ public class JobResult {
 
   public void setResult(final String result) {
     this.result = result;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof JobResult)) return false;
+    final JobResult jobResult = (JobResult) o;
+    return Objects.equals(id, jobResult.id) &&
+        Objects.equals(jobId, jobResult.jobId) &&
+        Objects.equals(createdAt, jobResult.createdAt) &&
+        Objects.equals(type, jobResult.type) &&
+        Objects.equals(result, jobResult.result);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, jobId, createdAt, type, result);
   }
 }

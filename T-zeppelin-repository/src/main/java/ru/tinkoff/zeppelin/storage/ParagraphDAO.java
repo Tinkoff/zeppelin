@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static ru.tinkoff.zeppelin.storage.Utils.generatePGjson;
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
 
 @Component
 public class ParagraphDAO {
@@ -235,8 +236,8 @@ public class ParagraphDAO {
             .addValue("TITLE", paragraph.getTitle())
             .addValue("TEXT", paragraph.getText())
             .addValue("SHEBANG", paragraph.getShebang())
-            .addValue("CREATED", paragraph.getCreated())
-            .addValue("UPDATED", paragraph.getUpdated())
+            .addValue("CREATED", toTimestamp(paragraph.getCreated()))
+            .addValue("UPDATED", toTimestamp(paragraph.getUpdated()))
             .addValue("POSITION", paragraph.getPosition())
             .addValue("JOB_ID", paragraph.getJobId())
             .addValue("CONFIG", generatePGjson(paragraph.getConfig()))
@@ -255,8 +256,8 @@ public class ParagraphDAO {
             .addValue("TITLE", paragraph.getTitle())
             .addValue("TEXT", paragraph.getText())
             .addValue("SHEBANG", paragraph.getShebang())
-            .addValue("CREATED", paragraph.getCreated())
-            .addValue("UPDATED", paragraph.getUpdated())
+            .addValue("CREATED", toTimestamp(paragraph.getCreated()))
+            .addValue("UPDATED", toTimestamp(paragraph.getUpdated()))
             .addValue("POSITION", paragraph.getPosition())
             .addValue("JOB_ID", paragraph.getJobId())
             .addValue("CONFIG", generatePGjson(paragraph.getConfig()))

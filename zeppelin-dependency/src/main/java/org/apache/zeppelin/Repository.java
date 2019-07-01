@@ -26,6 +26,8 @@ import javax.annotation.Nullable;
 import org.sonatype.aether.repository.Authentication;
 import org.sonatype.aether.repository.Proxy;
 
+import java.util.Objects;
+
 /**
  * A repository hosting module sources.
  *
@@ -84,10 +86,16 @@ public class Repository {
    * @param proxyLogin The proxy login (case-sensitive), may be {@code null}.
    * @param proxyPassword The proxy password (case-sensitive), may be {@code null}.
    */
-  public Repository(final boolean snapshot, @Nonnull final String id, @Nonnull final String url,
-      @Nullable final String username, @Nullable final String password,
-      @Nullable final ProxyProtocol proxyProtocol, @Nullable final String proxyHost,
-      @Nullable final Integer proxyPort, @Nullable final String proxyLogin,
+  public Repository(
+      final boolean snapshot,
+      @Nonnull final String id,
+      @Nonnull final String url,
+      @Nullable final String username,
+      @Nullable final String password,
+      @Nullable final ProxyProtocol proxyProtocol,
+      @Nullable final String proxyHost,
+      @Nullable final Integer proxyPort,
+      @Nullable final String proxyLogin,
       @Nullable final String proxyPassword) {
     Preconditions.checkNotNull(id);
     Preconditions.checkNotNull(url);
@@ -385,5 +393,27 @@ public class Repository {
    */
   private static boolean isValidPort(@Nullable final Integer port) {
     return port == null || port >= 0 && port < Math.pow(2, 16);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Repository)) return false;
+    final Repository that = (Repository) o;
+    return snapshot == that.snapshot &&
+        id.equals(that.id) &&
+        url.equals(that.url) &&
+        Objects.equals(username, that.username) &&
+        Objects.equals(password, that.password) &&
+        proxyProtocol == that.proxyProtocol &&
+        Objects.equals(proxyHost, that.proxyHost) &&
+        Objects.equals(proxyPort, that.proxyPort) &&
+        Objects.equals(proxyLogin, that.proxyLogin) &&
+        Objects.equals(proxyPassword, that.proxyPassword);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(snapshot, id, url, username, password, proxyProtocol, proxyHost, proxyPort, proxyLogin, proxyPassword);
   }
 }

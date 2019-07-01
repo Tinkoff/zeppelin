@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 import javax.annotation.Nonnull;
 
@@ -30,7 +31,7 @@ public class ModuleInnerConfiguration implements Serializable {
 
   private long id;
 
-  private final String className;
+  private String className;
 
   private final Map<String, ModuleProperty> properties;
 
@@ -66,6 +67,10 @@ public class ModuleInnerConfiguration implements Serializable {
     return className;
   }
 
+  public void setClassName(final String className) {
+    this.className = className;
+  }
+
   @Nonnull
   public Map<String, ModuleProperty> getProperties() {
     Preconditions.checkNotNull(properties);
@@ -85,5 +90,21 @@ public class ModuleInnerConfiguration implements Serializable {
             .add("properties=" + properties)
             .add("editor=" + editor)
             .toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof ModuleInnerConfiguration)) return false;
+    final ModuleInnerConfiguration that = (ModuleInnerConfiguration) o;
+    return id == that.id &&
+        Objects.equals(className, that.className) &&
+        Objects.equals(properties, that.properties) &&
+        Objects.equals(editor, that.editor);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, className, properties, editor);
   }
 }

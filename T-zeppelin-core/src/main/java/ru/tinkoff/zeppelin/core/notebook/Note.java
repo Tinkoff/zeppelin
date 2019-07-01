@@ -19,10 +19,8 @@ package ru.tinkoff.zeppelin.core.notebook;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
 import org.apache.zeppelin.utils.IdHashes;
 
 /**
@@ -162,5 +160,28 @@ public class Note implements Serializable {
     } else {
       return "/" + this.name;
     }
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Note)) return false;
+    final Note note = (Note) o;
+    return Objects.equals(id, note.id) &&
+        Objects.equals(batchJobId, note.batchJobId) &&
+        Objects.equals(uuid, note.uuid) &&
+        Objects.equals(name, note.name) &&
+        Objects.equals(path, note.path) &&
+        Objects.equals(revision, note.revision) &&
+        Objects.equals(formParams, note.formParams) &&
+        Objects.equals(owners, note.owners) &&
+        Objects.equals(readers, note.readers) &&
+        Objects.equals(runners, note.runners) &&
+        Objects.equals(writers, note.writers);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, batchJobId, uuid, name, path, revision, formParams, owners, readers, runners, writers);
   }
 }

@@ -57,8 +57,8 @@ public class ModuleRepositoryDAO {
       "       PROXY_PORT,\n" +
       "       PROXY_LOGIN,\n" +
       "       PROXY_PASSWORD\n" +
-      "FROM MODULE_REPOSITORY" +
-      "WHERE ID = :ID;";
+      "FROM MODULE_REPOSITORY\n" +
+      "WHERE REPOSITORY_ID = :REPOSITORY_ID;";
 
   private static final String PERSIST = "" +
       "INSERT INTO MODULE_REPOSITORY (REPOSITORY_ID,\n" +
