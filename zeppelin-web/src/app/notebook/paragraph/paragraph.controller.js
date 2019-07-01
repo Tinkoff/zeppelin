@@ -819,7 +819,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.dirtyText = dirtyText;
     if ($scope.dirtyText !== $scope.originalText) {
       if ($scope.collaborativeMode) {
-        $scope.saveNote();
+        $scope.saveParagraph($scope.paragraph);
       } else {
         $scope.startSaveTimer();
       }
@@ -1679,20 +1679,31 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   }
 
   $scope.updateAllScopeTexts = function(oldPara, newPara) {
-    if (oldPara.text !== newPara.text) {
-      if ($scope.dirtyText) {         // check if editor has local update
-        if ($scope.dirtyText === newPara.text) {  // when local update is the same from remote, clear local update
-          $scope.paragraph.text = newPara.text;
-          $scope.dirtyText = undefined;
-          $scope.originalText = angular.copy(newPara.text);
-        } else { // if there're local update, keep it.
-          $scope.paragraph.text = newPara.text;
-        }
-      } else {
-        $scope.paragraph.text = newPara.text;
-        $scope.originalText = angular.copy(newPara.text);
-      }
+    prepareTextUpdate(oldPara, newPara)
+  };
+
+  let updaterTimerId = null;
+  let prepareTextUpdate = function (oldPara, newPara) {
+    if (updaterTimerId !== null) {
+      clearTimeout(updaterTimerId);
     }
+
+    updaterTimerId = setTimeout(() => {
+      if (oldPara.text !== newPara.text) {
+        if ($scope.dirtyText) {         // check if editor has local update
+          if ($scope.dirtyText === newPara.text) {  // when local update is the same from remote, clear local update
+            $scope.paragraph.text = newPara.text;
+            $scope.dirtyText = undefined;
+            $scope.originalText = angular.copy(newPara.text);
+          } else { // if there're local update, keep it.
+            $scope.paragraph.text = newPara.text;
+          }
+        } else {
+          $scope.paragraph.text = newPara.text;
+          $scope.originalText = angular.copy(newPara.text);
+        }
+      }
+    }, 1500);
   };
 
   $scope.updateParagraphObjectWhenUpdated = function(newPara) {
