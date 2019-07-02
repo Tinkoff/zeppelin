@@ -176,8 +176,8 @@ public class NoteEventService {
             }
             mimeMessage.setContent(text, "text/html");
             emailSender.send(mimeMessage);
-        } catch (final MessagingException | RuntimeException exception) {
-            LOG.info("Error on email send: " + exception.getMessage());
+        } catch (final Throwable th) {
+            LOG.info("Error on email send: " + th.getMessage());
         }
     }
 }
