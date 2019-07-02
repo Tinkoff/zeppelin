@@ -30,10 +30,11 @@ public class FormsProcessor {
           Pattern.compile("%FORM(.*)%FORM[\n ]*", Pattern.DOTALL);
 
   public static String injectFormValues(final String payload, final Map<String, Object> formValues) {
-    if (formValues.isEmpty()) {
-      return payload;
-    }
     String text = FORM_BLOCK_PATTERN.matcher(payload).replaceAll("");
+
+    if (formValues.isEmpty()) {
+      return text;
+    }
     for (Map.Entry<String, Object> form : formValues.entrySet()) {
       Object value = form.getValue();
       if (value instanceof List) {
