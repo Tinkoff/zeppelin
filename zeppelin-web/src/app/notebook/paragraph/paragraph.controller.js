@@ -1688,6 +1688,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       clearTimeout(updaterTimerId);
     }
 
+    let timerTime = $scope.collaborativeMode ? 1500 : 0;
+
     updaterTimerId = setTimeout(() => {
       if (oldPara.text !== newPara.text) {
         if ($scope.dirtyText) {         // check if editor has local update
@@ -1703,7 +1705,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
           $scope.originalText = angular.copy(newPara.text);
         }
       }
-    }, 1500);
+    }, timerTime);
   };
 
   $scope.updateParagraphObjectWhenUpdated = function(newPara) {
