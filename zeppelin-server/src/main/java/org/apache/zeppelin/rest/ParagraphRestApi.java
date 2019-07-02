@@ -231,7 +231,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId,
       @RequestBody final Map<String, Object> formValues) {
-    final Note note = secureLoadNote(noteId, Permission.WRITER);
+    final Note note = secureLoadNote(noteId, Permission.READER);
     final Paragraph paragraph = getParagraph(note, paragraphId);
     final Map<String, Object> params = paragraph.getFormParams();
     LOGGER.info("Изменение параметров параграфа paragraphId: {} ноута noteId: {}, noteUuid: {} через RestApi", paragraphId, note.getId(), note.getUuid());
