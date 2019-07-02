@@ -788,6 +788,11 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.commitParagraph(paragraph);
   };
 
+  $scope.toggleForms = function(paragraph) {
+    paragraph.config.formsHide = !paragraph.config.formsHide;
+    $scope.commitParagraph(paragraph);
+  };
+
   $scope.setCompletionWidth = function() {
     if ($rootScope.completionLineWidth && $rootScope.completionLineWidth !== -1 && $scope.editor
     && $scope.editor.completer && $scope.editor.completer.popup) {
@@ -2025,6 +2030,16 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.closeEditor($scope.paragraph);
   });
 
+  $scope.$on('openForms', function(event) {
+    $scope.paragraph.config.formsHide = false;
+    $scope.commitParagraph($scope.paragraph);
+  });
+
+  $scope.$on('closeForms', function(event) {
+    $scope.paragraph.config.formsHide = true;
+    $scope.commitParagraph($scope.paragraph);
+  });
+
   $scope.$on('openTable', function(event) {
     $scope.openTable($scope.paragraph);
   });
@@ -2181,6 +2196,11 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
       case 'toggleTable':
         $scope.paragraph.config.tableHide = data.toggleTableStatus;
+        $scope.commitParagraph($scope.paragraph);
+        break;
+
+      case 'toggleForms':
+        $scope.paragraph.config.formsHide = data.toggleFormsStatus;
         $scope.commitParagraph($scope.paragraph);
         break;
 

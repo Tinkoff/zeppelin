@@ -55,7 +55,17 @@ limitations under the License.
               ng-hide="viewOnly"
               tooltip-placement="bottom" uib-tooltip="Show/hide the code"
               ng-disabled="revisionView">
-        <i ng-class="editorToggled ?  'fa icon-size-actual' : 'fa icon-size-fullscreen'"></i></button>
+        <i ng-class="editorToggled ?  'fa icon-size-actual' : 'fa icon-size-fullscreen'"></i>
+      </button>
+      <button type="button"
+              class="btn btn-default btn-xs"
+              ng-click="isSelectionMode() ? selectedParagraphsAction('toggleForms') : toggleAllForms()"
+              ng-class="{'select-mode-background': isSelectionMode()}"
+              ng-hide="viewOnly"
+              tooltip-placement="bottom" uib-tooltip="Show/hide forms"
+              ng-disabled="revisionView">
+        <i ng-class="formsToggled ?  'icon-bubble' : 'icon-speech'"></i>
+      </button>
       <button type="button"
               class="btn btn-default btn-xs"
               ng-click="isSelectionMode() ? selectedParagraphsAction('toggleTable') : toggleAllTable()"

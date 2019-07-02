@@ -32,6 +32,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.disableForms = false;
   $scope.editorToggled = false;
   $scope.tableToggled = false;
+  $scope.formsToggled = false;
   $scope.isEnableRunToggled = true;
   $scope.viewOnly = false;
   $scope.showSetting = false;
@@ -491,6 +492,15 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     $scope.$broadcast('closeEditor');
   };
 
+  $scope.toggleAllForms = function() {
+    if ($scope.formsToggled) {
+      $scope.$broadcast('openForms');
+    } else {
+      $scope.$broadcast('closeForms');
+    }
+    $scope.formsToggled = !$scope.formsToggled;
+  };
+
   $scope.toggleAllTable = function() {
     if ($scope.tableToggled) {
       $scope.$broadcast('openTable');
@@ -724,6 +734,11 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       case 'toggleTable':
         $scope.tableToggled = !$scope.tableToggled;
         action = broadcastAction({toggleTableStatus: $scope.tableToggled});
+        break;
+
+      case 'toggleForms':
+        $scope.formsToggled = !$scope.formsToggled;
+        action = broadcastAction({toggleFormsStatus: $scope.formsToggled});
         break;
 
       case 'toggleEditor':
