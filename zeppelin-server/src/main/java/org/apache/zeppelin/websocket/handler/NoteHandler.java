@@ -20,9 +20,7 @@ package org.apache.zeppelin.websocket.handler;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -150,15 +148,7 @@ public class NoteHandler extends AbstractHandler {
 
     try {
       final Note note = new Note(notePath);
-      note.getReaders().add(authenticationInfo.getUser());
-      note.getRunners().add(authenticationInfo.getUser());
-      note.getWriters().add(authenticationInfo.getUser());
-      note.getOwners().add(authenticationInfo.getUser());
-
-      note.getReaders().addAll(Configuration.getDefaultReaders());
-      note.getRunners().addAll(Configuration.getDefaultRunners());
-      note.getWriters().addAll(Configuration.getDefaultWriters());
-      note.getOwners().addAll(Configuration.getDefaultOwners());
+      addPermissionsToNote(note);
       noteService.persistNote(note);
 
       LOGGER.info("Создание ноута noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
@@ -198,15 +188,7 @@ public class NoteHandler extends AbstractHandler {
     cloneNote.getRunners().clear();
     cloneNote.getWriters().clear();
     cloneNote.getOwners().clear();
-    cloneNote.getReaders().add(authenticationInfo.getUser());
-    cloneNote.getRunners().add(authenticationInfo.getUser());
-    cloneNote.getWriters().add(authenticationInfo.getUser());
-    cloneNote.getOwners().add(authenticationInfo.getUser());
-
-    cloneNote.getReaders().addAll(Configuration.getDefaultReaders());
-    cloneNote.getRunners().addAll(Configuration.getDefaultRunners());
-    cloneNote.getWriters().addAll(Configuration.getDefaultWriters());
-    cloneNote.getOwners().addAll(Configuration.getDefaultOwners());
+    addPermissionsToNote(note);
 
     cloneNote = noteService.persistNote(cloneNote);
 
@@ -233,6 +215,34 @@ public class NoteHandler extends AbstractHandler {
         note.getId(), note.getUuid(), cloneNote.getId(), cloneNote.getUuid());
     conn.sendMessage(new SockMessage(Operation.NEW_NOTE).put("note", cloneNote).toSend());
     sendListNotesInfo(conn);
+  }
+
+  private void addPermissionsToNote(final Note note) {
+    final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
+
+    final Map<Set<String>, Set<String>> actualAndDefaultPermissionMap = new IdentityHashMap<>();
+    actualAndDefaultPermissionMap.put(note.getOwners(), Configuration.getDefaultOwners());
+    actualAndDefaultPermissionMap.put(note.getWriters(), Configuration.getDefaultWriters());
+    actualAndDefaultPermissionMap.put(note.getRunners(), Configuration.getDefaultRunners());
+    actualAndDefaultPermissionMap.put(note.getReaders(), Configuration.getDefaultReaders());
+
+    for (final Map.Entry<Set<String>, Set<String>> permEntry : actualAndDefaultPermissionMap.entrySet()) {
+      final Set<String> noteActualPerm = permEntry.getKey();
+      final Set<String> permToAdd = permEntry.getValue();
+      for (String s : permToAdd) {
+        s = s.trim().toLowerCase();
+        switch (s) {
+          case "{username}":
+            noteActualPerm.add(authenticationInfo.getUser());
+            break;
+          case "{usergroups}":
+            noteActualPerm.addAll(authenticationInfo.getRoles());
+            break;
+          default:
+            noteActualPerm.add(s);
+        }
+      }
+    }
   }
 
 
