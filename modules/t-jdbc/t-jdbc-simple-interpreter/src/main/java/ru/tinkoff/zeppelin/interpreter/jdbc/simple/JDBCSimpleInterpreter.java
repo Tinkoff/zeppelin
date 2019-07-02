@@ -26,14 +26,13 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.tinkoff.zeppelin.commons.jdbc.H2Manager;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInstallation;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInterpolation;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCUtil;
@@ -54,18 +53,18 @@ import ru.tinkoff.zeppelin.interpreter.NoteContext;
  * <li>{@code driver.artifact} - maven driver artifact, e.g. {@code org.postgresql:postgresql:jar:42.2.5}</li>
  * </ul>
  * <p>
- * Specify connection:
+ * Specify remoteConnection:
  * <ul>
- * <li>{@code connection.user} - username for database connection</li>
- * <li>{@code connection.url} - database url</li>
- * <li>{@code connection.password} - password</li>
+ * <li>{@code remoteConnection.user} - username for database remoteConnection</li>
+ * <li>{@code remoteConnection.url} - database url</li>
+ * <li>{@code remoteConnection.password} - password</li>
  * </ul>
  * <p>
  * Precode and Postcode rules:
  * <ul>
- * <li>If precode fails -> Error result from precode will be returned as total query result</li>
+ * <li>If precode fails -> Error result from precode will be returned as total remoteStatement result</li>
  * <li>If precode succeed, postcode always will be executed</li>
- * <li>If postcode fails -> error will be logged, and connection will be closed.</li>
+ * <li>If postcode fails -> error will be logged, and remoteConnection will be closed.</li>
  * <li></li>
  * </ul>
  */
@@ -73,70 +72,73 @@ public class JDBCSimpleInterpreter extends Interpreter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JDBCSimpleInterpreter.class);
 
-  private final Pattern TBL_NAME_PATTERN = Pattern.compile("(?=(" + "--#localh2.[_a-zA-Z0-9]+" + "))");
-  private final Pattern LOCAL_TBL_NAME_PATTERN = Pattern.compile("(?=(" + "localh2.[_a-zA-Z0-9]+" + "))");
+  private final H2Manager h2Manager = new H2Manager();
+
+  private final Pattern TBL_NAME_PATTERN = Pattern.compile("(?=(--#localh2.[_a-zA-Z0-9]))");
+  private final Pattern LOCAL_TBL_NAME_PATTERN = Pattern.compile("(?=(localh2.[_a-zA-Z0-9]))");
+  private final Pattern LINE_COMMENTS_PATTERN = Pattern.compile("(?=(--.+\n))");
+  private final Pattern BLOCK_COMMENTS_PATTERN = Pattern.compile("(?=(\\/\\*.+\\*\\/))");
+  private final Pattern CREATE_TABLE_PATTERN = Pattern.compile("(?=(.+create.*table\\W*(([a-zA-Z0-1]+\\.)?[a-zA-Z0-1]*)))");
+  private final Pattern DELETE_TABLE_PATTERN = Pattern.compile("(?=(.*drop.*table\\W*(([a-zA-Z0-1]+\\.)?[a-zA-Z0-1]*)))");
 
   /**
-   * Database connection.
+   * Database remoteConnection.
    *
    * @see JDBCSimpleInterpreter#cancel()
    * @see JDBCSimpleInterpreter#close()
    * @see JDBCSimpleInterpreter#open(Map, String)
-   * @see JDBCSimpleInterpreter#executeQuery(String, Connection, boolean)
    */
-  @Nullable
-  private volatile Connection connection = null;
+  private volatile Connection remoteConnection = null;
 
-  @Nullable
-  private volatile Statement query = null;
+  private volatile Statement remoteStatement = null;
 
-  private static final String CONNECTION_USER_KEY = "connection.user";
-  private static final String CONNECTION_URL_KEY = "connection.url";
-  private static final String CONNECTION_PASSWORD_KEY = "connection.password";
+  private static final String CONNECTION_USER_KEY = "remoteConnection.user";
+  private static final String CONNECTION_URL_KEY = "remoteConnection.url";
+  private static final String CONNECTION_PASSWORD_KEY = "remoteConnection.password";
 
   private static final String DRIVER_CLASS_NAME_KEY = "driver.className";
   private static final String DRIVER_ARTIFACT_KEY = "driver.artifact";
   private static final String DRIVER_ARTIFACT_DEPENDENCY = "driver.artifact.dependency";
   private static final String DRIVER_MAVEN_REPO_KEY = "driver.maven.repository.url";
 
-  private static final String QUERY_TIMEOUT_KEY = "query.timeout";
-  private static final String QUERY_ROWLIMIT_KEY = "query.rowlimit";
-  private static final String QUERY_MAX_SAVE_ROW_LIMIT_KEY = "query.maxsaverowlimit";
+  private static final String QUERY_TIMEOUT_KEY = "remoteStatement.timeout";
+  private static final String QUERY_ROWLIMIT_KEY = "remoteStatement.rowlimit";
+  private static final String QUERY_MAX_SAVE_ROW_LIMIT_KEY = "remoteStatement.maxsaverowlimit";
 
   public JDBCSimpleInterpreter() {
     super();
   }
 
   /**
-   * Checks is connection valid (useable) (may took 30 seconds).
+   * Checks is remoteConnection valid (useable) (may took 30 seconds).
    *
-   * @return {@code true} if it is able to execute query using this instance.
+   * @return {@code true} if it is able to execute remoteStatement using this instance.
    */
   @Override
   public boolean isAlive() {
     try {
-      return connection != null && !connection.isValid(5);
+      return remoteConnection != null && !remoteConnection.isValid(5);
     } catch (final Throwable e) {
       return false;
     }
   }
 
   /**
-   * Checks if connection wasn't closed.
+   * Checks if remoteConnection wasn't closed.
    *
-   * @return {@code true} if connection wasn't closed.
+   * @return {@code true} if remoteConnection wasn't closed.
    */
   @Override
   public boolean isOpened() {
     try {
-      return connection != null && !connection.isClosed();
+      return remoteConnection != null && !remoteConnection.isClosed();
     } catch (final Throwable e) {
       return false;
     }
   }
 
   /**
-   * Installs driver if needed and opens the database connection.
+   * Installs driver if needed and opens the database remoteConnection.
    *
    * @param configuration interpreter configuration.
    * @param classPath     class path.
@@ -187,7 +189,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
           final Properties authSettings = new Properties();
           authSettings.put("user", user);
           authSettings.put("password", password);
-          connection = driver.connect(dbUrl, authSettings);
+          remoteConnection = driver.connect(dbUrl, authSettings);
         } catch (final Exception e) {
           LOGGER.error("SQL driver configured incorrectly", e);
         }
@@ -206,7 +208,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
   @Override
   public void cancel() {
     try {
-      query.cancel();
+      remoteStatement.cancel();
     } catch (final Throwable e) {
       LOGGER.error("Failed to cancel", e);
     }
@@ -219,7 +221,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
   public void close() {
     if (isOpened()) {
       try {
-        connection.abort(Runnable::run);
+        remoteConnection.abort(Runnable::run);
       } catch (final Throwable e) {
         LOGGER.error("Failed to close", e);
       }
@@ -227,17 +229,17 @@ public class JDBCSimpleInterpreter extends Interpreter {
   }
 
   /**
-   * Interprets query.
+   * Interprets remoteStatement.
    * <p>
    * Notice that interpreter should be alive before calling interpreter. {@link JDBCSimpleInterpreter#isAlive()}
    * <p>
    * TODO(egorklimov): check execution logic on cancel!
    * If interpreter would be canceled on precode, {@code precodeResult.code()} would be {@code Code.ERROR}
    * therefore whole interpret process will be finished.
-   * If interpreter would be canceled on user query {@code queryResult.code()} would be {@code Code.ERROR},
+   * If interpreter would be canceled on user remoteStatement {@code queryResult.code()} would be {@code Code.ERROR},
    * but it would be returned only after postcode execution.
    * If interpreter would be canceled on postcode, {@code postcodeResult.code()} would be {@code Code.ERROR}
-   * therefore connection will be closed and ...??
+   * therefore remoteConnection will be closed and ...??
    *
    * @param st            statements to run.
    * @param noteContext   Note context
@@ -255,17 +257,6 @@ public class JDBCSimpleInterpreter extends Interpreter {
     params.putAll(noteContext);
     params.putAll(userContext);
 
-    final String precode = configuration.get("query.precode");
-    if (precode != null && !precode.trim().equals("")) {
-      final InterpreterResult precodeResult = executeQuery(
-              JDBCInterpolation.interpolate(precode, params),
-              null,
-              false
-      );
-      if (precodeResult.code().equals(Code.ERROR)) {
-        return precodeResult;
-      }
-    }
 
     final String noteContextPath =
             noteContext.get(NoteContext.Z_ENV_NOTES_STORE_PATH.name())
@@ -274,368 +265,140 @@ public class JDBCSimpleInterpreter extends Interpreter {
                     + File.separator
                     + "outputDB";
 
-    final InterpreterResult queryResult;
-    Connection con = null;
-    try {
-      con = DriverManager.getConnection(
-              "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath(),
-              "sa",
-              ""
-      );
+    //get row_limit configuration parameter to insert in h2 database
+    final int rowLimit = Integer.parseInt(configuration.getOrDefault(QUERY_MAX_SAVE_ROW_LIMIT_KEY, "0"));
 
-      queryResult = executeQuery(
-              JDBCInterpolation.interpolate(st, params),
-              con,
-              true
-      );
+
+    final String precode = configuration.get("remoteStatement.precode");
+    if(StringUtils.isNotBlank(precode)) {
+      try {
+        execQuery(JDBCInterpolation.interpolate(precode, params));
+      } catch (final Exception e) {
+        return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, e.getMessage()));
+      }
+    }
+
+    Code resultCode = Code.SUCCESS;
+    final List<Message> resultMessages = new LinkedList<>();
+
+    final String connectionUrl = "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath();
+    try(final Connection h2conn = DriverManager.getConnection(connectionUrl, "sa", "")) {
+
+      this.remoteStatement = remoteConnection.createStatement();
+      this.remoteStatement.setMaxRows(Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0")));
+      this.remoteStatement.setQueryTimeout(Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0")));
+
+      final List<String> queries = JDBCUtil.splitStatements(JDBCInterpolation.interpolate(st, params));
+        for (String query : queries) {
+
+          final String tblName = TBL_NAME_PATTERN.matcher(query).matches()
+                  ? TBL_NAME_PATTERN.matcher(query).group(1).replace("--#localh2.", "")
+                  : null;
+          query = TBL_NAME_PATTERN.matcher(query).replaceAll("--");
+
+          //delete comments
+          String statementCopy = query.toLowerCase();
+          statementCopy = LINE_COMMENTS_PATTERN.matcher(statementCopy).replaceAll(StringUtils.EMPTY);
+          statementCopy = BLOCK_COMMENTS_PATTERN.matcher(statementCopy).replaceAll(StringUtils.EMPTY);
+
+          final String createTableName = CREATE_TABLE_PATTERN.matcher(statementCopy).matches()
+                  ? CREATE_TABLE_PATTERN.matcher(statementCopy).group(1)
+                  : null;
+
+          final String deleteTableName = DELETE_TABLE_PATTERN.matcher(statementCopy).matches()
+                  ? DELETE_TABLE_PATTERN.matcher(statementCopy).group(1)
+                  : null;
+
+          // RESTORE TABLES
+          final Matcher usedTablesMather = LOCAL_TBL_NAME_PATTERN.matcher(query);
+          while (usedTablesMather.find()) {
+
+            final String match = usedTablesMather.group(1);
+            final String tableName = match.replace("localh2.", "");
+
+            final Statement statement = h2conn.createStatement();
+            statement.execute(String.format("SELECT * FROM %s.%s;", H2Manager.Type.REAL.getSchemaName(), tableName));
+            // TODO: FIX SCHEMA NAME
+            final String info = h2Manager.saveTable(
+                    "PUBLIC",
+                    tableName,
+                    statement.getResultSet(),
+                    -1L,
+                    rowLimit,
+                    remoteConnection
+            );
+            resultMessages.add(new Message(Type.TEXT, info));
+
+            query = query.replace(match, tableName);
+          }
+
+          this.remoteStatement.execute(query);
+
+          if (this.remoteStatement.getResultSet() != null) {
+            final String info = h2Manager.saveTable(H2Manager.Type.REAL.getSchemaName(),
+                    tblName,
+                    this.remoteStatement.getResultSet(),
+                    -1L,
+                    rowLimit,
+                    h2conn
+            );
+            resultMessages.add(new Message(Type.TEXT, info));
+
+          } else if (this.remoteStatement.getUpdateCount() != -1 && createTableName != null) {
+            final String info = h2Manager.saveTable(
+                    H2Manager.Type.VIRTUAL.getSchemaName(),
+                    createTableName.split(".")[createTableName.split(".").length - 1],
+                    remoteConnection.createStatement()
+                            .executeQuery("SELECT * FROM " + createTableName + " LIMIT 100;"),
+                    this.remoteStatement.getUpdateCount(),
+                    100,
+                    h2conn);
+            resultMessages.add(new Message(Type.TEXT, info));
+
+            resultMessages.add(new Message(Type.TEXT,
+                    "Query executed successfully. Affected rows: " + this.remoteStatement.getUpdateCount()));
+
+          } else if (this.remoteStatement.getUpdateCount() != -1 && deleteTableName != null) {
+
+          } else {
+            resultMessages.add(new Message(Type.TEXT,
+                    "Query executed successfully. Affected rows: " + this.remoteStatement.getUpdateCount()));
+          }
+        }
 
     } catch (final Throwable th) {
-      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, th.toString()));
-    } finally {
-      if (con != null) {
-        try {
-          con.close();
-        } catch (final Exception e) {
-          // SKIP
-        }
-      }
+      resultMessages.add(new Message(Type.TEXT, ExceptionUtils.getStackTrace(th)));
+      resultCode = Code.ERROR;
     }
 
-    final String postcode = configuration.get("query.postcode");
-    if (postcode != null && !postcode.trim().equals("")) {
-      final InterpreterResult postcodeResult = executeQuery(
-              JDBCInterpolation.interpolate(postcode, params),
-              null,
-              false
-      );
-      if (postcodeResult.code().equals(Code.ERROR)) {
-        LOGGER.error("Postcode query failed: {}", postcodeResult.message());
-        close();
-      }
-    }
-    return queryResult;
-  }
-
-  /**
-   * Util method to execute a single query.
-   *
-   * @param queryString   - Query to execute, may consist of multiple statements, never {@code null}.
-   * @param processResult - Flag of result processing, if {@code true} - result
-   *                      will be converted to table format, otherwise result has no message.
-   * @return Result of query execution, never {@code null}.
-   */
-  @Nonnull
-  private InterpreterResult executeQuery(@Nonnull final String queryString,
-                                         final Connection h2conn,
-                                         final boolean processResult) {
-    final String errorMessage = JDBCUtil.checkSyntax(queryString);
-    if (errorMessage != null) {
-      return new InterpreterResult(Code.ERROR, new Message(Type.TEXT, errorMessage));
-    }
-
-    ResultSet resultSet = null;
-    final StringBuilder exception = new StringBuilder();
-    try {
-      this.query = Objects.requireNonNull(connection).createStatement();
-      prepareQuery();
-
-      final InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
-
-      /**
-       * Divide statement into parts by ';'
-       */
-      final List<String> statements = JDBCUtil.splitStatements(queryString);
-      for (String statement : statements) {
-
-
-        /**
-         * prepare this statment
-         *
-         *Format :  '#define tblName -> statement
-         */
-        String tblName = null;
-        final Matcher saveToMatcher = TBL_NAME_PATTERN.matcher(statement);
-        while (saveToMatcher.find()) {
-          tblName = saveToMatcher.group(1).replace("--#localh2.", "");
-          statement = statement.replaceFirst("--#localh2." + tblName, "--");
-        }
-
-        // RESTORE TABLES
-        final Matcher usedTablesMather = LOCAL_TBL_NAME_PATTERN.matcher(statement);
-        final Set<String> tableNames = new HashSet<>();
-        while (usedTablesMather.find()) {
-          tableNames.add(usedTablesMather.group(1).replace("localh2.", ""));
-          statement = statement.replace(usedTablesMather.group(1), usedTablesMather.group(1).replace("localh2.", ""));
-        }
-
-        for (final String s : tableNames) {
-          final Statement statement1 = h2conn.createStatement();
-          statement1.execute("SELECT * FROM " + s + ";");
-          queryResult.add(new Message(Type.TEXT, getResultTable(statement1.getResultSet(), s, connection)));
-        }
-
-        String createVirtualTableName = null;
-        if (statement.toUpperCase().contains("CREATE TABLE ")) {
-          final int StartIndex = statement.toUpperCase().indexOf("CREATE TABLE ");
-          final int EndIndex = statement.toUpperCase().indexOf(" AS");
-          createVirtualTableName = statement.substring(StartIndex + 13, EndIndex).trim();
-        }
-
-        String deleteVirtualTableName = null;
-        if (statement.toUpperCase().contains("DROP TABLE ")) {
-          final int StartIndex = statement.toUpperCase().indexOf("DROP TABLE ");
-          String name = statement.substring(StartIndex + 11).trim();
-          final int EndIndex = name.toUpperCase().indexOf(" ");
-          deleteVirtualTableName = statement.substring(0, EndIndex);
-        }
-
-        final boolean results = this.query.execute(statement);
-        final int updateCount;
-        if (results) {
-          // if result is ResultSet.
-          resultSet = this.query.getResultSet();
-          if (resultSet != null && processResult) {
-
-            // if it is needed to process result to table format.
-            final Message msg = new Message(Type.TEXT, getResultTable(connection.createStatement().executeQuery(statement), tblName, h2conn));
-            queryResult.add(msg);
-            final String processedTable = getResults(resultSet);
-            if (processedTable == null) {
-              queryResult.message().add(new Message(Type.TEXT, "Failed to process query result"));
-            }
-            queryResult.message().add(new Message(Type.TABLE, processedTable));
-          }
-        } else {
-          // if result is empty or if it is update statement, e.g. insert.
-          updateCount = this.query.getUpdateCount();
-          if (updateCount != -1) {
-            if (deleteVirtualTableName == null) {
-              saveVirtualTable(connection.createStatement().executeQuery("SELECT * FROM " + createVirtualTableName + ";"), createVirtualTableName, h2conn, updateCount, true);
-            } else {
-              saveVirtualTable(resultSet, deleteVirtualTableName, h2conn, updateCount, false);
-            }
-            queryResult.add(new Message(Type.TEXT,
-                    "Query executed successfully. Affected rows: " + updateCount));
-          }
-        }
-      }
-      return queryResult;
-    } catch (final Exception e) {
-      // increment exception message if smth went wrong.
-      exception.append("Exception during processing the query:\n")
-              .append(ExceptionUtils.getStackTrace(e))
-              .append("\n");
-    } finally {
-      // cleanup.
+    final String postCode = configuration.get("remoteStatement.postcode");
+    if(StringUtils.isNotBlank(postCode)) {
       try {
-        if (resultSet != null) {
-          resultSet.close();
-        }
-        if (this.query != null) {
-          Objects.requireNonNull(this.query).close();
-        }
-      } catch (final Exception e) {
-        // increment exception message if smth went wrong.
-        exception.append("Exception during connection closing:\n")
-                .append(ExceptionUtils.getStackTrace(e));
+        execQuery(JDBCInterpolation.interpolate(postCode, params));
+      } catch (final Throwable th) {
+        resultMessages.add(new Message(Type.TEXT, ExceptionUtils.getStackTrace(th)));
+        resultCode = Code.ERROR;
       }
     }
-    // reachable if smth went wrong during query processing.
-    return new InterpreterResult(Code.ERROR, Collections.singletonList(
-            new Message(Type.TEXT, exception.toString())));
+    return new InterpreterResult(resultCode, resultMessages);
   }
 
-  /**
-   * Sets query timeout and max row count.
-   */
-  private void prepareQuery() {
-    int maxRows = Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0"));
-    if (maxRows < 0) {
-      maxRows = 0;
-    }
-    int timeout = Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0"));
-    if (timeout < 0) {
-      timeout = 0;
-    }
+
+  private void execQuery(final String query) throws Exception {
     try {
-      Objects.requireNonNull(this.query).setMaxRows(maxRows);
-      Objects.requireNonNull(this.query).setQueryTimeout(timeout);
-    } catch (final Exception e) {
-      LOGGER.error("Failed to set query limits", e);
+      this.remoteStatement = remoteConnection.createStatement();
+      this.remoteStatement.execute(query);
+    } catch (final Throwable th) {
+        throw new Exception(ExceptionUtils.getStackTrace(th));
+    } finally {
+      try {
+        if (this.remoteStatement != null) {
+          this.remoteStatement.close();
+        }
+      } catch (final Throwable e) {
+        // SKIP
+      }
     }
   }
 
-
-  /**
-   * Converts result set to table.
-   *
-   * @param resultSet - result set to convert.
-   * @return converted result, {@code null} if process failed.
-   */
-  @Nullable
-  private String getResults(final ResultSet resultSet) {
-    try {
-      final ResultSetMetaData md = resultSet.getMetaData();
-      final StringBuilder msg = new StringBuilder();
-
-      for (int i = 1; i < md.getColumnCount() + 1; i++) {
-        if (i > 1) {
-          msg.append('\t');
-        }
-        if (md.getColumnLabel(i) != null && !md.getColumnLabel(i).equals("")) {
-          msg.append(replaceReservedChars(md.getColumnLabel(i)));
-        } else {
-          msg.append(replaceReservedChars(md.getColumnName(i)));
-        }
-      }
-      msg.append('\n');
-
-      while (resultSet.next()) {
-        for (int i = 1; i < md.getColumnCount() + 1; i++) {
-          final Object resultObject;
-          final String resultValue;
-          resultObject = resultSet.getObject(i);
-          if (resultObject == null) {
-            resultValue = "null";
-          } else {
-            resultValue = resultSet.getString(i);
-          }
-          msg.append(replaceReservedChars(resultValue));
-          if (i != md.getColumnCount()) {
-            msg.append('\t');
-          }
-        }
-        msg.append('\n');
-      }
-      return msg.toString();
-    } catch (final Exception e) {
-      LOGGER.error("Failed to parse result", e);
-      return null;
-    }
-  }
-
-
-  /**
-   * Write data into H2/inner_datasource
-   */
-  private String getResultTable(final ResultSet resultSet,
-                                final String tableName,
-                                final Connection connection) throws Exception {
-
-    if (StringUtils.isEmpty(tableName)) {
-      return null;
-    }
-    int rowLimit = Integer.parseInt(configuration.getOrDefault(QUERY_MAX_SAVE_ROW_LIMIT_KEY, "0"));
-    if (rowLimit < 0) {
-      rowLimit = 0;
-    }
-    final Statement statement = connection.createStatement();
-    statement.execute("DROP TABLE IF EXISTS " + tableName + ";");
-
-    // create schema script text
-    final StringBuilder createTable = new StringBuilder();
-    createTable.append("CREATE TABLE ").append(tableName).append(" ( \n");
-    final ResultSetMetaData md = resultSet.getMetaData();
-    for (int i = 1; i < md.getColumnCount() + 1; i++) {
-      createTable.append(
-              StringUtils.isNotEmpty(md.getColumnLabel(i))
-                      ? md.getColumnLabel(i)
-                      : md.getColumnName(i)
-      );
-      createTable.append(" \t");
-
-      createTable.append(md.getColumnTypeName(i));
-
-      if (i != md.getColumnCount()) {
-        createTable.append(", \n");
-      }
-    }
-    createTable.append(");");
-
-    statement.execute(createTable.toString());
-
-    final List<String> columns = new ArrayList<>();
-    for (int i = 1; i <= md.getColumnCount(); i++) {
-      columns.add(md.getColumnName(i));
-    }
-
-    try (final PreparedStatement s2 = connection.prepareStatement(
-            "INSERT INTO " + tableName + " ("
-                    + String.join(", ", columns)
-                    + ") VALUES ("
-                    + columns.stream().map(c -> "?").collect(Collectors.joining(", "))
-                    + ")"
-    )) {
-      int rowsCount = 0;
-      while ((rowLimit == 0 || resultSet.getRow() < rowLimit) && resultSet.next()) {
-        for (int i = 1; i <= md.getColumnCount(); i++) {
-          s2.setObject(i, resultSet.getObject(i));
-        }
-        rowsCount++;
-        s2.addBatch();
-      }
-
-      s2.executeBatch();
-      return createTable.toString()
-              .replace(("CREATE TABLE " + tableName + " ( \n"),
-                      "Table " + tableName + " successfully created/loaded to join\nColumns :\n")
-              .replace(");", "") + "\n" + rowsCount + " rows affected";
-    }
-  }
-
-  private void saveVirtualTable(final ResultSet resultSet,
-                                final String tableName,
-                                final Connection connection,
-                                final int rowsCount,
-                                final boolean addTableFlg) throws Exception {
-
-    if (StringUtils.isEmpty(tableName)) {
-      return;
-    }
-    final Statement createTableStatement = connection.createStatement();
-    createTableStatement.execute("CREATE SCHEMA IF NOT EXISTS V_TABLES; CREATE TABLE IF NOT EXISTS V_TABLES.TABLES (" +
-            "TABLE_NAME VARCHAR(32) NOT NULL," +
-            "ROWS INTEGER NOT NULL," +
-            "COLUMNS VARCHAR(1024) NOT NULL," +
-            "UNIQUE(TABLE_NAME)" +
-            ");");
-
-    final Statement dropTableIfExists = connection.createStatement();
-    dropTableIfExists.execute("DELETE FROM V_TABLES.TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "';");
-
-    if (addTableFlg) {
-      final StringBuilder createTable = new StringBuilder();
-      final ResultSetMetaData md = resultSet.getMetaData();
-      for (int i = 1; i < md.getColumnCount() + 1; i++) {
-        createTable.append(
-                StringUtils.isNotEmpty(md.getColumnLabel(i))
-                        ? md.getColumnLabel(i)
-                        : md.getColumnName(i)
-        );
-        createTable.append(" \t");
-
-        createTable.append(md.getColumnTypeName(i));
-
-        if (i != md.getColumnCount()) {
-          createTable.append(", \n");
-        }
-      }
-
-      final Statement addTable = connection.createStatement();
-      addTable.execute("INSERT INTO V_TABLES.TABLES  " +
-              "VALUES ('" + tableName.toUpperCase() + "'," + rowsCount + ",'" + createTable.toString().toUpperCase() + "');");
-    }
-  }
-
-
-  /**
-   * For table response replace Tab and Newline characters from the content.
-   */
-  private String replaceReservedChars(final String str) {
-    if (str == null) {
-      return "";
-    }
-    return str.replace('\t', ' ')
-            .replace('\n', ' ');
-  }
 }

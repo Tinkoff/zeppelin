@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class H2MonitoringService {
@@ -58,25 +59,26 @@ public class H2MonitoringService {
   }
 
   private void compareH2ToContext(final Connection connection, final String locationBase, final long noteId) throws SQLException, NullPointerException {
-    getVTables(connection, locationBase, noteId);
-    final ResultSet schemas = connection.createStatement()
-            .executeQuery("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA " +
-                    "WHERE SCHEMA_NAME NOT IN ('INFORMATION_SCHEMA', 'V_TABLES');");
-    while (schemas.next()) {
-      final String schema = schemas.getString("SCHEMA_NAME");
+
+    final LinkedList<String> schemas = new LinkedList<>(Arrays.asList("V_TABLES", "R_TABLES"));
+    for (final String schema: schemas) {
+      //get table names for each schema
       final ResultSet resultSet = connection
               .createStatement()
               .executeQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + schema + "';");
-      final LinkedList<String> tables = new LinkedList<>();
+      List<String> tables = new LinkedList<>();
       while (resultSet.next()) {
         tables.add(resultSet.getString("TABLE_NAME"));
       }
+      tables = tables.stream().filter(s -> !s.toUpperCase().endsWith("_META")).collect(Collectors.toList());
 
+      //load content
       final List<Content> contentList = contentDAO.getNoteContent(noteId);
 
+
       for (final String tableName : tables) {
-        final ResultSet tableResultSet = connection.createStatement().executeQuery(
-                "SELECT *  FROM " + tableName + ";");
+        final ResultSet tableResultSet = connection.createStatement().executeQuery(String.format(
+                "SELECT *  FROM %s.%s LIMIT 10;", schema, tableName));
 
         final ResultSetMetaData md = tableResultSet.getMetaData();
 
@@ -91,9 +93,9 @@ public class H2MonitoringService {
                   md.getColumnTypeName(i);
           columns.add(createTable);
         }
-        final ResultSet rs = connection.createStatement().executeQuery(
-                "SELECT COUNT(*) AS ROWS FROM " + schema + "." + tableName + ";");
-        final long rows = !rs.next() ? 0L : rs.getLong("ROWS");
+        final ResultSet rs = connection.createStatement().executeQuery(String.format(
+                "SELECT ROW_COUNT FROM %s.%s_META WHERE TABLE_NAME = '%s';",schema , tableName , tableName.toUpperCase()));
+        final long rows = !rs.next() ? 0L : rs.getLong("ROW_COUNT");
 
         final String location = locationBase + ":" + schema + "." + tableName;
         addContent(noteId, contentList, columns, location, rows);

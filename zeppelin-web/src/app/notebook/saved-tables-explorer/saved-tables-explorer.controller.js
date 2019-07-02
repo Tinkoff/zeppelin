@@ -49,7 +49,7 @@ angular.module('zeppelinWebApp').controller('SavedTableExplorerCtrl',
 function SavedTableExplorerCtrl($scope, $http, baseUrlSrv, ngToast) {
   'ngInject';
 
-  $scope.saved_tables_list
+  $scope.saved_tables_list;
   $scope.currentSource = null;
   $scope.sources = [];
   $scope.searchText = '';
