@@ -1679,11 +1679,11 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   }
 
   $scope.updateAllScopeTexts = function(oldPara, newPara) {
-    prepareTextUpdate(oldPara, newPara)
+    prepareTextUpdate(oldPara, newPara);
   };
 
   let updaterTimerId = null;
-  let prepareTextUpdate = function (oldPara, newPara) {
+  let prepareTextUpdate = function(oldPara, newPara) {
     if (updaterTimerId !== null) {
       clearTimeout(updaterTimerId);
     }
