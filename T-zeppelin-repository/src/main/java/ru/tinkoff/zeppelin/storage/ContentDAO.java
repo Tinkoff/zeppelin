@@ -76,7 +76,7 @@ public class ContentDAO {
   private static final String DELETE = "" +
           "DELETE\n" +
           "FROM CONTENT\n" +
-          "WHERE ID = :ID;";
+          "WHERE NOTE_ID = :NOTE_ID;";
 
   private static final String UPDATE = "" +
           "UPDATE CONTENT\n" +
@@ -130,8 +130,8 @@ public class ContentDAO {
     return content;
   }
 
-  public void remove(@Nonnull final Content content) {
-    jdbcTemplate.update(DELETE, new MapSqlParameterSource("ID", content.getId()));
+  public void remove(@Nonnull final long noteId) {
+    jdbcTemplate.update(DELETE, new MapSqlParameterSource("NOTE_ID", noteId));
   }
 
   @Nonnull
