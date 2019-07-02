@@ -120,7 +120,7 @@ abstract class AbstractRestApi {
   }
 
   boolean userHasReaderPermission(final Note note) {
-    return userRolesContains(note.getReaders());
+    return userRolesContains(note.getReaders()) || userHasAdminPermission();
   }
 
   private static Set<String> getUserAvailableRoles() {
