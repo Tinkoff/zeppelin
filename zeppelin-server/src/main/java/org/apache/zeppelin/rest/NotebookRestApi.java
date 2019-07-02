@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
+import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.engine.search.LuceneSearch;
@@ -42,10 +43,7 @@ import ru.tinkoff.zeppelin.storage.SchedulerDAO;
 
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -95,7 +93,7 @@ public class NotebookRestApi extends AbstractRestApi {
       final NoteRequest request = NoteRequest.fromJson(message);
       final Note note = request.getAsNote();
 
-      addCurrentUserToOwners(note);
+      addPermissionsToNote(note);
       noteService.persistNote(note);
 
       LOGGER.info("noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
@@ -168,7 +166,7 @@ public class NotebookRestApi extends AbstractRestApi {
     cloneNote.getRunners().clear();
     cloneNote.getWriters().clear();
     cloneNote.getOwners().clear();
-    addCurrentUserToOwners(cloneNote);
+    addPermissionsToNote(cloneNote);
     cloneNote = noteService.persistNote(cloneNote);
 
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
@@ -287,7 +285,7 @@ public class NotebookRestApi extends AbstractRestApi {
     note.getWriters().addAll(request.getWriters());
     note.getRunners().addAll(request.getRunners());
     note.getReaders().addAll(request.getReaders());
-    addCurrentUserToOwners(note);
+    addPermissionsToNote(note);
     note = noteService.persistNote(note);
 
     final JsonElement paragraphsJson = new JsonParser()
@@ -343,11 +341,32 @@ public class NotebookRestApi extends AbstractRestApi {
     return new JsonResponse(HttpStatus.OK, result).build();
   }
 
-  private void addCurrentUserToOwners(final Note note) {
+  @SuppressWarnings("Duplicates")
+  private void addPermissionsToNote(final Note note) {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
-    note.getReaders().add(authenticationInfo.getUser());
-    note.getRunners().add(authenticationInfo.getUser());
-    note.getWriters().add(authenticationInfo.getUser());
-    note.getOwners().add(authenticationInfo.getUser());
+
+    final Map<Set<String>, Set<String>> actualAndDefaultPermissionMap = new IdentityHashMap<>();
+    actualAndDefaultPermissionMap.put(note.getOwners(), Configuration.getDefaultOwners());
+    actualAndDefaultPermissionMap.put(note.getWriters(), Configuration.getDefaultWriters());
+    actualAndDefaultPermissionMap.put(note.getRunners(), Configuration.getDefaultRunners());
+    actualAndDefaultPermissionMap.put(note.getReaders(), Configuration.getDefaultReaders());
+
+    for (final Map.Entry<Set<String>, Set<String>> permEntry : actualAndDefaultPermissionMap.entrySet()) {
+      final Set<String> noteActualPerm = permEntry.getKey();
+      final Set<String> permToAdd = permEntry.getValue();
+      for (String s : permToAdd) {
+        s = s.trim().toLowerCase();
+        switch (s) {
+          case "{username}":
+            noteActualPerm.add(authenticationInfo.getUser());
+            break;
+          case "{usergroups}":
+            noteActualPerm.addAll(authenticationInfo.getRoles());
+            break;
+          default:
+            noteActualPerm.add(s);
+        }
+      }
+    }
   }
 }

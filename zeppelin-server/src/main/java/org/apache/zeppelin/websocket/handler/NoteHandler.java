@@ -217,6 +217,7 @@ public class NoteHandler extends AbstractHandler {
     sendListNotesInfo(conn);
   }
 
+  @SuppressWarnings("Duplicates")
   private void addPermissionsToNote(final Note note) {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
 
