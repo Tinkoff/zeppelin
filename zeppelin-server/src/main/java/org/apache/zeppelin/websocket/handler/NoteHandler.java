@@ -188,7 +188,7 @@ public class NoteHandler extends AbstractHandler {
     cloneNote.getRunners().clear();
     cloneNote.getWriters().clear();
     cloneNote.getOwners().clear();
-    addPermissionsToNote(note);
+    addPermissionsToNote(cloneNote);
 
     cloneNote = noteService.persistNote(cloneNote);
 
