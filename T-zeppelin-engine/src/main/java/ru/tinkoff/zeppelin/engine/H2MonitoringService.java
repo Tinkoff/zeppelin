@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ru.tinkoff.zeppelin.engine;
 
 import com.google.gson.Gson;
@@ -16,11 +32,9 @@ import ru.tinkoff.zeppelin.storage.NoteDAO;
 import java.io.File;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class H2MonitoringService {
@@ -52,30 +66,31 @@ public class H2MonitoringService {
             "")) {
       compareH2ToContext(con, noteContextPath, noteId);
     } catch (final Throwable th) {
-      //Connection Error
+      //Connection error
       LOG.info(th.getMessage());
     }
   }
 
-  private void compareH2ToContext(final Connection connection, final String locationBase, final long noteId) throws SQLException, NullPointerException {
-
+  private void compareH2ToContext(final Connection connection,
+                                  final String locationBase,
+                                  final long noteId) throws SQLException, NullPointerException {
     final LinkedList<String> schemas = new LinkedList<>(Arrays.asList("V_TABLES", "R_TABLES"));
-    for (final String schema: schemas) {
+
+    //delete noteId content
+    contentDAO.remove(noteId);
+    for (final String schema : schemas) {
       //get table names for each schema
       final ResultSet resultSet = connection
               .createStatement()
               .executeQuery(
                       String.format("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES " +
-                                      "WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME NOT LIKE '%_META'",
-                      schema)
+                                      "WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME NOT LIKE '%%\\_META'",
+                              schema)
               );
-      List<String> tables = new LinkedList<>();
+      final List<String> tables = new LinkedList<>();
       while (resultSet.next()) {
         tables.add(resultSet.getString("TABLE_NAME"));
       }
-      //delete noteId content
-      contentDAO.remove(noteId);
-
       for (final String tableName : tables) {
         //select 1 row from each table in h2 to get metadata
         final ResultSet tableResultSet = connection.createStatement().executeQuery(String.format(
@@ -89,23 +104,30 @@ public class H2MonitoringService {
         for (int i = 1; i < md.getColumnCount() + 1; i++) {
           final String createTable = (StringUtils.isNotEmpty(md.getColumnLabel(i))
                   ? md.getColumnLabel(i)
-                  : md.getColumnName(i)) +
-                  " \t" +
-                  md.getColumnTypeName(i);
+                  : md.getColumnName(i)) + " \t" + md.getColumnTypeName(i);
           columns.add(createTable);
         }
 
         //get data from table_META table (number of rows, etc.)
         final ResultSet rs = connection.createStatement().executeQuery(String.format(
-                "SELECT ROW_COUNT FROM %s.%s_META WHERE TABLE_NAME = '%s';",schema , tableName , tableName.toUpperCase()));
-        final Long rows = !rs.next() ? 0L : rs.getLong("ROW_COUNT");
+                "SELECT ROW_COUNT FROM %s.%s_META WHERE TABLE_NAME = '%s';",
+                schema,
+                tableName,
+                tableName.toUpperCase())
+        );
+        final Long rows = !rs.next()
+                ? 0L
+                : rs.getLong("ROW_COUNT");
 
         //add schema.tableName metadata in Content and contentParams tables
         try {
           contentDAO.persist(new Content(noteId, ContentType.TABLE, rows.toString(), location, null));
           final Content content = contentDAO.getContentByLocation(location);
           if (content != null) {
-            contentParamDAO.persist(content.getId(), "TABLE_COLUMNS", new Gson().fromJson(new Gson().toJson(columns), JsonElement.class));
+            contentParamDAO.persist(content.getId(),
+                    "TABLE_COLUMNS",
+                    new Gson().fromJson(new Gson().toJson(columns), JsonElement.class)
+            );
           }
         } catch (final Exception ex) {
           //Execute query error
