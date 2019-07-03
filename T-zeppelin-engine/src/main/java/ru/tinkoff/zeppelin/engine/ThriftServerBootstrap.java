@@ -31,7 +31,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 @Lazy(false)
-@DependsOn("configuration")
+@DependsOn({"configuration", "ZLog"})
 @Component("thriftBootstrap")
 class ThriftServerBootstrap {
 
