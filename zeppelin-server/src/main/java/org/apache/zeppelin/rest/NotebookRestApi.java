@@ -38,6 +38,7 @@ import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.NoteService;
+import ru.tinkoff.zeppelin.engine.handler.ExecutionHandler;
 import ru.tinkoff.zeppelin.engine.search.LuceneSearch;
 import ru.tinkoff.zeppelin.storage.SchedulerDAO;
 
@@ -54,6 +55,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
   private final LuceneSearch luceneSearch;
   private final SchedulerDAO schedulerDAO;
+  private final ExecutionHandler executionHandler;
   private final NoteEventService noteEventService;
 
   private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -64,10 +66,12 @@ public class NotebookRestApi extends AbstractRestApi {
           final ConnectionManager connectionManager,
           final NoteService noteService,
           final SchedulerDAO schedulerDAO,
-          final NoteEventService noteEventService) {
+          final NoteEventService noteEventService,
+          final ExecutionHandler executionHandler) {
     super(noteService, connectionManager);
     this.luceneSearch = luceneSearch;
     this.schedulerDAO = schedulerDAO;
+    this.executionHandler = executionHandler;
     this.noteEventService = noteEventService;
   }
 
@@ -202,6 +206,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
     final Note note = secureLoadNoteById(noteId, Permission.READER);
     final NoteRequest noteRequest = new NoteRequest(note);
+    noteRequest.setRunning(executionHandler.noteIsRunning(note));
     return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
 
@@ -220,6 +225,7 @@ public class NotebookRestApi extends AbstractRestApi {
       return new JsonResponse(HttpStatus.UNAUTHORIZED, "You can't see this note").build();
     }
     final NoteRequest noteRequest = new NoteRequest(note);
+    noteRequest.setRunning(executionHandler.noteIsRunning(note));
     return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
 
