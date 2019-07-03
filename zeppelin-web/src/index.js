@@ -62,6 +62,7 @@ import './app/search/search.service.js';
 import './app/helium/helium.service.js';
 import './app/notebook/dynamic-forms/dynamic-forms.directive.js';
 import './app/monitoring/monitoring.controller.js';
+import './app/credential/credential.controller.js';
 import './components/array-ordering/array-ordering.service.js';
 import './components/navbar/navbar.controller.js';
 import './components/navbar/expand-collapse/expand-collapse.directive.js';
