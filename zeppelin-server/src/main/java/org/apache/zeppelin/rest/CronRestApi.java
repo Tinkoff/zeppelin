@@ -234,6 +234,15 @@ public class CronRestApi extends AbstractRestApi {
     LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     schedulerDAO.remove(scheduler);
+
+    noteEventService.noteScheduleChange(note, scheduler);
+
+    // broadcast event
+    final SockMessage message = new SockMessage(Operation.NOTE_UPDATED);
+    message.put("path", note.getPath());
+    message.put("config", note.getFormParams());
+    message.put("info", null);
+    connectionManager.broadcast(note.getId(), message);
     return new JsonResponse(HttpStatus.OK).build();
   }
 }
