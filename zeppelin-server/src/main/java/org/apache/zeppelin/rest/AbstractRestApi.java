@@ -44,12 +44,12 @@ abstract class AbstractRestApi {
     this.connectionManager = connectionManager;
   }
 
-  Note secureLoadNote(final String noteUuid, final Permission permission) {
+  Note secureLoadNoteByUuid(final String noteUuid, final Permission permission) {
     final Note note = noteService.getNote(noteUuid);
-    return secureLoadNote(note.getId(), permission);
+    return secureLoadNoteById(note.getId(), permission);
   }
 
-  Note secureLoadNote(final long noteId, final Permission permission) {
+  Note secureLoadNoteById(final long noteId, final Permission permission) {
     final Note note = noteService.getNote(noteId);
 
     if (note == null) {

@@ -17,6 +17,8 @@
 package org.apache.zeppelin.rest;
 
 import com.google.common.collect.Lists;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.zeppelin.realm.AuthenticationInfo;
@@ -39,7 +41,7 @@ import ru.tinkoff.zeppelin.engine.NoteExecutorService;
 import ru.tinkoff.zeppelin.engine.NoteService;
 
 @RestController
-@RequestMapping("api/executor/notebook/{noteId}")
+@RequestMapping("api/executor/notebook")
 public class ExecutorRestApi extends AbstractRestApi {
 
   private final NoteExecutorService noteExecutorService;
@@ -58,12 +60,11 @@ public class ExecutorRestApi extends AbstractRestApi {
    * @param noteId Notes id
    * @param paragraphId paragraph id
    */
-  @GetMapping(value = "/paragraph/{paragraphId}")
+  @GetMapping("/paragraph/{paragraphId}/{noteId}")
   public ResponseEntity runParagraph(
       @PathVariable("noteId") final Long noteId,
       @PathVariable("paragraphId") final Long paragraphId) {
-    runParagraphs(noteId, Lists.newArrayList(paragraphId));
-    return new JsonResponse(HttpStatus.OK, "Paragraph added to execution queue").build();
+    return runParagraphs(noteId, Lists.newArrayList(paragraphId));
   }
 
   /**
@@ -72,23 +73,49 @@ public class ExecutorRestApi extends AbstractRestApi {
    * @param noteId Notes id
    * @param paragraphIds Paragraph's ids
    */
-  @PostMapping
-  public ResponseEntity runSeveralParagraphs(
+  @PostMapping("/{noteId:\\d+}")
+  public ResponseEntity runSeveralParagraphsByNoteId(
       @PathVariable("noteId") final Long noteId,
       @RequestBody final List<Long> paragraphIds) {
-    runParagraphs(noteId, paragraphIds);
-    return new JsonResponse(HttpStatus.OK, "Paragraphs added to execution queue").build();
+    return runParagraphs(noteId, paragraphIds);
+  }
+
+  /**
+   * Run several paragraphs | Endpoint: <b>POST - api/executor/notebook/{noteId}</b>.
+   * Post body: JsonArray of paragraph's ids for execution. Example: <code>[1, 3, 6]</code>
+   * @param noteUUID Notes uuid
+   * @param paragraphIds Paragraph's ids
+   */
+  @PostMapping("/{noteUUID:\\w+[^0-9]\\w+}")
+  public ResponseEntity runSeveralParagraphsByNoteUuid(
+      @PathVariable("noteUUID") final String noteUUID,
+      @RequestBody final List<Long> paragraphIds) {
+    return runParagraphs(noteService.getNote(noteUUID).getId(), paragraphIds);
   }
 
   /**
    * Run all notes paragraphs | Endpoint: <b>GET - api/executor/notebook/{noteId}</b>.
-   * @param noteId Notes id
+   * @param noteId Notes ID
    */
-  @GetMapping
-  public ResponseEntity runAllNotesParagraphs(@PathVariable("noteId") final String noteId) {
+  @GetMapping("/{noteId:\\d+}")
+  public ResponseEntity runNoteUseID(@PathVariable("noteId") final long noteId) {
+      final Note note = secureLoadNoteById(noteId, Permission.RUNNER);
+      return runNote(note);
+  }
+
+  /**
+   * Run all notes paragraphs | Endpoint: <b>GET - api/executor/notebook/{noteId}</b>.
+   * @param noteUUID Notes UUID
+   */
+  @GetMapping("/{noteUUID:\\w+[^0-9]\\w+}")
+  public ResponseEntity runNoteUseUUID(@PathVariable("noteUUID") final String noteUUID) {
+      final Note note = secureLoadNoteByUuid(noteUUID, Permission.RUNNER);
+      return runNote(note);
+  }
+
+  private ResponseEntity runNote(final Note note) {
     try {
       final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
-      final Note note = secureLoadNote(noteId, Permission.RUNNER);
 
       noteExecutorService.run(note,
           noteService.getParagraphs(note),
@@ -102,18 +129,30 @@ public class ExecutorRestApi extends AbstractRestApi {
     }
   }
 
-  private void runParagraphs(final Long noteId, final List<Long> paragraphIds) {
+  private ResponseEntity runParagraphs(final Long noteId, final List<Long> paragraphIds) {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
 
-    final Note note = secureLoadNote(noteId, Permission.RUNNER);
+    final Note note = secureLoadNoteById(noteId, Permission.RUNNER);
     final List<Paragraph> paragraphsForRun = noteService.getParagraphs(note).stream()
         .filter(p -> paragraphIds.contains(p.getId()))
         .collect(Collectors.toList());
+
+    if (paragraphsForRun.size() != paragraphIds.size()) {
+      final ArrayList<Long> lostIds = new ArrayList<>(paragraphIds);
+      paragraphsForRun.stream().map(Paragraph::getId).forEach(lostIds::remove);
+
+      return new JsonResponse(
+          HttpStatus.NOT_FOUND,
+          String.format("Paragraphs with id %s not found", lostIds.toString())
+      ).build();
+    }
 
     noteExecutorService.run(note,
         paragraphsForRun,
         authenticationInfo.getUser(),
         authenticationInfo.getRoles()
     );
+
+    return new JsonResponse(HttpStatus.OK, "Paragraph added to execution queue").build();
   }
 }

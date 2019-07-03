@@ -94,7 +94,7 @@ public class CronRestApi extends AbstractRestApi {
     final boolean doUpdateUser = params.get("doUpdateUser") != null && Boolean.parseBoolean(params.get("doUpdateUser"));
 
     final long noteId = Long.parseLong(noteIdParam);
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     Scheduler scheduler = schedulerDAO.getByNote(note.getId());
 
     LOGGER.info("Регистрация задания планировщика для ноута noteId: {}, noteUuid: {}  с расписанием {}, флаг включения = {}", note.getId(), note.getUuid(), expression, isEnable);
@@ -208,7 +208,7 @@ public class CronRestApi extends AbstractRestApi {
   public ResponseEntity getCronJob(@PathVariable("noteId") final String noteIdParam)
       throws IllegalArgumentException {
     final long noteId = Long.parseLong(noteIdParam);
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     final Map<String, Object> response = new HashMap<>();
@@ -229,7 +229,7 @@ public class CronRestApi extends AbstractRestApi {
   @DeleteMapping(value = "/notebook/{noteId}/cron", produces = "application/json")
   public ResponseEntity removeCronJob(@PathVariable("noteId") final String noteIdParam) {
     final long noteId = Long.parseLong(noteIdParam);
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     schedulerDAO.remove(scheduler);

@@ -117,7 +117,7 @@ public class NotebookRestApi extends AbstractRestApi {
           @PathVariable("noteId") final long noteId,
           @RequestBody final String message) {
     final NoteRequest request = NoteRequest.fromJson(message);
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     LOGGER.info("Обновление ноута noteId: {}, noteUuid: {} через RestApi", note.getId(), note.getUuid());
 
     updateIfNotNull(request::getPath, note::setPath);
@@ -154,7 +154,7 @@ public class NotebookRestApi extends AbstractRestApi {
           @PathVariable("noteId") final long noteId,
           @RequestBody final String message) throws IllegalArgumentException {
 
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     final NoteRequest request = NoteRequest.fromJson(message);
 
     Note cloneNote = new Note(request.getPath());
@@ -200,7 +200,7 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity getNote(@PathVariable("noteId") final long noteId) {
     LOGGER.info("Получение информации о ноуте по ID noteId: {} (GET)", noteId);
 
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     final NoteRequest noteRequest = new NoteRequest(note);
     return new JsonResponse(HttpStatus.OK, "Note info", noteRequest).build();
   }
@@ -255,7 +255,7 @@ public class NotebookRestApi extends AbstractRestApi {
   public ResponseEntity exportNote(@PathVariable("noteId") final long noteId) {
     LOGGER.info("Выгрузка ноута noteId: {} через RestApi", noteId);
 
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     final NoteRequest noteRequest = new NoteRequest(note);
     final JsonObject json = gson.toJsonTree(noteRequest).getAsJsonObject();
 
@@ -318,7 +318,7 @@ public class NotebookRestApi extends AbstractRestApi {
    */
   @DeleteMapping(value = "/{noteId}", produces = "application/json")
   public ResponseEntity deleteNote(@PathVariable("noteId") final long noteId) {
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     LOGGER.info("Удаление ноута noteId: {}, noteUuid: {} через RestApi", noteId, note.getUuid());
     noteService.deleteNote(note);
     return new JsonResponse(HttpStatus.OK, "Note deleted").build();
