@@ -60,7 +60,7 @@ public class ExecutorRestApi extends AbstractRestApi {
    * @param noteId Notes id
    * @param paragraphId paragraph id
    */
-  @GetMapping("/paragraph/{paragraphId}/{noteId}")
+  @GetMapping("/{noteId}/paragraph/{paragraphId}")
   public ResponseEntity runParagraph(
       @PathVariable("noteId") final Long noteId,
       @PathVariable("paragraphId") final Long paragraphId) {
