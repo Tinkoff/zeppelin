@@ -25,6 +25,7 @@ import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleInnerConfigurati
 import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.engine.CredentialService;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.server.AbstractRemoteProcess;
 import ru.tinkoff.zeppelin.engine.server.InterpreterRemoteProcess;
@@ -52,6 +53,7 @@ import java.util.Map;
 @Component
 public class PendingHandler extends AbstractHandler {
 
+  private final CredentialService credentialService;
 
   public PendingHandler(final JobBatchDAO jobBatchDAO,
                         final JobDAO jobDAO,
@@ -60,8 +62,10 @@ public class PendingHandler extends AbstractHandler {
                         final NoteDAO noteDAO,
                         final ParagraphDAO paragraphDAO,
                         final FullParagraphDAO fullParagraphDAO,
-                        final NoteEventService noteEventService) {
+                        final NoteEventService noteEventService,
+                        final CredentialService credentialService) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
+    this.credentialService = credentialService;
   }
 
   public List<Job> loadJobs() {
@@ -109,8 +113,11 @@ public class PendingHandler extends AbstractHandler {
     userContext.put(UserContext.Z_ENV_USER_NAME.name(), job.getUsername());
     userContext.put(UserContext.Z_ENV_USER_ROLES.name(), job.getRoles().toString());
 
-    // prepare configuration
+    // put all available credentials
+    credentialService.getUserReadableCredentials(job.getUsername(), job.getRoles(), false)
+            .forEach(c -> userContext.put(c.getKey(), c.getValue()));
 
+    // prepare configuration
     final Map<String, String> configuration = new HashMap<>();
     innerConfig.getProperties()
             .forEach((p, v) -> configuration.put(p, String.valueOf(v.getCurrentValue())));

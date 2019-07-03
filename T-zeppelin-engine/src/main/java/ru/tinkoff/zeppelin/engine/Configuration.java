@@ -19,8 +19,11 @@ package ru.tinkoff.zeppelin.engine;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.tinkoff.zeppelin.core.AESDataEngine;
 
 import javax.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,6 +49,7 @@ public class Configuration {
 
   private final boolean isCronEnable;
 
+
   private static Configuration instance;
 
   private Configuration(@Value("${zeppelin.admin_users}") final String admin_users,
@@ -59,8 +63,11 @@ public class Configuration {
                         @Value("${zeppelin.note.defaultWriters}") final String defaultWriters,
                         @Value("${zeppelin.note.defaultRunners}") final String defaultRunners,
                         @Value("${zeppelin.note.defaultOwners}") final String defaultOwners,
-                        @Value("${zeppelin.cron.enable:true}") final boolean isCronEnable
-                        ) {
+                        @Value("${zeppelin.cron.enable:true}") final boolean isCronEnable,
+                        @Value("${zeppelin.credentials.secret}") final String aesSecret,
+                        @Value("${zeppelin.credentials.salt}") final String aesSalt,
+                        @Value("${zeppelin.credentials.iv}") final String aesIV
+  ) throws GeneralSecurityException {
     this.adminUsers = parseString(admin_users, ",");
     this.adminGroups = parseString(admin_group, ",");
     this.thriftAddress = thriftAddress;
@@ -73,6 +80,9 @@ public class Configuration {
     this.defaultRunners = parseString(defaultRunners, ",");
     this.defaultOwners = parseString(defaultOwners, ",");
     this.isCronEnable = isCronEnable;
+
+    AESDataEngine.init(aesSecret, aesSalt, aesIV.getBytes(StandardCharsets.UTF_8));
+
     instance = this;
   }
 
@@ -110,15 +120,25 @@ public class Configuration {
     return instance.homeNodeId;
   }
 
-  public static Set<String> getDefaultReaders() { return instance.defaultReaders; }
+  public static Set<String> getDefaultReaders() {
+    return instance.defaultReaders;
+  }
 
-  public static Set<String> getDefaultWriters() { return instance.defaultWriters; }
+  public static Set<String> getDefaultWriters() {
+    return instance.defaultWriters;
+  }
 
-  public static Set<String> getDefaultRunners() { return instance.defaultRunners; }
+  public static Set<String> getDefaultRunners() {
+    return instance.defaultRunners;
+  }
 
-  public static Set<String> getDefaultOwners() { return instance.defaultOwners; }
+  public static Set<String> getDefaultOwners() {
+    return instance.defaultOwners;
+  }
 
-  public static boolean isCronEnable() { return instance.isCronEnable; }
+  public static boolean isCronEnable() {
+    return instance.isCronEnable;
+  }
 
   private Set<String> parseString(final String param, final String delimeter) {
     return Arrays.stream(param.split(delimeter)).map(String::trim).collect(Collectors.toSet());
