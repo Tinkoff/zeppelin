@@ -52,11 +52,11 @@ limitations under the License.
                     {{$index + 1}}
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
-                    <a href="../#/notebook/{{paragraph.noteUuid}}">
+                    <a href="../#/notebook/{{paragraph.noteUuid}}" class="button" ng-click="goTo(paragraph.noteUuid)">
                       {{paragraph.noteName}}</a>
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
-                    <a href="../#notebook/{{paragraph.noteUuid}}?paragraph={{paragraph.paragraphUuid}}">
+                    <a href="../#notebook/{{paragraph.noteUuid}}?paragraph={{paragraph.paragraphUuid}}" class="button" ng-click="goTo(paragraph.noteUuid + '?paragraph=' + paragraph.paragraphUuid)">
                     {{paragraph.paragraphTitle || paragraph.paragraphUuid}}</a>
                   </td>
                   <td style="vertical-align: middle; border: 1px solid black;">
