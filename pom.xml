@@ -64,6 +64,8 @@
     <module>modules/t-jdbc/t-jdbc-interpreter</module>
     <module>modules/t-jdbc/t-jdbc-completer</module>
     <module>modules/t-jdbc/t-jdbc-simple-interpreter</module>
+    <module>modules/t-jdbc/t-jdbc-gp-interpreter</module>
+    <module>modules/t-jdbc/t-jdbc-psql-interpreter</module>
 
     <module>modules/t-python/t-python-commons</module>
     <module>modules/t-python/t-python-interpreter</module>
