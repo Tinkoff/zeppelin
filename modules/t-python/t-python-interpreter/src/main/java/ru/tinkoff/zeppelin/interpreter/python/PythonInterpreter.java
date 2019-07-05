@@ -40,6 +40,6 @@ public class PythonInterpreter extends AbstractPythonInterpreter {
               "Ooops, empty result. Return code:" + result.getExitCode());
       result.getInterpreterResult().message().add(message);
     }
-    return super.execute(st, noteContext, userContext, configuration).getInterpreterResult();
+    return result.getInterpreterResult();
   }
 }
