@@ -33,6 +33,13 @@ public class PythonInterpreter extends AbstractPythonInterpreter {
                                        Map<String, String> userContext,
                                        Map<String, String> configuration) {
 
+    final PythonInterpreterResult result = super.execute(st, noteContext, userContext, configuration);
+    if (result.getInterpreterResult().message().isEmpty()) {
+      final InterpreterResult.Message message = new InterpreterResult.Message(
+              InterpreterResult.Message.Type.TEXT,
+              "Ooops, empty result. Return code:" + result.getExitCode());
+      result.getInterpreterResult().message().add(message);
+    }
     return super.execute(st, noteContext, userContext, configuration).getInterpreterResult();
   }
 }
