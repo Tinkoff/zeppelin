@@ -135,15 +135,26 @@ limitations under the License.
             <img src="assets/images/zepLogo.png" alt="Apache Zeppelin" title="Apache Zeppelin" />
           </div>
           <div class="col-xs-12 col-sm-8 content">
-            <h3>Apache Zeppelin</h3>
+            <h3>T-Zeppelin</h3>
             <br/>
             <span id="i18n-14">Version</span>
             <span class="modal-body-about-version"> {{zeppelinVersion}} </span>
             <br/>
+            <span id="i18n-17">Builded at</span>
+            <span class="modal-body-about-version"> {{zeppelinBuildTime}} </span>
             <br/>
-            <a href="http://zeppelin.apache.org/" target="_blank"><span id="i18n-15">Get involved!</span></a>
+            <span id="i18n-15">Branch</span>
+            <a href="https://github.com/TinkoffCreditSystems/zeppelin/tree/{{zeppelinBranch}}" target="_blank">
+              <span class="modal-body-about-version"> {{zeppelinBranch}} </span>
+            </a>
             <br/>
-            <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank"><span id="i18n-16">Licensed under the Apache License, Version 2.0</span></a>
+            <span id="i18n-16">Commit</span>
+            <a href="https://github.com/TinkoffCreditSystems/zeppelin/commit/{{zeppelinCommitHash}}" target="_blank">
+              <span class="modal-body-about-version"> {{zeppelinCommitHash | limitTo:7}} </span>
+            </a>
+            <br/>
+            <br/>
+            <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank"><span id="i18n-18">Licensed under the Apache License, Version 2.0</span></a>
         </div>
 
       </div>

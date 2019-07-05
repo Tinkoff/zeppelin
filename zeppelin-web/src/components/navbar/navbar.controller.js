@@ -40,6 +40,9 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
     $http.get(baseUrlSrv.getRestApiBase() + '/version').success(
       function(data, status, headers, config) {
         $rootScope.zeppelinVersion = data.body.version;
+        $rootScope.zeppelinBranch = data.body.branch;
+        $rootScope.zeppelinCommitHash = data.body.hash;
+        $rootScope.zeppelinBuildTime = data.body.time;
       }).error(
       function(data, status, headers, config) {
         console.log('Error %o %o', status, data.message);

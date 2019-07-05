@@ -16,6 +16,8 @@
  */
 package org.apache.zeppelin.rest;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.zeppelin.rest.message.JsonResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +25,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.engine.Configuration;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Zeppelin root rest api endpoint.
@@ -51,8 +50,9 @@ public class ZeppelinRestApi {
   public ResponseEntity getVersion() {
     final Map<String, String> versionInfo = new HashMap<>();
     versionInfo.put("version", Util.getVersion());
-    versionInfo.put("git-commit-id", Util.getGitCommitId());
-    versionInfo.put("git-timestamp", Util.getGitTimestamp());
+    versionInfo.put("hash", Util.getGitCommitId());
+    versionInfo.put("branch", Util.getGitBranch());
+    versionInfo.put("time", Util.getBuildTimestamp());
 
     return new JsonResponse(HttpStatus.OK, "Zeppelin version", versionInfo).build();
   }

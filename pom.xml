@@ -44,9 +44,10 @@
   </licenses>
 
   <scm>
-    <url>https://git-wip-us.apache.org/repos/asf/zeppelin.git</url>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/zeppelin.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/zeppelin.git</developerConnection>
+    <connection>scm:git:ssh:git@github.com:TinkoffCreditSystems/zeppelin.git</connection>
+    <developerConnection>scm:git:ssh:git@github.com:TinkoffCreditSystems/zeppelin.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/TinkoffCreditSystems/zeppelin.git</url>
   </scm>
 
   <inceptionYear>2013</inceptionYear>

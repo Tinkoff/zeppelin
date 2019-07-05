@@ -17,24 +17,21 @@
 
 package org.apache.zeppelin.rest;
 
+import java.util.Properties;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.Properties;
-
 public class Util {
-  private static final String PROJECT_PROPERTIES_VERSION_KEY = "version";
-  private static final String GIT_PROPERTIES_COMMIT_ID_KEY = "git.commit.id.abbrev";
-  private static final String GIT_PROPERTIES_COMMIT_TS_KEY = "git.commit.time";
+  private static final String BRANCH_NAME_PROPERTY = "branch.name";
+  private static final String COMMMIT_HASH_PROPERTY = "commit.hash";
+  private static final String APPLICATION_VERSION_PROPERTY = "application.version";
+  private static final String BUILD_TIME_PROPERTY = "build.timestamp";
 
   private static final Properties projectProperties;
-  private static final Properties gitProperties;
 
   static {
     projectProperties = new Properties();
-    gitProperties = new Properties();
     try {
-      projectProperties.load(Util.class.getResourceAsStream("/project.properties"));
-      gitProperties.load(Util.class.getResourceAsStream("/git.properties"));
+      projectProperties.load(Util.class.getResourceAsStream("/build.properties"));
     } catch (final Exception e) {
       //Fail to read project.properties
     }
@@ -46,7 +43,7 @@ public class Util {
    * @return Current Zeppelin version
    */
   public static String getVersion() {
-    return StringUtils.defaultIfEmpty(projectProperties.getProperty(PROJECT_PROPERTIES_VERSION_KEY),
+    return StringUtils.defaultIfEmpty(projectProperties.getProperty(APPLICATION_VERSION_PROPERTY),
             StringUtils.EMPTY);
   }
 
@@ -56,8 +53,18 @@ public class Util {
    * @return Latest Zeppelin commit id
    */
   static String getGitCommitId() {
-    return StringUtils.defaultIfEmpty(gitProperties.getProperty(GIT_PROPERTIES_COMMIT_ID_KEY),
+    return StringUtils.defaultIfEmpty(projectProperties.getProperty(COMMMIT_HASH_PROPERTY),
             StringUtils.EMPTY);
+  }
+
+  /**
+   * Get Zeppelin Git branch
+   *
+   * @return Latest Zeppelin commit id
+   */
+  static String getGitBranch() {
+    return StringUtils.defaultIfEmpty(projectProperties.getProperty(BRANCH_NAME_PROPERTY),
+        StringUtils.EMPTY);
   }
 
   /**
@@ -65,8 +72,8 @@ public class Util {
    *
    * @return Latest Zeppelin commit timestamp
    */
-  static String getGitTimestamp() {
-    return StringUtils.defaultIfEmpty(gitProperties.getProperty(GIT_PROPERTIES_COMMIT_TS_KEY),
+  static String getBuildTimestamp() {
+    return StringUtils.defaultIfEmpty(projectProperties.getProperty(BUILD_TIME_PROPERTY),
             StringUtils.EMPTY);
   }
 }
