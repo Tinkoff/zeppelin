@@ -194,7 +194,7 @@ abstract class AbstractHandler {
       jobResult.setJobId(job.getId());
       jobResult.setCreatedAt(LocalDateTime.now());
       jobResult.setType(message.getType().name());
-      jobResult.setResult(message.getData());
+      jobResult.setResult(message.getContentFilePath() != null ? message.getContentFilePath() : message.getData());
       jobResultDAO.persist(jobResult);
     }
   }

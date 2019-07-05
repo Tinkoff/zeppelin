@@ -31,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
+import ru.tinkoff.zeppelin.core.externalDTO.InterpreterResultDTO;
 import ru.tinkoff.zeppelin.engine.EventService;
+import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 
 /**
  * Manager class for managing websocket connections

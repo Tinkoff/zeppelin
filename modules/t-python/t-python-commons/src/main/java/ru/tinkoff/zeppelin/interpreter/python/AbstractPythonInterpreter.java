@@ -242,42 +242,32 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
       final File[] files = instanceTempDir.listFiles();
       if (files != null) {
         for (final File file : files) {
-          final InterpreterResult.Message.Type type;
+//          final InterpreterResult.Message.Type type;
           final String extension = FilenameUtils.getExtension(file.getName()).toLowerCase();
-          switch (extension) {
-            case "html":
-              type = InterpreterResult.Message.Type.HTML;
-              break;
-            case "img":
-            case "jpeg":
-            case "jpg":
-            case "png":
-              type = InterpreterResult.Message.Type.IMG;
-              break;
-            case "table":
-              type = InterpreterResult.Message.Type.TABLE;
-              break;
-            case "txt":
-            case "out":
-              //case "params": // DEBUG
-              type = InterpreterResult.Message.Type.TEXT;
-              break;
-            default:
-              type = null;
-          }
-          if (type == InterpreterResult.Message.Type.IMG) {
-            String payload = String.format(
-                    "<div style='width:auto;height:auto'>" +
-                            "<img src=data:image/%s;base64,%s  style='width=auto;height:auto'/>" +
-                            "</div>",
-                    extension,
-                    new String(Base64.getEncoder().encode(FileUtils.readFileToByteArray(file))));
+//          switch (extension) {
+//            case "html":
+//              type = InterpreterResult.Message.Type.HTML;
+//              break;
+//            case "img":
+//            case "jpeg":
+//            case "jpg":
+//            case "png":
+//              type = InterpreterResult.Message.Type.IMG;
+//              break;
+//            case "table":
+//              type = InterpreterResult.Message.Type.TABLE;
+//              break;
+//            case "txt":
+//            case "out":
+//              //case "params": // DEBUG
+//              type = InterpreterResult.Message.Type.TEXT;
+//              break;
+//            default:
+//              type = null;
+//          }
+          if (Arrays.asList("html", "img", "jpeg", "jpg", "png", "table", "txt", "out").contains(extension)) {
             result.getInterpreterResult().add(
-                    new InterpreterResult.Message(InterpreterResult.Message.Type.HTML, payload)
-            );
-          } else if (type != null) {
-            result.getInterpreterResult().add(
-                    new InterpreterResult.Message(type, FileUtils.readFileToString(file, "UTF-8"))
+                InterpreterResult.Message.createContentMessage(file.getAbsolutePath())
             );
           }
         }
@@ -288,13 +278,6 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
       final InterpreterResult result = new InterpreterResult(InterpreterResult.Code.ERROR);
       result.add(new InterpreterResult.Message(InterpreterResult.Message.Type.TEXT, e.getLocalizedMessage()));
       return new PythonInterpreterResult(-1, result);
-
-    } finally {
-      try {
-        FileUtils.forceDelete(instanceTempDir);
-      } catch (final Exception e) {
-        // SKIP
-      }
     }
   }
 

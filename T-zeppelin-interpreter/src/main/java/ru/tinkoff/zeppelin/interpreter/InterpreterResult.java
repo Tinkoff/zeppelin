@@ -16,7 +16,16 @@
  */
 package ru.tinkoff.zeppelin.interpreter;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,6 +33,8 @@ import java.util.List;
  * Interpreter result template.
  */
 public class InterpreterResult implements Serializable {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(InterpreterResult.class);
 
   /**
    *  Type of result after code execution.
@@ -76,15 +87,23 @@ public class InterpreterResult implements Serializable {
       IMG,
       SVG,
       NULL,
-      NETWORK
+      NETWORK,
+      CONTENT_FILE
     }
 
     Type type;
     String data;
+    String contentFilePath;
 
     public Message(final Type type, final String data) {
       this.type = type;
       this.data = data;
+    }
+
+    public static Message createContentMessage(final String contentFilePath) {
+      final Message message = new Message(Type.CONTENT_FILE, null);
+      message.contentFilePath = contentFilePath;
+      return message;
     }
 
     public Type getType() {
@@ -92,7 +111,36 @@ public class InterpreterResult implements Serializable {
     }
 
     public String getData() {
+      if (data == null && !StringUtils.isEmpty(contentFilePath)) {
+        data = loadContentData();
+      }
+
       return data;
+    }
+
+    public String getContentFilePath() {
+      return contentFilePath;
+    }
+
+    private String loadContentData() {
+      final File file = new File(contentFilePath);
+      try {
+        if (type == InterpreterResult.Message.Type.IMG) {
+          final String extension = FilenameUtils.getExtension(file.getName()).toLowerCase();
+          return String.format(
+              "<div style='width:auto;height:auto'>" +
+                  "<img src=data:image/%s;base64,%s  style='width=auto;height:auto'/>" +
+                  "</div>",
+              extension,
+              new String(Base64.getEncoder().encode(FileUtils.readFileToByteArray(file))));
+        }
+
+        return FileUtils.readFileToString(file, "UTF-8");
+      } catch (final IOException e) {
+        LOGGER.error("Can't load content file {}", contentFilePath, e);
+        contentFilePath = null;
+        return "!!!FAILED_THAN_LOAD_CONTENT_FILE!!!";
+      }
     }
 
     public String toString() {
