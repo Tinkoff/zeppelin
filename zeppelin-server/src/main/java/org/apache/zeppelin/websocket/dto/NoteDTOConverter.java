@@ -17,11 +17,17 @@
 package org.apache.zeppelin.websocket.dto;
 
 import org.springframework.stereotype.Component;
+import ru.tinkoff.zeppelin.core.externalDTO.InterpreterResultDTO;
 import ru.tinkoff.zeppelin.core.externalDTO.NoteDTO;
+import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.NoteService;
+import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.storage.*;
+
+import java.util.LinkedList;
+import java.util.List;
 
 
 @Component
@@ -31,8 +37,8 @@ public class NoteDTOConverter {
 
     private final FullParagraphDAO fullParagraphDAO;
 
-    public NoteDTOConverter(NoteService noteService,
-                            FullParagraphDAO fullParagraphDAO) {
+    public NoteDTOConverter(final NoteService noteService,
+                            final FullParagraphDAO fullParagraphDAO) {
         this.noteService = noteService;
         this.fullParagraphDAO = fullParagraphDAO;
     }
@@ -46,7 +52,19 @@ public class NoteDTOConverter {
         noteDTO.setRevision(note.getRevision());
         noteDTO.setFormParams(note.getFormParams());
         for (final Paragraph p : noteService.getParagraphs(note)) {
-            noteDTO.getParagraphs().add(fullParagraphDAO.getById(p.getId()));
+            final ParagraphDTO paragraphDTO = fullParagraphDAO.getById(p.getId());
+            final List<InterpreterResultDTO.Message> interpreterResultDTO = new LinkedList<>();
+            for (final InterpreterResultDTO.Message msg : paragraphDTO.getResults().getMsg()){
+                if (msg.getType().equals(InterpreterResult.Message.Type.METATAG.name())){
+                    final MetatagToTableConverter metatagToTableConverter = new MetatagToTableConverter();
+                    interpreterResultDTO.addAll(metatagToTableConverter
+                            .scanH2(note.getUuid(), msg));
+                } else{
+                    interpreterResultDTO.add(msg);
+                }
+            }
+            paragraphDTO.getResults().setMsg(interpreterResultDTO);
+            noteDTO.getParagraphs().add(paragraphDTO);
         }
         noteDTO.getConfig().put("looknfeel", false);
 

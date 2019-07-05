@@ -76,7 +76,8 @@ public class InterpreterResult implements Serializable {
       IMG,
       SVG,
       NULL,
-      NETWORK
+      NETWORK,
+      METATAG
     }
 
     Type type;

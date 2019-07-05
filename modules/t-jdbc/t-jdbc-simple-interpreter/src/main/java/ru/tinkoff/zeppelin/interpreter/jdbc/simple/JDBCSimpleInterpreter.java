@@ -21,18 +21,17 @@ import com.google.common.collect.Lists;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.tinkoff.zeppelin.commons.jdbc.H2Manager;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInstallation;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCInterpolation;
 import ru.tinkoff.zeppelin.commons.jdbc.JDBCUtil;
@@ -42,6 +41,8 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
 import ru.tinkoff.zeppelin.interpreter.NoteContext;
+import ru.tinkoff.zeppelin.interpreter.content.H2Manager;
+import ru.tinkoff.zeppelin.interpreter.content.H2TableType;
 
 
 /**
@@ -71,9 +72,6 @@ import ru.tinkoff.zeppelin.interpreter.NoteContext;
 public class JDBCSimpleInterpreter extends Interpreter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JDBCSimpleInterpreter.class);
-
-  private final H2Manager h2Manager = new H2Manager();
-
   private final Pattern TBL_NAME_PATTERN = Pattern.compile("(?=(--#localh2.([_a-zA-Z0-9])+))");
   private final Pattern LOCAL_TBL_NAME_PATTERN = Pattern.compile("(?=(localh2.([_a-zA-Z0-9])+))");
   private final Pattern LINE_COMMENTS_PATTERN = Pattern.compile("--.+\n");
@@ -99,6 +97,7 @@ public class JDBCSimpleInterpreter extends Interpreter {
   private volatile Connection remoteConnection = null;
 
   private volatile Statement remoteStatement = null;
+  private final H2Manager h2Manager = new H2Manager();
 
   private static final String CONNECTION_USER_KEY = "connection.user";
   private static final String CONNECTION_URL_KEY = "connection.url";
@@ -264,15 +263,6 @@ public class JDBCSimpleInterpreter extends Interpreter {
     final Map<String, String> params = new HashMap<>();
     params.putAll(noteContext);
     params.putAll(userContext);
-
-
-    final String noteContextPath =
-            noteContext.get(NoteContext.Z_ENV_NOTES_STORE_PATH.name())
-                    + File.separator
-                    + noteContext.get(NoteContext.Z_ENV_NOTE_UUID.name())
-                    + File.separator
-                    + "outputDB";
-
     //get row_limit configuration parameter to insert in h2 database
     final int rowLimit = Integer.parseInt(configuration.getOrDefault(QUERY_MAX_SAVE_ROW_LIMIT_KEY, "0"));
 
@@ -288,9 +278,8 @@ public class JDBCSimpleInterpreter extends Interpreter {
 
     Code resultCode = Code.SUCCESS;
     final List<Message> resultMessages = new LinkedList<>();
-
-    final String connectionUrl = "jdbc:h2:file:" + Paths.get(noteContextPath).normalize().toFile().getAbsolutePath();
-    try (final Connection h2conn = DriverManager.getConnection(connectionUrl, "sa", "")) {
+    try (final Connection h2conn = h2Manager.getConnection(noteContext.get(NoteContext.Z_ENV_NOTES_STORE_PATH.name()),
+            noteContext.get(NoteContext.Z_ENV_NOTE_UUID.name()))) {
       this.remoteStatement = remoteConnection.createStatement();
       this.remoteStatement.setMaxRows(Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0")));
       this.remoteStatement.setQueryTimeout(Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0")));
@@ -331,16 +320,9 @@ public class JDBCSimpleInterpreter extends Interpreter {
           final String tableName = match.replace("localh2.", "");
 
           final Statement statement = h2conn.createStatement();
-          statement.execute(String.format("SELECT * FROM %s.%s;", H2Manager.Type.REAL.getSchemaName(), tableName));
+          statement.execute(String.format("SELECT * FROM %s.%s;", H2TableType.REAL.getSchemaName(), tableName));
           // TODO: FIX SCHEMA NAME
-          h2Manager.saveTable(
-                  "PUBLIC",
-                  tableName,
-                  statement.getResultSet(),
-                  -1L,
-                  rowLimit,
-                  remoteConnection
-          );
+          copyTableToInnerDB("PUBLIC", tableName, statement.getResultSet());
           query = query.replace(match, tableName);
         }
 
@@ -348,20 +330,26 @@ public class JDBCSimpleInterpreter extends Interpreter {
 
         if (this.remoteStatement.getResultSet() != null) {
           //create real table in h2 if remoteStatement.getResultSet() not null and tblName is not null
-          final String info = h2Manager.saveTable(H2Manager.Type.REAL.getSchemaName(),
+          final Message info = tblName == null
+                  ? h2Manager.saveTableAndMetaTable(H2TableType.SELECT.getSchemaName(),
+                  noteContext.get(NoteContext.Z_ENV_PARAGRAPH_ID.name()) + "_"
+                          + String.valueOf(query.hashCode()).replaceAll("-", "_"),
+                  this.remoteStatement.getResultSet(),
+                  -1L,
+                  this.remoteStatement.getMaxRows(),
+                  h2conn)
+                  : h2Manager.saveTableAndMetaTable(H2TableType.REAL.getSchemaName(),
                   tblName,
-                  remoteConnection.createStatement().executeQuery(query),//this.remoteStatement.getResultSet(),
+                  this.remoteStatement.getResultSet(),
                   -1L,
                   rowLimit,
-                  h2conn
-          );
-          resultMessages.add(new Message(Type.TEXT, info));
-          resultMessages.add(new Message(Type.TABLE, h2Manager.wrapResults(this.remoteStatement.getResultSet())));
+                  h2conn);
+          resultMessages.add(info);
 
         } else if (this.remoteStatement.getUpdateCount() != -1 && createTableName != null) {
           //create virtual table in h2 if createTableName not null
-          final String info = h2Manager.saveTable(
-                  H2Manager.Type.VIRTUAL.getSchemaName(),
+          final Message info = h2Manager.saveTableAndMetaTable(
+                  H2TableType.VIRTUAL.getSchemaName(),
                   createTableName,
                   remoteConnection
                           .createStatement()
@@ -369,15 +357,15 @@ public class JDBCSimpleInterpreter extends Interpreter {
                   this.remoteStatement.getUpdateCount(),
                   100,
                   h2conn);
-          resultMessages.add(new Message(Type.TEXT, info));
+          resultMessages.add(info);
 
           resultMessages.add(new Message(Type.TEXT,
                   "Query executed successfully. Affected rows: " + this.remoteStatement.getUpdateCount()));
 
         } else if (this.remoteStatement.getUpdateCount() != -1 && deleteTableName != null) {
           //delete virtual table from h2 if deleteTableName not null
-          final String info = h2Manager.dropTable(deleteTableName,
-                  H2Manager.Type.VIRTUAL.getSchemaName(),
+          final String info = h2Manager.deleteTable(H2TableType.VIRTUAL.getSchemaName(),
+                  deleteTableName,
                   h2conn);
           resultMessages.add(new Message(Type.TEXT, info));
         } else {
@@ -420,4 +408,77 @@ public class JDBCSimpleInterpreter extends Interpreter {
       }
     }
   }
+
+  private void copyTableToInnerDB(final String schema,
+                                  final String tableName,
+                                  final ResultSet resultSet) {
+
+    if (tableName.isEmpty()) {
+      return;
+    }
+    try {
+      remoteConnection.createStatement().execute(String.format("DROP TABLE IF EXISTS %s.%s;", schema, tableName));
+      final ResultSetMetaData md = resultSet.getMetaData();
+      final LinkedHashMap<String, String> columns = getColumns(md);
+      createTable(schema, tableName, columns);
+      insertData(schema,
+              tableName,
+              resultSet,
+              columns);
+
+    } catch (final Exception ex) {
+      LOGGER.info("Can't copy table from h2 to current db");
+    }
+  }
+
+  private void createTable(final String schemaName,
+                           final String tableName,
+                           final LinkedHashMap<String, String> columns) throws SQLException {
+    final String payload = columns.entrySet().stream()
+            .map(v -> String.format("%s %s", v.getKey(), v.getValue()))
+            .collect(Collectors.joining(",\n"));
+
+    final String createTableScript = String.format("CREATE TABLE IF NOT EXISTS %s.%s (%s);", schemaName, tableName, payload);
+    remoteConnection.createStatement().execute(createTableScript);
+  }
+
+  private LinkedHashMap<String, String> getColumns(final ResultSetMetaData md) throws SQLException {
+    final LinkedHashMap<String, String> columns = new LinkedHashMap<>();
+    for (int i = 1; i < md.getColumnCount() + 1; i++) {
+      columns.put(
+              StringUtils.isNotEmpty(md.getColumnLabel(i))
+                      ? md.getColumnLabel(i)
+                      : md.getColumnName(i),
+              md.getColumnTypeName(i)
+      );
+    }
+    return columns;
+  }
+
+
+  private void insertData(final String schema,
+                          final String tableName,
+                          final ResultSet resultSet,
+                          final HashMap<String, String> columns) {
+    final String preparedQueryScript = String.format(
+            "INSERT INTO %s.%s (%s) VALUES (%s);",
+            schema,
+            tableName,
+            String.join(", ", columns.keySet()),
+            String.join(",", Collections.nCopies(columns.size(), "?"))
+    );
+    try (final PreparedStatement insertValuesStatement = remoteConnection.prepareStatement(preparedQueryScript)) {
+
+      while (resultSet.next()) {
+        for (int i = 1; i <= columns.keySet().size(); i++) {
+          insertValuesStatement.setObject(i, resultSet.getObject(i));
+        }
+        insertValuesStatement.addBatch();
+      }
+      insertValuesStatement.executeBatch();
+    } catch (final Exception ex) {
+      //SKIP
+    }
+  }
 }
+
