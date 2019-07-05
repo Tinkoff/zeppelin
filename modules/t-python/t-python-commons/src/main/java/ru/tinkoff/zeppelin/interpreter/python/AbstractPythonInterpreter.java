@@ -130,7 +130,7 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
       }
 
       // copy jep lib into workingDir
-      final String jepDest = instanceTempDir.getAbsolutePath() + "/" + "libjep.dylib";
+      final String jepDest = instanceTempDir.getAbsolutePath() + "/" + System.mapLibraryName("jep");
       final File jepDestFile = new File(jepDest);
       FileUtils.copyFile(jepLibrary, jepDestFile);
 
