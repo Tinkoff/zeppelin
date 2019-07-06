@@ -12,6 +12,7 @@
  * limitations under the License.
  */
 
+import moment from 'moment';
 angular.module('zeppelinWebApp').controller('NavCtrl', NavCtrl);
 
 function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
@@ -39,10 +40,14 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
   function getZeppelinVersion() {
     $http.get(baseUrlSrv.getRestApiBase() + '/version').success(
       function(data, status, headers, config) {
-        $rootScope.zeppelinVersion = data.body.version;
-        $rootScope.zeppelinBranch = data.body.branch;
-        $rootScope.zeppelinCommitHash = data.body.hash;
-        $rootScope.zeppelinBuildTime = data.body.time;
+        let response = JSON.parse(data.body);
+        $rootScope.zeppelinVersion = response['git.build.version'];
+        $rootScope.zeppelinBranch = response['git.branch'];
+        $rootScope.zeppelinCommitHash = response['git.commit.id'];
+        $rootScope.zeppelinBuildTime = response['git.build.time'];
+        $rootScope.zeppelinCommitMessage = response['git.commit.message.short'];
+        $rootScope.zeppelinUptime = moment.duration(moment().diff(response['start.time']))
+        .format('D[ day(s)] H[ hour(s)] m[ minute(s)] s[ second(s)]');
       }).error(
       function(data, status, headers, config) {
         console.log('Error %o %o', status, data.message);
@@ -58,6 +63,10 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
     });
 
     getZeppelinVersion();
+
+    // refresh execQueue each 10s.
+    setInterval(() => getZeppelinVersion(), 1000);
+
     loadNotes();
   }
 
