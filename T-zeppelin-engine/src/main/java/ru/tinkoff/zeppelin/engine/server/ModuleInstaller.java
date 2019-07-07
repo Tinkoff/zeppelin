@@ -24,6 +24,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.zeppelin.DependencyResolver;
@@ -32,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleInnerConfiguration;
+import ru.tinkoff.zeppelin.engine.BuildInfoProvider;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
 import ru.tinkoff.zeppelin.storage.ZLog;
 
@@ -73,7 +75,27 @@ public class ModuleInstaller {
     final File folderToStore = new File(DESTINATION_FOLDER + name + "/");
     try {
       final DependencyResolver dependencyResolver = new DependencyResolver(repositories);
-      dependencyResolver.load(artifact, folderToStore);
+
+      String artifactToLoad = artifact;
+      if (artifactToLoad.toLowerCase().endsWith(":default")) {
+        artifactToLoad = Pattern.compile(":default$", Pattern.CASE_INSENSITIVE)
+            .matcher(artifactToLoad)
+            .replaceAll(":" + BuildInfoProvider.getVersion());
+
+        ZLog.log(ET.MODULE_VERSION_SUBMITTED,
+            String.format(
+                "Для модуля[name=%s] установлена системная версия, модуль будет установлен по артефакту: %s",
+                name, artifactToLoad
+            ),
+            String.format(
+                "Так как модуль добавлен с версией \"default\", то "
+                + "при его установке версия была заменена на системную %s",
+                BuildInfoProvider.getVersion()
+            ),
+            SystemEvent.SYSTEM_USERNAME);
+      }
+
+      dependencyResolver.load(artifactToLoad, folderToStore);
       ZLog.log(ET.MODULE_SUCCESSFULLY_INSTALLED,
           String.format("Модуль \"%s\" успешно установлен [%s]", name, folderToStore.getAbsolutePath()),
           SystemEvent.SYSTEM_USERNAME
