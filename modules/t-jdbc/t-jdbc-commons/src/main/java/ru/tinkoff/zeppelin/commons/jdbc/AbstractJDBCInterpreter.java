@@ -36,7 +36,6 @@ import java.util.Objects;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
@@ -347,9 +346,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
       return queryResult;
     } catch (final Exception e) {
       // increment exception message if smth went wrong.
-      exception.append("Exception during processing the query:\n")
-              .append(ExceptionUtils.getStackTrace(e))
-              .append("\n");
+      exception.append(e.getLocalizedMessage()).append("\n");
     } finally {
       // cleanup.
       try {
@@ -361,8 +358,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
         }
       } catch (final Exception e) {
         // increment exception message if smth went wrong.
-        exception.append("Exception during connection closing:\n")
-                .append(ExceptionUtils.getStackTrace(e));
+        exception.append(e.getLocalizedMessage());
       }
     }
     // reachable if smth went wrong during query processing.
