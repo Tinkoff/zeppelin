@@ -39,7 +39,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.showRevisionsComparator = false;
   $scope.collaborativeMode = false;
   $scope.collaborativeModeUsers = [];
-  $scope.looknfeelOption = ['default', 'simple', 'report'];
+  $scope.noteViewModes = ['DEFAULT', 'SIMPLE', 'REPORT'];
   $scope.noteFormTitle = null;
   $scope.selectedParagraphsIds = new Set();
   // notification
@@ -395,7 +395,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
           expression: '',
         };
       }
-      initializeLookAndFeel();
+      initializeViewMode();
       getSubscriptions();
     } else {
       $location.path('/');
@@ -551,28 +551,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }, 10000);
   };
 
-  $scope.setLookAndFeel = function(looknfeel) {
-    $scope.note.config.looknfeel = looknfeel;
-    $rootScope.$broadcast('setLookAndFeel', $scope.note.config.looknfeel);
-  };
-
-  $scope.setNoteFormTitle = function(noteFormTitle) {
-    $scope.note.config.noteFormTitle = noteFormTitle;
-    $scope.setConfig();
-  };
-
-  /** Set release resource for this note **/
-  $scope.setReleaseResource = function(value) {
-    $scope.note.config.releaseresource = value;
-    $scope.setConfig();
-  };
-
-  /** Update note config **/
-  $scope.setConfig = function(config) {
-    if (config) {
-      $scope.note.config = config;
-    }
-    websocketMsgSrv.updateNote($scope.note.id, $scope.note.path, $scope.note.config);
+  $scope.setViewMode = function(mode) {
+    $scope.note.viewMode = mode;
+    $rootScope.$broadcast('setViewMode', $scope.note.viewMode);
+    websocketMsgSrv.updateNote($scope.note.id, $scope.note.path, $scope.note.viewMode);
   };
 
   /** Update the note name */
@@ -582,21 +564,21 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       $scope.note.name = $rootScope.noteName($scope.note);
       let path = $scope.note.path;
       $scope.note.name = path.substr(path.lastIndexOf('/') + 1);
-      websocketMsgSrv.updateNote($scope.note.id, newPath, $scope.note.noteCronConfiguration);
+      websocketMsgSrv.updateNote($scope.note.id, newPath, $scope.note.viewMode);
     }
   };
 
-  const initializeLookAndFeel = function() {
-    if (!$scope.note.config.looknfeel) {
-      $scope.note.config.looknfeel = 'default';
+  const initializeViewMode = function() {
+    if (!$scope.note.viewMode) {
+      $scope.note.viewMode = 'DEFAULT';
     } else {
-      $scope.viewOnly = $scope.note.config.looknfeel === 'report';
+      $scope.viewOnly = $scope.note.viewMode === 'REPORT';
     }
 
     if ($scope.note.paragraphs && $scope.note.paragraphs[0]) {
       $scope.note.paragraphs[0].focus = true;
     }
-    $rootScope.$broadcast('setLookAndFeel', $scope.note.config.looknfeel);
+    $rootScope.$broadcast('setViewMode', $scope.note.viewMode);
   };
 
   let cleanParagraphExcept = function(paragraphId, note) {
@@ -669,7 +651,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
   });
 
-  $scope.$on('updateNote', function(event, path, config, info) {
+  $scope.$on('updateNote', function(event, path, config, viewMode) {
     /** update Note name and path */
     if (path !== $scope.note.path) {
       console.log('change note path to : %o', $scope.note.path);
@@ -677,12 +659,12 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       $scope.note.name = path.substring(path.lastIndexOf('/') + 1);
     }
     $scope.note.config = config;
-    $scope.note.info = info;
-    initializeLookAndFeel();
+    $scope.note.viewMode = viewMode;
+    initializeViewMode();
   });
 
   $scope.toggleSelection = function(paragraphId) {
-    if ($scope.note.config.looknfeel === 'report') {
+    if ($scope.note.viewMode === 'REPORT') {
       return;
     }
     let paragraphs = $scope.selectedParagraphsIds;
@@ -1336,29 +1318,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     return false;
   };
 
-  $scope.toggleNotePersonalizedMode = function() {
-    let personalizedMode = $scope.note.config.personalizedMode;
-    if ($scope.isOwner) {
-      BootstrapDialog.confirm({
-        closable: true,
-        title: 'Setting the result display',
-        message: function(dialog) {
-          let modeText = $scope.note.config.personalizedMode === 'true' ? 'collaborate' : 'personalize';
-          return 'Do you want to <span class="text-info">' + modeText + '</span> your analysis?';
-        },
-        callback: function(result) {
-          if (result) {
-            if ($scope.note.config.personalizedMode === undefined) {
-              $scope.note.config.personalizedMode = 'false';
-            }
-            $scope.note.config.personalizedMode = personalizedMode === 'true' ? 'false' : 'true';
-            websocketMsgSrv.updatePersonalizedMode($scope.note.id, $scope.note.config.personalizedMode);
-          }
-        },
-      });
-    }
-  };
-
   const isPermissionsDirty = function() {
     if (angular.equals($scope.permissions, $scope.permissionsOrig)) {
       return false;
@@ -1731,16 +1690,13 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       $scope.note = cleanParagraphExcept($scope.paragraphUrl, $scope.note);
       $scope.$broadcast('$unBindKeyEvent', $scope.$unBindKeyEvent);
       $rootScope.$broadcast('setIframe', $scope.asIframe);
-      initializeLookAndFeel();
+      initializeViewMode();
       return;
     }
 
-    initializeLookAndFeel();
+    initializeViewMode();
     getPermissions();
     getSubscriptions();
-    let isPersonalized = $scope.note.config.personalizedMode;
-    isPersonalized = isPersonalized === undefined ? 'false' : isPersonalized;
-    $scope.note.config.personalizedMode = isPersonalized;
 
     if (!$scope.note.scheduler) {
       $scope.note.scheduler = {

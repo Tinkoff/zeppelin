@@ -172,7 +172,7 @@ function WebsocketEventFactory($rootScope, $websocket, $location, baseUrlSrv, ng
     } else if (op === 'PARAGRAPH_MOVED') {
       $rootScope.$broadcast('moveParagraph', data.id, data.index);
     } else if (op === 'NOTE_UPDATED') {
-      $rootScope.$broadcast('updateNote', data.path, data.config, data.info);
+      $rootScope.$broadcast('updateNote', data.path, data.config, data.viewMode);
     } else if (op === 'SET_NOTE_REVISION') {
       $rootScope.$broadcast('setNoteRevisionResult', data);
     } else if (op === 'PARAS_INFO') {

@@ -21,7 +21,7 @@ import ru.tinkoff.zeppelin.core.externalDTO.NoteDTO;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.NoteService;
-import ru.tinkoff.zeppelin.storage.*;
+import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 
 
 @Component
@@ -48,7 +48,7 @@ public class NoteDTOConverter {
         for (final Paragraph p : noteService.getParagraphs(note)) {
             noteDTO.getParagraphs().add(fullParagraphDAO.getById(p.getId()));
         }
-        noteDTO.getConfig().put("looknfeel", false);
+        noteDTO.setViewMode(note.getViewMode());
 
         return noteDTO;
     }

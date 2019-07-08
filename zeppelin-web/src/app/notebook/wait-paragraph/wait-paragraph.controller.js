@@ -459,7 +459,7 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
       $scope.note = note;
 
       // initialize look And Feel
-      $rootScope.$broadcast('setLookAndFeel', 'home');
+      $rootScope.$broadcast('setViewMode', 'home');
 
       // make it read only
       $scope.viewOnly = true;

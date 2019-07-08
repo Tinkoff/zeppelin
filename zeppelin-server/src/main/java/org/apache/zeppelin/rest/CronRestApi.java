@@ -19,13 +19,14 @@ package org.apache.zeppelin.rest;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
-
-import org.apache.commons.lang3.StringUtils;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.apache.zeppelin.rest.message.JsonResponse;
@@ -145,7 +146,7 @@ public class CronRestApi extends AbstractRestApi {
     final SockMessage message = new SockMessage(Operation.NOTE_UPDATED);
     message.put("path", note.getPath());
     message.put("config", note.getFormParams());
-    message.put("info", null);
+    message.put("mode", note.getViewMode());
     connectionManager.broadcast(note.getId(), message);
 
     // send response

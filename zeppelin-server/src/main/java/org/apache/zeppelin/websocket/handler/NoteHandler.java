@@ -41,6 +41,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 import ru.tinkoff.zeppelin.core.externalDTO.NoteDTO;
 import ru.tinkoff.zeppelin.core.notebook.Note;
+import ru.tinkoff.zeppelin.core.notebook.Note.NoteViewMode;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 import ru.tinkoff.zeppelin.engine.Configuration;
@@ -121,8 +122,10 @@ public class NoteHandler extends AbstractHandler {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
     final Note note = safeLoadNote("id", fromMessage, Permission.READER, authenticationInfo, conn);
     final String path = normalizePath(fromMessage.getNotNull("path"));
-    LOGGER.info("Обновление ноута noteId: {}, noteUuid: {}", note.getId(), note.getUuid());
+    final NoteViewMode viewMode = NoteViewMode.valueOf(fromMessage.getNotNull("mode"));
+    LOGGER.info("Обновление ноута noteId: {}, noteUuid: {}, viewMode: {}", note.getId(), note.getUuid(), note.getViewMode());
     note.setPath(path);
+    note.setViewMode(viewMode);
     noteService.updateNote(note);
     sendListNotesInfo(conn);
   }
