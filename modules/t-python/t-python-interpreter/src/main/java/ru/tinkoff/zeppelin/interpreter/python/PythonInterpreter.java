@@ -16,6 +16,7 @@
  */
 package ru.tinkoff.zeppelin.interpreter.python;
 
+import org.apache.commons.lang3.StringUtils;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 
 import java.util.Map;
@@ -34,7 +35,9 @@ public class PythonInterpreter extends AbstractPythonInterpreter {
                                        Map<String, String> configuration) {
 
     final PythonInterpreterResult result = super.execute(st, noteContext, userContext, configuration);
-    if (result.getInterpreterResult().message().isEmpty()) {
+    final boolean hasContent = result.getInterpreterResult().message().stream()
+            .anyMatch(m -> StringUtils.isNotBlank(m.getData()));
+    if (!hasContent) {
       final InterpreterResult.Message message = new InterpreterResult.Message(
               InterpreterResult.Message.Type.TEXT,
               "Ooops, empty result. Return code:" + result.getExitCode());
