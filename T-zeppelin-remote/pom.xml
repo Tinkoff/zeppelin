@@ -27,12 +27,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>T-zeppelin-remote</artifactId>
+  <version>1.0.0-T-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.zeppelin</groupId>
       <artifactId>T-zeppelin-interpreter</artifactId>
-      <version>1.0.0-T-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>compile</scope>
     </dependency>
 

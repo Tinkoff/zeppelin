@@ -50,7 +50,11 @@ public class RemoteProcessServer {
 
   public void initSources(final List<Repository> repositories) {
     ModuleInstaller.uninstallInterpreter("remote-server");
-    ModuleInstaller.install("remote-server", "org.apache.zeppelin:T-zeppelin-remote:1.0.0-T-SNAPSHOT", repositories);
+    ModuleInstaller.install(
+            "remote-server",
+            "org.apache.zeppelin:T-zeppelin-remote:default",
+            repositories
+    );
     remoteServerClassPath = ModuleInstaller.getDirectory("remote-server");
   }
 

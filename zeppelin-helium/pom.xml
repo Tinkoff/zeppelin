@@ -27,13 +27,14 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>zeppelin-helium</artifactId>
+  <version>1.0.0-T-SNAPSHOT</version>
 
   <dependencies>
 
     <dependency>
       <groupId>org.apache.zeppelin</groupId>
       <artifactId>T-zeppelin-core</artifactId>
-      <version>1.0.0-T-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>

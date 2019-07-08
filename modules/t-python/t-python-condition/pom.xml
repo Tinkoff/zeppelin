@@ -28,19 +28,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>t-python-condition</artifactId>
+    <version>1.0.0-T-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.zeppelin</groupId>
             <artifactId>T-zeppelin-interpreter</artifactId>
-            <version>1.0.0-T-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.zeppelin</groupId>
             <artifactId>t-python-commons</artifactId>
-            <version>1.0.0-T-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
