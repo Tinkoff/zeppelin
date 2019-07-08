@@ -18,8 +18,10 @@ package ru.tinkoff.zeppelin.completer.jdbc;
 
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
-
-import java.io.*;
+import com.google.gson.reflect.TypeToken;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
@@ -27,15 +29,31 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.Driver;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.gson.reflect.TypeToken;
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.metamodel.jdbc.JdbcDataContext;
@@ -54,8 +72,36 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterCompletion;
  */
 public class JDBCCompleter extends Completer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JDBCCompleter.class);
+  /**
+   * Represents table element
+   */
+  private class TableName {
+    /**
+     * Full qualified name of an element,
+     */
+    final String key;
 
+    /**
+     * Name used in query, e.g. "select * from public.bug as b" -> key = public.bug, value = b.
+     */
+    final String value;
+
+    TableName(final String key, final String value) {
+      this.key = key;
+      this.value = value;
+    }
+
+    String getKey() {
+      return key;
+    }
+
+    String getValue() {
+      return value;
+    }
+  }
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JDBCCompleter.class);
+  private static final List<String> metaRequiredKeyWords = Arrays.asList("where", "on", "and", "or", "not", "select", "by", "=", ">", "<");
 
   private static final String CONNECTION_USER_KEY = "connection.user";
   private static final String CONNECTION_URL_KEY = "connection.url";
@@ -309,7 +355,11 @@ public class JDBCCompleter extends Completer {
     }
 
     // 1.4 Get tables used in whole statement.
-    final Set<String> tableList = getTablesFromWholeStatement(wholeStatement);
+    final Set<TableName> tableList =
+        getTablesFromWholeStatement(
+            wholeStatement,
+            previousWord != null && metaRequiredKeyWords.contains(previousWord.toLowerCase())
+        );
     try {
       // 2. If statement is incorrect - exception would be thrown
       CCJSqlParserUtil.parse(statement);
@@ -324,7 +374,8 @@ public class JDBCCompleter extends Completer {
           ),
           cursorWord,
           completions,
-          "keyword"
+          "keyword",
+          null
       );
       // 3.2 Add meta.
       completeWithMeta(cursorWord, completions, tableList);
@@ -347,7 +398,7 @@ public class JDBCCompleter extends Completer {
                 .collect(Collectors.toCollection(TreeSet::new));
 
         // 2.4 Complete with expected keywords.
-        completeWithCandidates(prepared, cursorWord, completions, "keyword");
+        completeWithCandidates(prepared, cursorWord, completions, "keyword", null);
         if (loadMeta) {
           // 2.5 Complete with meta if needed.
           completeWithMeta(cursorWord, completions, tableList);
@@ -364,7 +415,7 @@ public class JDBCCompleter extends Completer {
    * @param statement Statement to get names from, never {@code null}.
    * @return Set of table names used in statement.
    */
-  private Set<String> getTablesFromWholeStatement(@Nonnull final String statement) {
+  private Set<TableName> getTablesFromWholeStatement(@Nonnull final String statement, final boolean meta) {
     String statementToParse = statement;
 
     // Try to get names for 3 times, on each step if failed to parse - trying to fix query and rerun search.
@@ -391,19 +442,65 @@ public class JDBCCompleter extends Completer {
           continue;
         }
 
+        if (meta) {
+          // if meta is needed but <S_IDENTIFIER> wasn't expected - add "S" to end of the query.
+          statementToParse += " S";
+          continue;
+        }
+
         // faced with another exception - return empty list.
         return Collections.emptySet();
       }
 
+      // getting names
+      final HashSet<TableName> result = new HashSet<>();
+      final TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
+      tablesNamesFinder.getTableList(parseExpression).forEach(n -> result.add(new TableName(n, n)));
+      // getting aliases
       try {
-        // getting names
-        final TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
-        return new HashSet<>(tablesNamesFinder.getTableList(parseExpression));
+        final Select select = (Select) parseExpression;
+        final PlainSelect inner = (PlainSelect) select.getSelectBody();
+        addAliases(inner.getFromItem(), result);
+        if (inner.getJoins() != null) {
+          for (final Join join : inner.getJoins()) {
+            addAliases(join.getRightItem(), result);
+          }
+        }
       } catch (final Exception e) {
-        return Collections.emptySet();
+        // skip
       }
+      return  result;
     }
     return Collections.emptySet();
+  }
+
+  private void addAliases(@Nullable final FromItem item,
+                          @Nonnull final HashSet<TableName> names) {
+    if (item == null) {
+      return;
+    }
+    final Alias alias = item.getAlias();
+    if (alias != null) {
+      if (item.toString().toLowerCase().contains("as")) {
+        names.add(
+            new TableName(
+                item.toString()
+                    .substring(0, item.toString().toLowerCase().indexOf("as"))
+                    .trim(),
+                alias.getName()
+            )
+        );
+      } else {
+        names.add(
+            new TableName(
+                item.toString()
+                    .substring(0, item.toString().toLowerCase().indexOf(' '))
+                    .trim(),
+                alias.getName()
+            )
+        );
+      }
+    }
   }
 
   /**
@@ -439,24 +536,36 @@ public class JDBCCompleter extends Completer {
    * @param cursorWord, word on which the cursor, {@code null} if cursor on space.
    * @param completions, collection to fill, nevet {@code null}
    */
-  private void completeWithMeta(@Nullable final String cursorWord,
+  private void completeWithMeta(@Nullable String cursorWord,
                                 @Nonnull final Set<InterpreterCompletion> completions,
-                                @Nonnull final Set<String> tables) {
+                                @Nonnull final Set<TableName> tables) {
     // 1. If cursor on space
     if (cursorWord == null) {
       // 1.1 Complete with schemas.
-      completeWithCandidates(database.navigableKeySet(), null, completions, "schema");
+      completeWithCandidates(database.navigableKeySet(), null, completions, "schema", null);
 
       // 1.2 If tables exists - complete with columns from each table.
       if (!tables.isEmpty()) {
-        for (final String name : tables) {
-          if (name.contains(".")) {
-            final List<String> nodes = Arrays.asList(name.split("\\."));
-            completeWithCandidates(database.get(nodes.get(0)).get(nodes.get(1)), cursorWord, completions, "column");
+        for (final TableName name : tables) {
+          if (name.getKey().contains(".")) {
+            final List<String> nodes = Arrays.asList(name.getKey().split("\\."));
+            completeWithCandidates(
+                database.get(nodes.get(0)).get(nodes.get(1)),
+                cursorWord, completions,
+                "column",
+                nodes.get(0) + "." + nodes.get(1)
+            );
           }
         }
       }
       return;
+    }
+
+    for (final TableName name : tables) {
+      if (cursorWord.equals(name.getValue()) || cursorWord.equals(name.getValue() + ".")) {
+        cursorWord = name.getKey() + (cursorWord.endsWith(".") ? "." : "");
+        break;
+      }
     }
 
     // 2. If cursor on word.
@@ -472,7 +581,7 @@ public class JDBCCompleter extends Completer {
 
     if (nodeCnt == 1) {
       // 2.2 if there is one node - user started to write schema name (see assumption above)
-      completeWithCandidates(database.navigableKeySet(), lastNode, completions, "schema");
+      completeWithCandidates(database.navigableKeySet(), lastNode, completions, "schema", null);
     } else if (nodeCnt == 2) {
       // 2.3 if there are two nodes - user started to write table name (see assumption above)
       if (nodes.size() == 1) {
@@ -481,19 +590,19 @@ public class JDBCCompleter extends Completer {
         // fill with names of tables from the corresponding schema.
         if (database.get(nodes.get(0)) != null) {
           completeWithCandidates(database.get(nodes.get(0)).navigableKeySet(), null, completions,
-              "table");
+              "table", nodes.get(0));
         }
 
         // 2.3.2 BREAK ASSUMPTION: if first node is table name - user started to write column name.
         database.forEach((key, value) -> {
           if (value.get(nodes.get(0)) != null) {
-            completeWithCandidates(value.get(nodes.get(0)), null, completions, "column");
+            completeWithCandidates(value.get(nodes.get(0)), null, completions, "column", key + "." + nodes.get(0));
           }
         });
       } else {
         // 2.3.3 table name is not empty.
         if (database.get(nodes.get(0)) != null) {
-          completeWithCandidates(database.get(nodes.get(0)).navigableKeySet(), lastNode, completions, "table");
+          completeWithCandidates(database.get(nodes.get(0)).navigableKeySet(), lastNode, completions, "table", nodes.get(0));
         }
       }
     } else if (nodeCnt == 3) {
@@ -503,12 +612,12 @@ public class JDBCCompleter extends Completer {
         // e.g. cursorWord was 'public.bug.', schema and table is written, but column name is empty
         // fill with names of columns from the corresponding schema and table.
         if (database.get(nodes.get(0)) != null && database.get(nodes.get(0)).get(nodes.get(1)) != null) {
-          completeWithCandidates(database.get(nodes.get(0)).get(nodes.get(1)), null, completions, "column");
+          completeWithCandidates(database.get(nodes.get(0)).get(nodes.get(1)), null, completions, "column", nodes.get(0) + "." + nodes.get(1));
         }
       } else {
         // 2.4.2 column name is not empty.
         if (database.get(nodes.get(0)) != null && database.get(nodes.get(0)).get(nodes.get(1)) != null) {
-          completeWithCandidates(database.get(nodes.get(0)).get(nodes.get(1)), lastNode, completions, "column");
+          completeWithCandidates(database.get(nodes.get(0)).get(nodes.get(1)), lastNode, completions, "column", nodes.get(0) + "." + nodes.get(1));
         }
       }
     }
@@ -525,12 +634,13 @@ public class JDBCCompleter extends Completer {
   private void completeWithCandidates(@Nonnull final SortedSet<String> candidates,
                                       @Nullable final String prefix,
                                       @Nonnull final Set<InterpreterCompletion> completions,
-                                      @Nonnull final String type) {
+                                      @Nonnull final String type,
+                                      @Nullable final String fullNamePrefix) {
     if (prefix != null) {
-      completeTailSet(candidates.tailSet(prefix), prefix, completions, type);
+      completeTailSet(candidates.tailSet(prefix), prefix, completions, type, fullNamePrefix);
     } else {
       completions.addAll(
-          candidates.stream().map(t -> createInterpreterCompletion(t, t, type))
+          candidates.stream().map(t -> createInterpreterCompletion(t, t, type, fullNamePrefix))
           .collect(Collectors.toList()));
     }
   }
@@ -546,25 +656,25 @@ public class JDBCCompleter extends Completer {
   private void completeTailSet(@Nonnull final SortedSet<String> tailSet,
                                @Nonnull final String prefix,
                                @Nonnull final Set<InterpreterCompletion> completions,
-                               @Nonnull final String type) {
+                               @Nonnull final String type,
+                               @Nullable final String fullNamePrefix) {
     for (final String match : tailSet) {
       if (!match.startsWith(prefix)) {
         // tailSet is sorted, so if the current element does not begin with this prefix,
         // all of the following elements will also have a different prefix.
         break;
       }
-      completions.add(createInterpreterCompletion(match, match, type));
+      completions.add(createInterpreterCompletion(match, match, type, fullNamePrefix));
     }
   }
 
   private final Set<String> preferredKeywords = new HashSet<>(
       Arrays.asList("select", "*", "join", "from", "update", "insert", "delete", "with", "set", "on"));
 
-  private InterpreterCompletion createInterpreterCompletion(
-      final String name,
-      final String value,
-      final String meta) {
-
+  private InterpreterCompletion createInterpreterCompletion(@Nonnull final String name,
+                                                            @Nonnull final String value,
+                                                            @Nonnull final String meta,
+                                                            @Nullable final String prefix) {
     final int score;
     switch (meta) {
       case "column":
@@ -580,6 +690,10 @@ public class JDBCCompleter extends Completer {
         score = preferredKeywords.contains(value) ? 400 : 300;
     }
 
-    return new InterpreterCompletion(name, value, meta, "", score);
+    String description = name;
+    if (prefix != null) {
+      description = prefix + "." + name;
+    }
+    return new InterpreterCompletion(name, value, meta, description, score);
   }
 }
