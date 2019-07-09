@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.Repository;
 import org.springframework.stereotype.Component;
@@ -96,9 +97,13 @@ public class ModuleSettingService {
     final String installationDir;
     try {
       ModuleInstaller.uninstallInterpreter(source.getName());
-      installationDir = ModuleInstaller.install(source.getName(), source.getArtifact(), getAllRepositories());
+
+      final List<String> repos = Configuration.getRepos();
+      getAllRepositories().forEach(r -> repos.add(r.getUrl()));
+
+      installationDir = ModuleInstaller.install(source.getName(), source.getArtifact(), repos);
       if (StringUtils.isEmpty(installationDir)) {
-        throw new RuntimeException();
+        throw new RuntimeException("Empty installation dir path. Can't install module.");
       }
 
     } catch (final Exception e) {

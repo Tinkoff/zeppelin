@@ -17,6 +17,7 @@
 
 package ru.tinkoff.zeppelin.commons.jdbc;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.DependencyResolver;
 import org.apache.zeppelin.Repository;
@@ -51,18 +52,13 @@ public class JDBCInstallation {
       return getDirectory(artifact);
     }
 
+    final List<String> repos = Lists.newArrayList(repositoryURL);
+
     try {
       final File folderToStore = new File(getDestinationFolder(artifact));
-      final List<Repository> repos = Collections.singletonList(
-              new Repository(false, "central",
-                      repositoryURL,
-                      null, null, null, null,
-                      null, null, null));
-
-      final DependencyResolver dependencyResolver = new DependencyResolver(repos);
-      dependencyResolver.load(artifact, folderToStore);
+      DependencyResolver.load(repos, artifact, folderToStore);
       for (final String dep : dependency) {
-        dependencyResolver.load(dep, folderToStore);
+        DependencyResolver.load(repos, dep, folderToStore);
       }
       return folderToStore.getAbsolutePath();
     } catch (final Exception e) {

@@ -17,10 +17,14 @@
 
 package ru.tinkoff.zeppelin.engine;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+
+import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -121,5 +125,12 @@ public class Configuration {
 
   private Set<String> parseString(final String param, final String delimeter) {
     return Arrays.stream(param.split(delimeter)).map(String::trim).collect(Collectors.toSet());
+  }
+
+  public static List<String> getRepos() {
+    final List<String> repos = Lists.newArrayList();
+    repos.add("http://registry.tcsbank.ru/repository/dwh/");
+    repos.add("http://repo1.maven.org/maven2/");
+    return repos;
   }
 }

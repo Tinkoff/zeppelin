@@ -17,10 +17,6 @@
 
 package org.apache.zeppelin;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
@@ -33,6 +29,7 @@ import org.sonatype.aether.collection.CollectRequest;
 import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.graph.DependencyFilter;
 import org.sonatype.aether.repository.LocalRepository;
+import org.sonatype.aether.repository.LocalRepositoryManager;
 import org.sonatype.aether.repository.RemoteRepository;
 import org.sonatype.aether.resolution.ArtifactResult;
 import org.sonatype.aether.resolution.DependencyRequest;
@@ -42,32 +39,41 @@ import org.sonatype.aether.util.artifact.JavaScopes;
 import org.sonatype.aether.util.filter.DependencyFilterUtils;
 import org.sonatype.aether.util.filter.PatternExclusionsDependencyFilter;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+
 
 /**
  * Deps resolver.
  * Add new dependencies from mvn repository (at runtime) to Zeppelin.
  */
-public class DependencyResolver {
-  private final Logger logger = LoggerFactory.getLogger(DependencyResolver.class);
+public final class DependencyResolver {
 
-  protected RepositorySystem system = RepositorySystemFactory.newRepositorySystem();
-  protected final List<RemoteRepository> repos = new LinkedList<>();
-  protected MavenRepositorySystemSession session;
+  private final static Logger logger = LoggerFactory.getLogger(DependencyResolver.class);
 
-  public DependencyResolver(final List<Repository> remoteRepositories) {
-    session = new MavenRepositorySystemSession();
-    final LocalRepository localRepo = new LocalRepository(System.getProperty("user.home") + "/.m2/repository");
-    session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
-    for (final Repository repository : remoteRepositories) {
-      repos.add(new RemoteRepository("central", "default", repository.getUrl()));
-    }
+  private DependencyResolver() {
   }
 
-  public List<File> load(final String artifact, final File destPath) throws RepositoryException, IOException {
+  public static List<File> load(final List<String> remoteRepositories, final String artifact, final File destPath) throws RepositoryException, IOException {
+    final RepositorySystem system = RepositorySystemFactory.newRepositorySystem();
+    final LocalRepository localRepo = new LocalRepository(System.getProperty("user.home") + "/.m2/repository");
+    //final LocalRepository localRepo = new LocalRepository(new File(destPath.getAbsolutePath(), "M2"));
+    final LocalRepositoryManager manager = system.newLocalRepositoryManager(localRepo);
+
+    final MavenRepositorySystemSession session = new MavenRepositorySystemSession();
+    session.setLocalRepositoryManager(manager);
+
+    final List<RemoteRepository> repos = new LinkedList<>();
+    for (final String repository : remoteRepositories) {
+      repos.add(new RemoteRepository("central", "default", repository));
+    }
+
     List<File> libs = new LinkedList<>();
 
     if (StringUtils.isNotBlank(artifact)) {
-      libs = loadFromMvn(artifact);
+      libs = loadFromMvn(artifact, repos, session, system);
 
       for (final File srcFile : libs) {
         final File destFile = new File(destPath, srcFile.getName());
@@ -80,7 +86,10 @@ public class DependencyResolver {
     return libs;
   }
 
-  private List<File> loadFromMvn(final String artifactName) throws RepositoryException {
+  private static List<File> loadFromMvn(final String artifactName,
+                                        final List<RemoteRepository> repos,
+                                        final MavenRepositorySystemSession session,
+                                        final RepositorySystem system) throws RepositoryException {
 
     final List<ArtifactResult> listOfArtifact;
     final Artifact artifact = new DefaultArtifact(artifactName);
@@ -90,15 +99,14 @@ public class DependencyResolver {
     final CollectRequest collectRequest = new CollectRequest();
     collectRequest.setRoot(new Dependency(artifact, JavaScopes.COMPILE));
 
-    synchronized (repos) {
-      for (final RemoteRepository repo : repos) {
-        collectRequest.addRepository(repo);
-      }
+    for (final RemoteRepository repo : repos) {
+      collectRequest.addRepository(repo);
     }
+
     final DependencyRequest dependencyRequest = new DependencyRequest(collectRequest,
             DependencyFilterUtils.andFilter(exclusionFilter, classpathFilter));
     try {
-      listOfArtifact =  system.resolveDependencies(session, dependencyRequest).getArtifactResults();
+      listOfArtifact = system.resolveDependencies(session, dependencyRequest).getArtifactResults();
     } catch (final NullPointerException | DependencyResolutionException ex) {
       throw new RepositoryException(
               String.format("Cannot fetch dependencies for %s", artifactName), ex);
@@ -111,13 +119,5 @@ public class DependencyResolver {
     }
 
     return files;
-  }
-
-  public static RemoteRepository newCentralRepository() {
-    return new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/");
-  }
-
-  public static RemoteRepository newLocalRepository() {
-    return new RemoteRepository("local", "default", "file://" + System.getProperty("user.home") + "/.m2/repository");
   }
 }

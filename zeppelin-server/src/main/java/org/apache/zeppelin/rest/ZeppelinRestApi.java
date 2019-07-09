@@ -17,8 +17,6 @@
 package org.apache.zeppelin.rest;
 
 import com.google.gson.Gson;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.zeppelin.rest.message.JsonResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +25,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.tinkoff.zeppelin.engine.BuildInfoProvider;
 import ru.tinkoff.zeppelin.engine.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Zeppelin root rest api endpoint.

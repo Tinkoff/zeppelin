@@ -59,7 +59,7 @@ public class ModuleInstaller {
     return folderToStore.exists() && Objects.requireNonNull(folderToStore.list()).length > 0;
   }
 
-  public static String install(final String name, final String artifact, final List<Repository> repositories) {
+  public static String install(final String name, final String artifact, final List<String> repositories) {
     ZLog.log(ET.MODULE_INSTALL,
         String.format("Начата установка модуля[name=%s, artifact=%s] репозитории=%s", name, artifact, repositories.toString()),
         SystemEvent.SYSTEM_USERNAME
@@ -74,8 +74,6 @@ public class ModuleInstaller {
 
     final File folderToStore = new File(DESTINATION_FOLDER + name + "/");
     try {
-      final DependencyResolver dependencyResolver = new DependencyResolver(repositories);
-
       String artifactToLoad = artifact;
       if (artifactToLoad.toLowerCase().endsWith(":default")) {
         artifactToLoad = Pattern.compile(":default$", Pattern.CASE_INSENSITIVE)
@@ -95,7 +93,7 @@ public class ModuleInstaller {
             SystemEvent.SYSTEM_USERNAME);
       }
 
-      dependencyResolver.load(artifactToLoad, folderToStore);
+      DependencyResolver.load(repositories, artifactToLoad, folderToStore);
       ZLog.log(ET.MODULE_SUCCESSFULLY_INSTALLED,
           String.format("Модуль \"%s\" успешно установлен [%s]", name, folderToStore.getAbsolutePath()),
           SystemEvent.SYSTEM_USERNAME

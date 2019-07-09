@@ -18,6 +18,7 @@
 package ru.tinkoff.zeppelin.engine;
 
 import ch.qos.logback.classic.Level;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.DependsOn;
@@ -29,6 +30,7 @@ import ru.tinkoff.zeppelin.storage.ModuleRepositoryDAO;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.util.List;
 
 @Lazy(false)
 @DependsOn({"configuration", "ZLog"})
@@ -48,8 +50,12 @@ class ThriftServerBootstrap {
     Logger rootLogger = LoggerFactory.getILoggerFactory().getLogger("org.apache.thrift");
     ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.OFF);
 
+    final List<String> repos = Configuration.getRepos();
+    repositoryDAO.getAll().forEach(r -> repos.add(r.getUrl()));
+
+
     server = new RemoteProcessServer();
-    server.initSources(repositoryDAO.getAll());
+    server.initSources(repos);
     server.start();
   }
 
@@ -71,8 +77,11 @@ class ThriftServerBootstrap {
       //SKIP
     }
 
+    final List<String> repos = Configuration.getRepos();
+    repositoryDAO.getAll().forEach(r -> repos.add(r.getUrl()));
+
     server = new RemoteProcessServer();
-    server.initSources(repositoryDAO.getAll());
+    server.initSources(repos);
     server.start();
   }
 

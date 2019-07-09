@@ -48,7 +48,7 @@ public class RemoteProcessServer {
 
   private String remoteServerClassPath;
 
-  public void initSources(final List<Repository> repositories) {
+  public void initSources(final List<String> repositories) {
     ModuleInstaller.uninstallInterpreter("remote-server");
     ModuleInstaller.install(
             "remote-server",
