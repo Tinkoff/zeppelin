@@ -220,6 +220,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     if (isOpened()) {
       try {
         connection.abort(Runnable::run);
+        connection = null;
       } catch (final Throwable e) {
         LOGGER.error("Failed to close", e);
       }
@@ -355,6 +356,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
         }
         if (this.query != null) {
           Objects.requireNonNull(this.query).close();
+          this.query = null;
         }
       } catch (final Exception e) {
         // increment exception message if smth went wrong.
