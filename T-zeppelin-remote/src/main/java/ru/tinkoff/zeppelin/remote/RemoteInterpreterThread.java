@@ -18,14 +18,24 @@
 package ru.tinkoff.zeppelin.remote;
 
 import com.google.gson.Gson;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.thrift.TProcessor;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
-import ru.tinkoff.zeppelin.interpreter.thrift.*;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.*;
+import ru.tinkoff.zeppelin.interpreter.thrift.CancelResult;
+import ru.tinkoff.zeppelin.interpreter.thrift.CancelResultStatus;
+import ru.tinkoff.zeppelin.interpreter.thrift.PushResult;
+import ru.tinkoff.zeppelin.interpreter.thrift.PushResultStatus;
+import ru.tinkoff.zeppelin.interpreter.thrift.RemoteInterpreterThriftService;
+import ru.tinkoff.zeppelin.interpreter.thrift.ZeppelinThriftService;
 
 public class RemoteInterpreterThread extends AbstractRemoteProcessThread implements RemoteInterpreterThriftService.Iface {
 
@@ -33,6 +43,7 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
   private final ConcurrentLinkedQueue<Interpreter> workingInstances = new ConcurrentLinkedQueue<>();
   private ExecutorService executor = null;
 
+  private final AtomicInteger shutdownCount = new AtomicInteger(0);
 
   @Override
   void init(final String zeppelinServerHost,
@@ -69,6 +80,9 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
                          final Map<String, String> noteContext,
                          final Map<String, String> userContext,
                          final Map<String, String> configuration) {
+    if (shutdownCount.get() > 0) {
+      return new PushResult(PushResultStatus.DECLINE, "", "");
+    }
 
     final Interpreter interpreter;
     try {
@@ -154,6 +168,10 @@ public class RemoteInterpreterThread extends AbstractRemoteProcessThread impleme
 
   @Override
   public void shutdown() {
+    if (shutdownCount.incrementAndGet() > 5) {
+      System.exit(0);
+    }
+
     for (final Interpreter interpreter : workingInstances) {
       try {
         interpreter.cancel();
