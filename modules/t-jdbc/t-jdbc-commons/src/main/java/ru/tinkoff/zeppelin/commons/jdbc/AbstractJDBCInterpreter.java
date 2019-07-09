@@ -108,14 +108,14 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   }
 
   /**
-   * Checks is connection valid (useable) (may took 30 seconds).
+   * Checks is connection valid (useable) (may took 5 seconds).
    *
    * @return {@code true} if it is able to execute query using this instance.
    */
   @Override
   public boolean isAlive() {
     try {
-      return connection != null && !connection.isValid(5);
+      return connection != null && connection.isValid(5);
     } catch (final Throwable e) {
       return false;
     }
