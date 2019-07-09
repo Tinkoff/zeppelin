@@ -20,7 +20,11 @@ package org.apache.zeppelin.websocket.handler;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -415,7 +419,7 @@ public class NoteHandler extends AbstractHandler {
     userRoles.addAll(authenticationInfo.getRoles());
     userRoles.add(authenticationInfo.getUser());
 
-    return userRoles.removeAll(admin) || userRoles.removeAll(note.getReaders());
+    return userRoles.removeAll(admin) || userRoles.removeAll(note.getReaders()) || userRoles.removeAll(note.getOwners());
   }
 
   private static String normalizePath(String path) {
