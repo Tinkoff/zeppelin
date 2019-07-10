@@ -104,7 +104,8 @@ public class ModuleInstaller {
       ZLog.log(ET.MODULE_INSTALLATION_FAILED,
           String.format("Ошибка при установке модуля \"%s\"", name),
           String.format("Ошибка при установке модуля[name=%s;artifact=%s,destination folder=%s], ошибка: %s",
-              name, artifact, folderToStore.getAbsolutePath(), e.getMessage()));
+              name, artifact, folderToStore.getAbsolutePath(), e.getMessage()),
+          SystemEvent.SYSTEM_USERNAME);
       uninstallInterpreter(name);
       return "";
     }
