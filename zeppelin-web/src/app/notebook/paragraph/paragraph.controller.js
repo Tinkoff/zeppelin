@@ -2171,11 +2171,27 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       currentRange.markerId = $scope.editor.session.addMarker(
         searchRanges[currentRange.id].range, 'ace_selection', 'text');
     }
+
+    if ($scope.editor) {
+      let paragraphText = $scope.editor.getValue();
+      if (paragraphText) {
+        $scope.paragraph.text = paragraphText;
+        $scope.commitParagraph($scope.paragraph);
+      }
+    }
   });
 
   $scope.$on('replaceAll', function(event, from, to) {
     clearSearchSelection();
     $scope.editor.replaceAll(to, {needle: from});
+
+    if ($scope.editor) {
+      let paragraphText = $scope.editor.getValue();
+      if (paragraphText) {
+        $scope.paragraph.text = paragraphText;
+        $scope.commitParagraph($scope.paragraph);
+      }
+    }
   });
 
   $scope.$on('checkOccurrences', function() {
