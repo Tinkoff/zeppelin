@@ -58,7 +58,6 @@ public class InterpreterStarterHandler extends AbstractHandler {
                      final ModuleConfiguration config,
                      final ModuleInnerConfiguration innerConfig,
                      final ModuleSource source,
-                     final String remoteServerClassPath,
                      final String thriftAddr,
                      final int thriftPort) {
 
@@ -87,7 +86,6 @@ public class InterpreterStarterHandler extends AbstractHandler {
             RemoteProcessType.INTERPRETER,
             source.getPath(),
             innerConfig.getClassName(),
-            remoteServerClassPath,
             thriftAddr,
             thriftPort,
             config.getJvmOptions(),

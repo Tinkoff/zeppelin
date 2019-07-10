@@ -44,7 +44,6 @@ public class RemoteProcessStarter {
                            final RemoteProcessType processType,
                            final String interpreterClassPath,
                            final String interpreterClassName,
-                           final String remoteServerClassPath,
                            final String thriftAddr,
                            final long thriftPort,
                            final String jvmOptions,
@@ -54,7 +53,7 @@ public class RemoteProcessStarter {
     final String cmd = String.format("java " +
                     " -DzeppelinInstance=%s" +
                     " %s" +
-                    " -cp \"./*:%s/*\"" +
+                    " -cp \"./*\"" +
                     " %s" +
                     " -pt %s" +
                     " -ct %s" +
@@ -66,7 +65,6 @@ public class RemoteProcessStarter {
                     " -cn %s ",
             zeppelinInstance,
             jvmOptions,
-            remoteServerClassPath,
             processType.getRemoteServerClass().getName(),
             processType.getRemoteThreadClass().getName(),
             concurrentTask,

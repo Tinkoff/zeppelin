@@ -46,18 +46,6 @@ public class RemoteProcessServer {
   private TServerSocket serverSocket;
   private TThreadPoolServer thriftServer;
 
-  private String remoteServerClassPath;
-
-  public void initSources(final List<String> repositories) {
-    ModuleInstaller.uninstallInterpreter("remote-server");
-    ModuleInstaller.install(
-            "remote-server",
-            "org.apache.zeppelin:T-zeppelin-remote:default",
-            repositories
-    );
-    remoteServerClassPath = ModuleInstaller.getDirectory("remote-server");
-  }
-
   public void start() throws TTransportException {
     this.serverSocket = new TServerSocket(Configuration.getThriftPort());
 
@@ -175,10 +163,6 @@ public class RemoteProcessServer {
 
   public int getPort() {
     return Configuration.getThriftPort();
-  }
-
-  public String getRemoteServerClassPath() {
-    return remoteServerClassPath;
   }
 
   public TServerSocket getServerSocket() {

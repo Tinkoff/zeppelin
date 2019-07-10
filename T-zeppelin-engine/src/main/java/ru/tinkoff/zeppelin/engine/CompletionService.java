@@ -134,7 +134,6 @@ public class CompletionService {
                 RemoteProcessType.COMPLETER,
                 source.getPath(),
                 innerConfig.getClassName(),
-                serverBootstrap.getServer().getRemoteServerClassPath(),
                 serverBootstrap.getServer().getAddr(),
                 serverBootstrap.getServer().getPort(),
                 config.getJvmOptions(),

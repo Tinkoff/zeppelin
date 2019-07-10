@@ -33,6 +33,12 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.zeppelin</groupId>
+            <artifactId>T-zeppelin-remote</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.zeppelin</groupId>
             <artifactId>T-zeppelin-interpreter</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -127,10 +127,10 @@ public class Configuration {
     return Arrays.stream(param.split(delimeter)).map(String::trim).collect(Collectors.toSet());
   }
 
-  public static List<String> getRepos() {
+  /*public static List<String> getRepos() {
     final List<String> repos = Lists.newArrayList();
     repos.add("http://registry.tcsbank.ru/repository/dwh/");
     repos.add("http://repo1.maven.org/maven2/");
     return repos;
-  }
+  }*/
 }

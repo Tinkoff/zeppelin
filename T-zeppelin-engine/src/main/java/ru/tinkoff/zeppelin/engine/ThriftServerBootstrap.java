@@ -37,12 +37,9 @@ import java.util.List;
 @Component("thriftBootstrap")
 class ThriftServerBootstrap {
 
-  private final ModuleRepositoryDAO repositoryDAO;
   private RemoteProcessServer server;
 
-  public ThriftServerBootstrap(final ModuleRepositoryDAO repositoryDAO) {
-    this.repositoryDAO = repositoryDAO;
-  }
+  public ThriftServerBootstrap() { }
 
   @PostConstruct
   public void init() throws Exception {
@@ -50,12 +47,7 @@ class ThriftServerBootstrap {
     Logger rootLogger = LoggerFactory.getILoggerFactory().getLogger("org.apache.thrift");
     ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.OFF);
 
-    final List<String> repos = Configuration.getRepos();
-    repositoryDAO.getAll().forEach(r -> repos.add(r.getUrl()));
-
-
     server = new RemoteProcessServer();
-    server.initSources(repos);
     server.start();
   }
 
@@ -77,11 +69,7 @@ class ThriftServerBootstrap {
       //SKIP
     }
 
-    final List<String> repos = Configuration.getRepos();
-    repositoryDAO.getAll().forEach(r -> repos.add(r.getUrl()));
-
     server = new RemoteProcessServer();
-    server.initSources(repos);
     server.start();
   }
 

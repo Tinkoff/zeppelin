@@ -119,7 +119,6 @@ public class NoteExecutorService {
                   config,
                   innerConfig,
                   source,
-                  serverBootstrap.getServer().getRemoteServerClassPath(),
                   serverBootstrap.getServer().getAddr(),
                   serverBootstrap.getServer().getPort());
         }
