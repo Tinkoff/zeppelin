@@ -16,6 +16,9 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,12 +38,15 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
 import ru.tinkoff.zeppelin.interpreter.NoteContext;
 import ru.tinkoff.zeppelin.interpreter.UserContext;
 import ru.tinkoff.zeppelin.interpreter.thrift.PushResult;
-import ru.tinkoff.zeppelin.storage.*;
+import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
+import ru.tinkoff.zeppelin.storage.JobBatchDAO;
+import ru.tinkoff.zeppelin.storage.JobDAO;
+import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
+import ru.tinkoff.zeppelin.storage.JobResultDAO;
+import ru.tinkoff.zeppelin.storage.NoteDAO;
+import ru.tinkoff.zeppelin.storage.ParagraphDAO;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import ru.tinkoff.zeppelin.storage.ZLog;
 
 /**
  * Class for handle pending jobs
@@ -126,14 +132,14 @@ public class PendingHandler extends AbstractHandler {
 
     switch (result.getStatus()) {
       case ACCEPT:
-        ZLog.log(ET.JOB_ACCEPTED, "Задача начала исполняться, id=%s" + job.getId(), SystemEvent.SYSTEM_USERNAME);
+        ZLog.log(ET.JOB_ACCEPTED, "Задача начала исполняться, id=" + job.getId(), SystemEvent.SYSTEM_USERNAME);
         setRunningState(job, result.getInterpreterProcessUUID(), result.getInterpreterJobUUID());
         break;
       case DECLINE:
-        ZLog.log(ET.JOB_DECLINED, "Задаче отклонена, id=%s" + job.getId(), SystemEvent.SYSTEM_USERNAME);
+        ZLog.log(ET.JOB_DECLINED, "Задаче отклонена, id=" + job.getId(), SystemEvent.SYSTEM_USERNAME);
         break;
       case ERROR:
-        ZLog.log(ET.JOB_REQUEST_ERRORED, "Ошибка при попытке запустить задачу, id=%s" + job.getId(),
+        ZLog.log(ET.JOB_REQUEST_ERRORED, "Ошибка при попытке запустить задачу, id=" + job.getId(),
             SystemEvent.SYSTEM_USERNAME);
         break;
       default:
