@@ -16,7 +16,7 @@ import moment from 'moment';
 angular.module('zeppelinWebApp').controller('NavCtrl', NavCtrl);
 
 function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
-                 noteListFactory, baseUrlSrv, websocketMsgSrv,
+                 noteListFactory, baseUrlSrv, websocketMsgSrv, $interval,
                  arrayOrderingSrv, searchService, TRASH_FOLDER_ID) {
   'ngInject';
 
@@ -46,12 +46,18 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
         $rootScope.zeppelinCommitHash = response['git.commit.id'];
         $rootScope.zeppelinBuildTime = response['git.build.time'];
         $rootScope.zeppelinCommitMessage = response['git.commit.message.short'];
-        $rootScope.zeppelinUptime = moment.duration(moment().diff(response['start.time']))
+        $rootScope.zeppelinStartTime = response['start.time'];
+        $rootScope.zeppelinUptime = moment.duration(moment().diff($rootScope.zeppelinStartTime))
         .format('D[ day(s)] H[ hour(s)] m[ minute(s)] s[ second(s)]');
       }).error(
       function(data, status, headers, config) {
         console.log('Error %o %o', status, data.message);
       });
+  }
+
+  function updateUptime() {
+    $rootScope.zeppelinUptime = moment.duration(moment().diff($rootScope.zeppelinStartTime))
+    .format('D[ day(s)] H[ hour(s)] m[ minute(s)] s[ second(s)]');
   }
 
   function initController() {
@@ -64,8 +70,8 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
 
     getZeppelinVersion();
 
-    // refresh execQueue each 10s.
-    setInterval(() => getZeppelinVersion(), 1000);
+    // refresh uptime each second.
+    $interval(updateUptime, 1000);
 
     loadNotes();
   }
