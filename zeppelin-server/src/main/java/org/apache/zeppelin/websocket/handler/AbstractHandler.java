@@ -19,9 +19,12 @@ package org.apache.zeppelin.websocket.handler;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.rest.exception.ForbiddenException;
 import org.apache.zeppelin.rest.exception.NoteNotFoundException;
@@ -53,14 +56,17 @@ public abstract class AbstractHandler {
                               final Permission permission,
                               final AuthenticationInfo authenticationInfo,
                               final WebSocketSession conn) {
+
     final Long noteId = connectionManager.getAssociatedNoteId(conn) != null
             ? connectionManager.getAssociatedNoteId(conn)
-            : noteService.getNote((String)message.getNotNull(paramName)).getId();
+            : Optional.ofNullable(noteService.getNote((String) message.getNotNull(paramName)))
+            .orElseThrow(() -> new NoteNotFoundException("Note not found"))
+            .getId();
 
     checkPermission(noteId, permission, authenticationInfo);
     final Note note = noteService.getNote(noteId);
     if (note == null) {
-      throw new NoteNotFoundException("Can't find note with id '" + noteId +"'.");
+      throw new NoteNotFoundException("Can't find note with id '" + noteId + "'.");
     }
     return note;
   }
