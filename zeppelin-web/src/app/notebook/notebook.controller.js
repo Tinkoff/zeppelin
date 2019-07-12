@@ -2093,6 +2093,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         expression: '',
       };
     }
+
+    if ($scope.note.viewMode === 'SCHEMA') {
+      $scope.setViewMode($scope.note.viewMode);
+    }
   });
 
   $scope.$on('$routeChangeStart', function(event, next, current) {
