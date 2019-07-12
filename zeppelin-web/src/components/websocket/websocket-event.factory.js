@@ -150,7 +150,8 @@ function WebsocketEventFactory($rootScope, $websocket, $location, baseUrlSrv, ng
         closeByBackdrop: false,
         closeByKeyboard: false,
         title: 'Details',
-        message: _.escape(data.info.toString()),
+        message: data !== undefined && data.info !== undefined ? _.escape(data.info.toString())
+        : 'Smth went wrong',
         buttons: [{
           // close all the dialogs when there are error on running all paragraphs
           label: 'Close',

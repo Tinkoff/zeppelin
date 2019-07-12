@@ -53,9 +53,15 @@ public abstract class AbstractHandler {
                               final Permission permission,
                               final AuthenticationInfo authenticationInfo,
                               final WebSocketSession conn) {
-    final Long noteId = connectionManager.getAssociatedNoteId(conn) != null
-            ? connectionManager.getAssociatedNoteId(conn)
-            : noteService.getNote((String)message.getNotNull(paramName)).getId();
+    Long noteId = connectionManager.getAssociatedNoteId(conn);
+    if (noteId == null) {
+      final String uuid = message.getNotNull(paramName);
+      final Note found = noteService.getNote(uuid);
+      if (found == null) {
+        throw new NoteNotFoundException("Can't find note with uuid '" + uuid +"'.");
+      }
+      noteId = found.getId();
+    }
 
     checkPermission(noteId, permission, authenticationInfo);
     final Note note = noteService.getNote(noteId);
