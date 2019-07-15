@@ -22,15 +22,23 @@ import java.util.Map;
 public class H2TableMetadata {
 
   private final Map<String, String> columns;
-  private final long rowCount;
+  private long rowCount;
 
   H2TableMetadata(final Map<String, String> columns, final long rowCount) {
     this.columns = columns;
     this.rowCount = rowCount;
   }
 
+  H2TableMetadata(final Map<String, String> columns) {
+    this.columns = columns;
+  }
+
   public Map<String, String> getColumns() {
     return columns;
+  }
+
+  public void setRowCount(final long rowCount) {
+    this.rowCount = rowCount;
   }
 
   public long getRowCount() {
