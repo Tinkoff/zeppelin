@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,8 @@ import ru.tinkoff.zeppelin.storage.ParagraphDAO;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
 import ru.tinkoff.zeppelin.storage.ZLog;
 
+import javax.annotation.PostConstruct;
+
 /**
  * Class for handle abort state of jobs
  *
@@ -54,6 +57,9 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 @Component
 public class AbortHandler extends AbstractHandler {
 
+  private final ApplicationContext applicationContext;
+  private AbortHandler instance;
+
   public AbortHandler(final JobBatchDAO jobBatchDAO,
                       final JobDAO jobDAO,
                       final JobResultDAO jobResultDAO,
@@ -61,8 +67,15 @@ public class AbortHandler extends AbstractHandler {
                       final NoteDAO noteDAO,
                       final ParagraphDAO paragraphDAO,
                       final FullParagraphDAO fullParagraphDAO,
-                      final NoteEventService noteEventService) {
+                      final NoteEventService noteEventService,
+                      final ApplicationContext applicationContext) {
     super(jobBatchDAO, jobDAO, jobResultDAO, jobPayloadDAO, noteDAO, paragraphDAO, fullParagraphDAO, noteEventService);
+    this.applicationContext = applicationContext;
+  }
+
+  @PostConstruct
+  private void init() {
+    instance = applicationContext.getBean(AbortHandler.class);
   }
 
   public List<JobBatch> loadJobs() {
@@ -82,11 +95,12 @@ public class AbortHandler extends AbstractHandler {
 
     jobs.stream()
             .filter(j -> runningStatuses.contains(j.getStatus()))
-            .forEach(j -> abortRunningJob(batch, j));
+            .forEach(j -> instance.abortRunningJob(batch, j));
 
   }
 
-  private void abortRunningJob(final JobBatch batch, final Job job) {
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  void abortRunningJob(final JobBatch batch, final Job job) {
     final InterpreterRemoteProcess remote = (InterpreterRemoteProcess) AbstractRemoteProcess.get(job.getShebang(), RemoteProcessType.INTERPRETER);
     if (remote == null) {
       setAbortResult(job, batch, PredefinedInterpreterResults.OPERATION_ABORTED);

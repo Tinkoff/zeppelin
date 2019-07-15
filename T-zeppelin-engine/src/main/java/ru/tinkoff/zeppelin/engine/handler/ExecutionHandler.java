@@ -16,28 +16,17 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
-import ru.tinkoff.zeppelin.engine.forms.FormsProcessor;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+import ru.tinkoff.zeppelin.storage.*;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
 
 /**
  * Class for handle ready for execute jobs
@@ -72,7 +61,10 @@ public class ExecutionHandler extends AbstractHandler {
       // check user
       final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
       final List<Job> jobs = jobDAO.loadByBatch(jobBatch.getId());
-      if (!jobs.get(0).getUsername().equals(username)) {
+
+      if (jobs.size() == 0 ||
+          !jobs.get(0).getUsername().equals(username) ||
+          jobs.get(0).getPriority() == JobPriority.SCHEDULER.getIndex()) { // run on scheduler
         return;
       }
 
