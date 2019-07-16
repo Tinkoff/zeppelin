@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package ru.tinkoff.zeppelin.commons.jdbc;
+package ru.tinkoff.zeppelin.commons.jdbc.utils;
 
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
-import java.util.Set;
 
 public class JDBCInterpolation {
 

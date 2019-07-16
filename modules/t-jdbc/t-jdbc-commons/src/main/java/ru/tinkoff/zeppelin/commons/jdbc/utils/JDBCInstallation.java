@@ -15,19 +15,17 @@
  * limitations under the License.
  */
 
-package ru.tinkoff.zeppelin.commons.jdbc;
+package ru.tinkoff.zeppelin.commons.jdbc.utils;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.DependencyResolver;
-import org.apache.zeppelin.Repository;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 

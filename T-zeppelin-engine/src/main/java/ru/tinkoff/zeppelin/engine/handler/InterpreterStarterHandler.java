@@ -90,6 +90,8 @@ public class InterpreterStarterHandler extends AbstractHandler {
             thriftPort,
             config.getJvmOptions(),
             config.getConcurrentTasks(),
+            config.getRegularTTL(),
+            config.getScheduledTTL(),
             Configuration.getInstanceMarkerPrefix());
   }
 }

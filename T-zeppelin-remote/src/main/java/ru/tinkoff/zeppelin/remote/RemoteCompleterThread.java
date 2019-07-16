@@ -33,28 +33,24 @@ public class RemoteCompleterThread extends AbstractRemoteProcessThread implement
   private BlockingQueue<Completer> pool = null;
   private AtomicBoolean isLocked = null;
   private volatile int createdObjects = 0;
-  private volatile int size = 0;
 
   @Override
   void init(final String zeppelinServerHost,
             final String zeppelinServerPort,
             final String processShebang,
-            final String processType,
-            final String processClassPath,
-            final String processClassName,
-            final int poolSize) {
+            final String processType) {
 
     super.init(zeppelinServerHost,
-            zeppelinServerPort,
-            processShebang,
-            processType,
-            processClassPath,
-            processClassName,
-            poolSize);
+        zeppelinServerPort,
+        processShebang,
+        processType
+    );
+  }
 
+  @Override
+  protected void postInit() {
     pool = new ArrayBlockingQueue<>(this.poolSize, true);
     isLocked = new AtomicBoolean(false);
-    size = this.poolSize;
   }
 
   @Override
@@ -109,7 +105,7 @@ public class RemoteCompleterThread extends AbstractRemoteProcessThread implement
           return completer;
 
         } finally {
-          if (createdObjects >= size) {
+          if (createdObjects >= poolSize) {
             isLocked.set(true);
           }
         }
@@ -118,13 +114,13 @@ public class RemoteCompleterThread extends AbstractRemoteProcessThread implement
     return pool.poll(50, TimeUnit.MILLISECONDS);
   }
 
-  private void release(Completer resource) {
+  private void release(final Completer resource) {
     pool.add(resource);
   }
 
   private void drop() {
     synchronized (this) {
-      if (--createdObjects < size) {
+      if (--createdObjects < poolSize) {
         isLocked.set(false);
       }
     }

@@ -17,32 +17,24 @@
 package ru.tinkoff.zeppelin.commons.jdbc;
 
 import com.google.common.collect.Lists;
-import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.tinkoff.zeppelin.commons.jdbc.utils.JDBCInstallation;
+import ru.tinkoff.zeppelin.commons.jdbc.utils.JDBCInterpolation;
+import ru.tinkoff.zeppelin.interpreter.Context;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.sql.*;
+import java.util.*;
 
 
 /**
@@ -78,7 +70,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
    *
    * @see AbstractJDBCInterpreter#cancel()
    * @see AbstractJDBCInterpreter#close()
-   * @see AbstractJDBCInterpreter#open(Map, String)
+   * @see AbstractJDBCInterpreter#open(Context, String)
    * @see AbstractJDBCInterpreter#executeQuery(String, boolean)
    */
   @Nullable
@@ -138,16 +130,16 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   /**
    * Installs driver if needed and opens the database connection.
    *
-   * @param configuration interpreter configuration.
+   * @param context interpreter context.
    * @param classPath     class path.
    */
   @Override
-  public void open(@Nonnull final Map<String, String> configuration, @Nonnull final String classPath) {
+  public void open(@Nonnull final Context context, @Nonnull final String classPath) {
     if (this.configuration == null) {
       this.configuration = new HashMap<>();
     }
     this.configuration.clear();
-    this.configuration.putAll(configuration);
+    this.configuration.putAll(context.getConfiguration());
     final String className = configuration.get(DRIVER_CLASS_NAME_KEY);
     final String artifact = configuration.get(DRIVER_ARTIFACT_KEY);
     final String artifactDependencies = configuration.get(DRIVER_ARTIFACT_DEPENDENCY);
@@ -218,6 +210,31 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   @Override
   public void close() {
     if (isOpened()) {
+      try {
+        query.cancel();
+      } catch (final Throwable e) {
+        LOGGER.error("Failed to cancel", e);
+      }
+      try {
+        connection.abort(Runnable::run);
+        connection = null;
+      } catch (final Throwable e) {
+        LOGGER.error("Failed to close", e);
+      }
+    }
+  }
+
+  /**
+   * May be called from another thread.
+   */
+  @Override
+  public void hibernate() {
+    if (isOpened()) {
+      try {
+        query.cancel();
+      } catch (final Throwable e) {
+        LOGGER.error("Failed to cancel", e);
+      }
       try {
         connection.abort(Runnable::run);
         connection = null;

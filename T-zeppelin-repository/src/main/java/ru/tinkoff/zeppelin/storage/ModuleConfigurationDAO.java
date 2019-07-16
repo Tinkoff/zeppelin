@@ -35,84 +35,97 @@ import java.util.List;
 public class ModuleConfigurationDAO {
 
   public static final String GET_ALL = "" +
-          "SELECT ID,\n" +
-          "       SHEBANG,\n" +
-          "       HUMAN_READABLE_NAME,\n" +
-          "       BINDED_TO,\n" +
-          "       JVM_OPTIONS,\n" +
-          "       CONCURRENT_TASKS,\n" +
-          "       CONFIG_ID,\n" +
-          "       SOURCE_ID,\n" +
-          "       PERMISSIONS,\n" +
-          "       IS_ENABLED\n" +
-          "FROM MODULE_CONFIGURATION;";
+      "SELECT ID,\n" +
+      "       SHEBANG,\n" +
+      "       HUMAN_READABLE_NAME,\n" +
+      "       BINDED_TO,\n" +
+      "       JVM_OPTIONS,\n" +
+      "       CONCURRENT_TASKS,\n" +
+      "       REGULAR_TTL,\n" +
+      "       SCHEDULED_TTL,\n" +
+      "       CONCURRENT_TASKS,\n" +
+      "       CONFIG_ID,\n" +
+      "       SOURCE_ID,\n" +
+      "       PERMISSIONS,\n" +
+      "       IS_ENABLED\n" +
+      "FROM MODULE_CONFIGURATION;";
 
   public static final String GET_BY_ID = "" +
-          "SELECT ID,\n" +
-          "       SHEBANG,\n" +
-          "       HUMAN_READABLE_NAME,\n" +
-          "       BINDED_TO,\n" +
-          "       JVM_OPTIONS,\n" +
-          "       CONCURRENT_TASKS,\n" +
-          "       CONFIG_ID,\n" +
-          "       SOURCE_ID,\n" +
-          "       PERMISSIONS,\n" +
-          "       IS_ENABLED\n" +
-          "FROM MODULE_CONFIGURATION\n" +
-          "WHERE ID = :ID;";
+      "SELECT ID,\n" +
+      "       SHEBANG,\n" +
+      "       HUMAN_READABLE_NAME,\n" +
+      "       BINDED_TO,\n" +
+      "       JVM_OPTIONS,\n" +
+      "       CONCURRENT_TASKS,\n" +
+      "       REGULAR_TTL,\n" +
+      "       SCHEDULED_TTL,\n" +
+      "       CONFIG_ID,\n" +
+      "       SOURCE_ID,\n" +
+      "       PERMISSIONS,\n" +
+      "       IS_ENABLED\n" +
+      "FROM MODULE_CONFIGURATION\n" +
+      "WHERE ID = :ID;";
 
   public static final String GET_BY_SHEBANG = "" +
-          "SELECT ID,\n" +
-          "       SHEBANG,\n" +
-          "       HUMAN_READABLE_NAME,\n" +
-          "       BINDED_TO,\n" +
-          "       JVM_OPTIONS,\n" +
-          "       CONCURRENT_TASKS,\n" +
-          "       CONFIG_ID,\n" +
-          "       SOURCE_ID,\n" +
-          "       PERMISSIONS,\n" +
-          "       IS_ENABLED\n" +
-          "FROM MODULE_CONFIGURATION\n" +
-          "WHERE SHEBANG = :SHEBANG;";
+      "SELECT ID,\n" +
+      "       SHEBANG,\n" +
+      "       HUMAN_READABLE_NAME,\n" +
+      "       BINDED_TO,\n" +
+      "       JVM_OPTIONS,\n" +
+      "       CONCURRENT_TASKS,\n" +
+      "       REGULAR_TTL,\n" +
+      "       SCHEDULED_TTL,\n" +
+      "       CONFIG_ID,\n" +
+      "       SOURCE_ID,\n" +
+      "       PERMISSIONS,\n" +
+      "       IS_ENABLED\n" +
+      "FROM MODULE_CONFIGURATION\n" +
+      "WHERE SHEBANG = :SHEBANG;";
 
 
   private static final String PERSIST = "" +
-          "INSERT INTO MODULE_CONFIGURATION (SHEBANG,\n" +
-          "                                  HUMAN_READABLE_NAME,\n" +
-          "                                  BINDED_TO,\n" +
-          "                                  JVM_OPTIONS,\n" +
-          "                                  CONCURRENT_TASKS,\n" +
-          "                                  CONFIG_ID,\n" +
-          "                                  SOURCE_ID,\n" +
-          "                                  PERMISSIONS,\n" +
-          "                                  IS_ENABLED)\n" +
-          "VALUES (:SHEBANG,\n" +
-          "        :HUMAN_READABLE_NAME,\n" +
-          "        :BINDED_TO,\n" +
-          "        :JVM_OPTIONS,\n" +
-          "        :CONCURRENT_TASKS,\n" +
-          "        :CONFIG_ID,\n" +
-          "        :SOURCE_ID,\n" +
-          "        :PERMISSIONS,\n" +
-          "        :IS_ENABLED);";
+      "INSERT INTO MODULE_CONFIGURATION (SHEBANG,\n" +
+      "                                  HUMAN_READABLE_NAME,\n" +
+      "                                  BINDED_TO,\n" +
+      "                                  JVM_OPTIONS,\n" +
+      "                                  CONCURRENT_TASKS,\n" +
+      "                                  REGULAR_TTL,\n" +
+      "                                  SCHEDULED_TTL,\n" +
+      "                                  CONFIG_ID,\n" +
+      "                                  SOURCE_ID,\n" +
+      "                                  PERMISSIONS,\n" +
+      "                                  IS_ENABLED)\n" +
+      "VALUES (:SHEBANG,\n" +
+      "        :HUMAN_READABLE_NAME,\n" +
+      "        :BINDED_TO,\n" +
+      "        :JVM_OPTIONS,\n" +
+      "        :CONCURRENT_TASKS,\n" +
+      "        :REGULAR_TTL,\n" +
+      "        :SCHEDULED_TTL,\n" +
+      "        :CONFIG_ID,\n" +
+      "        :SOURCE_ID,\n" +
+      "        :PERMISSIONS,\n" +
+      "        :IS_ENABLED);";
 
   private static final String UPDATE = "" +
-          "UPDATE MODULE_CONFIGURATION\n" +
-          "SET SHEBANG             = :SHEBANG,\n" +
-          "    HUMAN_READABLE_NAME = :HUMAN_READABLE_NAME,\n" +
-          "    BINDED_TO           = :BINDED_TO,\n" +
-          "    JVM_OPTIONS         = :JVM_OPTIONS,\n" +
-          "    CONCURRENT_TASKS    = :CONCURRENT_TASKS,\n" +
-          "    CONFIG_ID           = :CONFIG_ID,\n" +
-          "    SOURCE_ID           = :SOURCE_ID,\n" +
-          "    PERMISSIONS         = :PERMISSIONS,\n" +
-          "    IS_ENABLED          = :IS_ENABLED\n" +
-          "WHERE ID = :ID;";
+      "UPDATE MODULE_CONFIGURATION\n" +
+      "SET SHEBANG             = :SHEBANG,\n" +
+      "    HUMAN_READABLE_NAME = :HUMAN_READABLE_NAME,\n" +
+      "    BINDED_TO           = :BINDED_TO,\n" +
+      "    JVM_OPTIONS         = :JVM_OPTIONS,\n" +
+      "    CONCURRENT_TASKS    = :CONCURRENT_TASKS,\n" +
+      "    REGULAR_TTL         = :REGULAR_TTL,\n" +
+      "    SCHEDULED_TTL       = :SCHEDULED_TTL,\n" +
+      "    CONFIG_ID           = :CONFIG_ID,\n" +
+      "    SOURCE_ID           = :SOURCE_ID,\n" +
+      "    PERMISSIONS         = :PERMISSIONS,\n" +
+      "    IS_ENABLED          = :IS_ENABLED\n" +
+      "WHERE ID = :ID;";
 
   private static final String DELETE = "" +
-          "DELETE\n" +
-          "FROM MODULE_CONFIGURATION\n" +
-          "WHERE ID = :ID;";
+      "DELETE\n" +
+      "FROM MODULE_CONFIGURATION\n" +
+      "WHERE ID = :ID;";
 
   private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -123,16 +136,18 @@ public class ModuleConfigurationDAO {
 
   private static ModuleConfiguration mapRow(final ResultSet resultSet, final int i) throws SQLException {
     return new ModuleConfiguration(
-            resultSet.getLong("ID"),
-            resultSet.getString("SHEBANG"),
-            resultSet.getString("HUMAN_READABLE_NAME"),
-            resultSet.getString("BINDED_TO"),
-            resultSet.getString("JVM_OPTIONS"),
-            resultSet.getInt("CONCURRENT_TASKS"),
-            resultSet.getLong("CONFIG_ID"),
-            resultSet.getLong("SOURCE_ID"),
-            new Gson().fromJson(resultSet.getString("PERMISSIONS"), Permissions.class),
-            resultSet.getBoolean("IS_ENABLED")
+        resultSet.getLong("ID"),
+        resultSet.getString("SHEBANG"),
+        resultSet.getString("HUMAN_READABLE_NAME"),
+        resultSet.getString("BINDED_TO"),
+        resultSet.getString("JVM_OPTIONS"),
+        resultSet.getInt("CONCURRENT_TASKS"),
+        resultSet.getInt("REGULAR_TTL"),
+        resultSet.getInt("SCHEDULED_TTL"),
+        resultSet.getLong("CONFIG_ID"),
+        resultSet.getLong("SOURCE_ID"),
+        new Gson().fromJson(resultSet.getString("PERMISSIONS"), Permissions.class),
+        resultSet.getBoolean("IS_ENABLED")
     );
   }
 
@@ -141,53 +156,55 @@ public class ModuleConfigurationDAO {
     final SqlParameterSource parameters = new MapSqlParameterSource();
 
     return namedParameterJdbcTemplate.query(
-            GET_ALL,
-            parameters,
-            ModuleConfigurationDAO::mapRow
+        GET_ALL,
+        parameters,
+        ModuleConfigurationDAO::mapRow
     );
   }
 
   public ModuleConfiguration getById(final long id) {
 
     final SqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("ID", id);
+        .addValue("ID", id);
 
     return namedParameterJdbcTemplate.query(
-            GET_BY_ID,
-            parameters,
-            ModuleConfigurationDAO::mapRow)
-            .stream()
-            .findFirst()
-            .orElse(null);
+        GET_BY_ID,
+        parameters,
+        ModuleConfigurationDAO::mapRow)
+        .stream()
+        .findFirst()
+        .orElse(null);
   }
 
   public ModuleConfiguration getByShebang(final String shebang) {
 
     final SqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("SHEBANG", shebang);
+        .addValue("SHEBANG", shebang);
 
     return namedParameterJdbcTemplate.query(
-            GET_BY_SHEBANG,
-            parameters,
-            ModuleConfigurationDAO::mapRow)
-            .stream()
-            .findFirst()
-            .orElse(null);
+        GET_BY_SHEBANG,
+        parameters,
+        ModuleConfigurationDAO::mapRow)
+        .stream()
+        .findFirst()
+        .orElse(null);
   }
 
   public ModuleConfiguration persist(final ModuleConfiguration config) {
     final KeyHolder holder = new GeneratedKeyHolder();
 
     final MapSqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("SHEBANG", config.getShebang())
-            .addValue("HUMAN_READABLE_NAME", config.getHumanReadableName())
-            .addValue("BINDED_TO", config.getBindedTo())
-            .addValue("JVM_OPTIONS", config.getJvmOptions())
-            .addValue("CONCURRENT_TASKS", config.getConcurrentTasks())
-            .addValue("CONFIG_ID", config.getModuleInnerConfigId())
-            .addValue("SOURCE_ID", config.getModuleSourceId())
-            .addValue("PERMISSIONS", Utils.generatePGjson(config.getPermissions()))
-            .addValue("IS_ENABLED", config.isEnabled());
+        .addValue("SHEBANG", config.getShebang())
+        .addValue("HUMAN_READABLE_NAME", config.getHumanReadableName())
+        .addValue("BINDED_TO", config.getBindedTo())
+        .addValue("JVM_OPTIONS", config.getJvmOptions())
+        .addValue("CONCURRENT_TASKS", config.getConcurrentTasks())
+        .addValue("REGULAR_TTL", config.getRegularTTL())
+        .addValue("SCHEDULED_TTL", config.getScheduledTTL())
+        .addValue("CONFIG_ID", config.getModuleInnerConfigId())
+        .addValue("SOURCE_ID", config.getModuleSourceId())
+        .addValue("PERMISSIONS", Utils.generatePGjson(config.getPermissions()))
+        .addValue("IS_ENABLED", config.isEnabled());
     namedParameterJdbcTemplate.update(PERSIST, parameters, holder);
 
     config.setId((Long) holder.getKeys().get("id"));
@@ -198,16 +215,18 @@ public class ModuleConfigurationDAO {
   public ModuleConfiguration update(final ModuleConfiguration config) {
 
     final MapSqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("SHEBANG", config.getShebang())
-            .addValue("HUMAN_READABLE_NAME", config.getHumanReadableName())
-            .addValue("BINDED_TO", config.getBindedTo())
-            .addValue("JVM_OPTIONS", config.getJvmOptions())
-            .addValue("CONCURRENT_TASKS", config.getConcurrentTasks())
-            .addValue("CONFIG_ID", config.getModuleInnerConfigId())
-            .addValue("SOURCE_ID", config.getModuleSourceId())
-            .addValue("PERMISSIONS", Utils.generatePGjson(config.getPermissions()))
-            .addValue("IS_ENABLED", config.isEnabled())
-            .addValue("ID", config.getId());
+        .addValue("SHEBANG", config.getShebang())
+        .addValue("HUMAN_READABLE_NAME", config.getHumanReadableName())
+        .addValue("BINDED_TO", config.getBindedTo())
+        .addValue("JVM_OPTIONS", config.getJvmOptions())
+        .addValue("CONCURRENT_TASKS", config.getConcurrentTasks())
+        .addValue("REGULAR_TTL", config.getRegularTTL())
+        .addValue("SCHEDULED_TTL", config.getScheduledTTL())
+        .addValue("CONFIG_ID", config.getModuleInnerConfigId())
+        .addValue("SOURCE_ID", config.getModuleSourceId())
+        .addValue("PERMISSIONS", Utils.generatePGjson(config.getPermissions()))
+        .addValue("IS_ENABLED", config.isEnabled())
+        .addValue("ID", config.getId());
     namedParameterJdbcTemplate.update(UPDATE, parameters);
 
     return config;
@@ -216,7 +235,7 @@ public class ModuleConfigurationDAO {
   public void delete(final long id) {
 
     final SqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("ID", id);
+        .addValue("ID", id);
 
     namedParameterJdbcTemplate.update(DELETE, parameters);
   }

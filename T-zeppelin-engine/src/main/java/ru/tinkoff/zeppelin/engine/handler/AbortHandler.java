@@ -17,15 +17,10 @@
 package ru.tinkoff.zeppelin.engine.handler;
 
 import com.google.common.collect.Sets;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.notebook.Job;
 import ru.tinkoff.zeppelin.core.notebook.JobBatch;
 import ru.tinkoff.zeppelin.core.notebook.Note;
@@ -35,17 +30,12 @@ import ru.tinkoff.zeppelin.engine.server.InterpreterRemoteProcess;
 import ru.tinkoff.zeppelin.engine.server.RemoteProcessType;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
 import ru.tinkoff.zeppelin.interpreter.thrift.CancelResult;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+import ru.tinkoff.zeppelin.storage.*;
 
 import javax.annotation.PostConstruct;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Class for handle abort state of jobs
@@ -104,12 +94,6 @@ public class AbortHandler extends AbstractHandler {
     final InterpreterRemoteProcess remote = (InterpreterRemoteProcess) AbstractRemoteProcess.get(job.getShebang(), RemoteProcessType.INTERPRETER);
     if (remote == null) {
       setAbortResult(job, batch, PredefinedInterpreterResults.OPERATION_ABORTED);
-      ZLog.log(
-          ET.INTERPRETER_PROCESS_NOT_FOUND,
-          String.format("Процесс интрепретатора не найден, shebang: %s", job.getShebang()),
-          String.format("Ошибка в ходе отмены задачи: не найден процесс для существующей задачи: job[%s]", job.toString()),
-          SystemEvent.SYSTEM_USERNAME
-      );
       return;
     }
 
@@ -120,42 +104,18 @@ public class AbortHandler extends AbstractHandler {
 
     } catch (final Exception e) {
       setAbortResult(job, batch, PredefinedInterpreterResults.OPERATION_ABORTED);
-      ZLog.log(
-          ET.JOB_CANCEL_FAILED,
-          String.format("Ошибка в ходе отмены задачи с uuid: %s", job.getInterpreterJobUUID()),
-          String.format("В ходе отмены задачи было брошено исключение: %s", ExceptionUtils.getStackTrace(e)),
-          SystemEvent.SYSTEM_USERNAME
-      );
       return;
     }
 
     switch (cancelResult.status) {
       case ACCEPT:
-        ZLog.log(
-            ET.JOB_CANCEL_ACCEPTED,
-            String.format("Задача перешла в статус ABORTING: job[id=%s]", job.getId()),
-            String.format("Сигнал отмены был отправлен процессу интерпретатора: process[%s]", remote.toString()),
-            SystemEvent.SYSTEM_USERNAME
-        );
         setFailedResult(job, Job.Status.ABORTING, null, null, null);
         break;
       case NOT_FOUND:
-        ZLog.log(
-            ET.JOB_CANCEL_NOT_FOUND,
-            String.format("Не найден процесс, который необходимо отменить: job[id=%s]", job.getId()),
-            String.format("Статус CancelResult - \"not found\": process[%s]", remote.toString()),
-            SystemEvent.SYSTEM_USERNAME
-        );
         setAbortResult(job, batch, PredefinedInterpreterResults.OPERATION_ABORTED);
         break;
       case ERROR:
       default:
-        ZLog.log(
-            ET.JOB_CANCEL_ERRORED,
-            String.format("Ошибка в ходе отмены задачи job[id=%s]", job.getId()),
-            String.format("Статус CancelResult - \"error\": process[%s]", remote.toString()),
-            SystemEvent.SYSTEM_USERNAME
-        );
         setAbortResult(job, batch, PredefinedInterpreterResults.OPERATION_ABORTED);
     }
   }

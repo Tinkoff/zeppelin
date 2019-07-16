@@ -16,6 +16,7 @@
  */
 package ru.tinkoff.zeppelin.interpreter.runner;
 
+import ru.tinkoff.zeppelin.interpreter.Context;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
@@ -56,12 +57,12 @@ public class RunnerInterpreter extends Interpreter {
   }
 
   @Override
-  public void open(final Map<String, String> configuration, final String classPath) {
+  public void open(final Context context, final String classPath) {
     if (this.configuration == null) {
       this.configuration = new HashMap<>();
     }
     this.configuration.clear();
-    this.configuration.putAll(configuration);
+    this.configuration.putAll(context.getConfiguration());
 
   }
 
@@ -79,7 +80,25 @@ public class RunnerInterpreter extends Interpreter {
   public void close() {
     interrupted.set(true);
 
-    ZeppelinThriftService.Client zeppelin = getZeppelin().get();
+    final ZeppelinThriftService.Client zeppelin = getZeppelin().get();
+    if (zeppelin == null) {
+      return;
+    }
+
+    try {
+      zeppelin.handleAbortBatch(batchId, userName, userGroups);
+    } catch (final Throwable e) {
+      //SKIP
+    } finally {
+      releaseZeppelin().accept(zeppelin);
+    }
+  }
+
+  @Override
+  public void hibernate() {
+    interrupted.set(true);
+
+    final ZeppelinThriftService.Client zeppelin = getZeppelin().get();
     if (zeppelin == null) {
       return;
     }

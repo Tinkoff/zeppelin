@@ -37,6 +37,8 @@ public class ModuleConfiguration implements Serializable {
   private String jvmOptions;
 
   private int concurrentTasks;
+  private int regularTTL;
+  private int scheduledTTL;
 
   private long moduleInnerConfigId;
 
@@ -52,6 +54,8 @@ public class ModuleConfiguration implements Serializable {
                              final String bindedTo,
                              final String jvmOptions,
                              final int concurrentTasks,
+                             final int regularTTL,
+                             final int scheduledTTL,
                              final long moduleInnerConfigId,
                              final long moduleSourceId,
                              final Permissions permissions,
@@ -62,6 +66,8 @@ public class ModuleConfiguration implements Serializable {
     this.bindedTo = bindedTo;
     this.jvmOptions = jvmOptions;
     this.concurrentTasks = concurrentTasks;
+    this.regularTTL = regularTTL;
+    this.scheduledTTL = scheduledTTL;
     this.moduleInnerConfigId = moduleInnerConfigId;
     this.moduleSourceId = moduleSourceId;
     this.permissions = permissions;
@@ -114,6 +120,22 @@ public class ModuleConfiguration implements Serializable {
 
   public void setConcurrentTasks(final int concurrentTasks) {
     this.concurrentTasks = concurrentTasks;
+  }
+
+  public int getRegularTTL() {
+    return regularTTL;
+  }
+
+  public void setRegularTTL(int regularTTL) {
+    this.regularTTL = regularTTL;
+  }
+
+  public int getScheduledTTL() {
+    return scheduledTTL;
+  }
+
+  public void setScheduledTTL(int scheduledTTL) {
+    this.scheduledTTL = scheduledTTL;
   }
 
   public long getModuleInnerConfigId() {

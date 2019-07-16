@@ -32,10 +32,6 @@ public class SimpleExternalProcess {
     processThread.setRequired(true);
     options.addOption(processThread);
 
-    final Option concurrentTask = new Option("ct", "concurrentTask", true, "pool size");
-    concurrentTask.setRequired(true);
-    options.addOption(concurrentTask);
-
     final Option host = new Option("h", "host", true, "zeppelin thrift server host");
     host.setRequired(true);
     options.addOption(host);
@@ -51,15 +47,6 @@ public class SimpleExternalProcess {
     final Option type = new Option("tp", "type", true, "process type");
     type.setRequired(true);
     options.addOption(type);
-
-    final Option classpath = new Option("cp", "classpath", true, "process classpath");
-    classpath.setRequired(true);
-    options.addOption(classpath);
-
-    final Option classname = new Option("cn", "classname", true, "process classname");
-    classname.setRequired(true);
-    options.addOption(classname);
-
 
     final CommandLineParser parser = new DefaultParser();
     final HelpFormatter formatter = new HelpFormatter();
@@ -77,15 +64,10 @@ public class SimpleExternalProcess {
     }
 
     final String processThreadClass = cmd.getOptionValue("processThread");
-    final int concurrentTaskCount = Integer.parseInt(cmd.getOptionValue("concurrentTask"));
-
     final String zeppelinServerHost = cmd.getOptionValue("host");
     final String zeppelinServerPort = cmd.getOptionValue("port");
-
     final String processShebang = cmd.getOptionValue("shebang");
     final String processType = cmd.getOptionValue("type");
-    final String processClassPath = cmd.getOptionValue("classpath");
-    final String processClassName = cmd.getOptionValue("classname");
 
     final Class clazz = Class.forName(processThreadClass);
     final AbstractRemoteProcessThread thread = (AbstractRemoteProcessThread) clazz.newInstance();
@@ -93,10 +75,7 @@ public class SimpleExternalProcess {
             zeppelinServerHost,
             zeppelinServerPort,
             processShebang,
-            processType,
-            processClassPath,
-            processClassName,
-            concurrentTaskCount
+            processType
     );
 
     Signal.handle(new Signal("TERM"), signal -> {

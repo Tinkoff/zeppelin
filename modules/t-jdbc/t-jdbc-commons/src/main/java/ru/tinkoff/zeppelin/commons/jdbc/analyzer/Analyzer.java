@@ -1,13 +1,14 @@
 package ru.tinkoff.zeppelin.commons.jdbc.analyzer;
 
+import ru.tinkoff.zeppelin.interpreter.Context;
+
+import javax.annotation.Nonnull;
+import javax.sql.DataSource;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.Nonnull;
-import javax.sql.DataSource;
 
 
 /**
@@ -23,11 +24,8 @@ public abstract class Analyzer {
 
   /**
    * Returns DataSource which could be used in DAO.
-   *
-   * @param configuration
-   * @return
    */
-  protected abstract DataSource open(@Nonnull Map<String, String> configuration);
+  protected abstract DataSource open(@Nonnull final Context context);
 
   /**
    *

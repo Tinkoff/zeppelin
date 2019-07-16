@@ -16,22 +16,21 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.gson.Gson;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleConfiguration;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleInnerConfiguration;
 import ru.tinkoff.zeppelin.core.notebook.Job;
+import ru.tinkoff.zeppelin.core.notebook.JobPriority;
 import ru.tinkoff.zeppelin.core.notebook.Note;
-import ru.tinkoff.zeppelin.engine.Configuration;
+import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.CredentialService;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.server.AbstractRemoteProcess;
 import ru.tinkoff.zeppelin.engine.server.InterpreterRemoteProcess;
+import ru.tinkoff.zeppelin.interpreter.Context;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message;
@@ -39,15 +38,9 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
 import ru.tinkoff.zeppelin.interpreter.NoteContext;
 import ru.tinkoff.zeppelin.interpreter.UserContext;
 import ru.tinkoff.zeppelin.interpreter.thrift.PushResult;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+import ru.tinkoff.zeppelin.storage.*;
+
+import java.util.List;
 
 /**
  * Class for handle pending jobs
@@ -83,18 +76,16 @@ public class PendingHandler extends AbstractHandler {
                      final AbstractRemoteProcess process,
                      final ModuleConfiguration config,
                      final ModuleInnerConfiguration innerConfig) {
-    if (!userIsInterpreterOwner(job, config)) {
+    if (!canUseInterpreter(job, config)) {
       final String errorMessage = String.format(
-              "User [%s] does not have access to [%s] interpreter.",
-              job.getUsername(),
-              config.getHumanReadableName()
+          "User [%s] does not have access to [%s] interpreter.",
+          job.getUsername(),
+          config.getHumanReadableName()
       );
 
-      ZLog.log(ET.ACCESS_ERROR, String.format("Пользователь[%s] не имеет доступа к интерпретатору[%s]",
-          job.getUsername(), config.getShebang()), SystemEvent.SYSTEM_USERNAME);
       final InterpreterResult interpreterResult = new InterpreterResult(
-              Code.ABORTED,
-              new Message(Type.TEXT, errorMessage)
+          Code.ABORTED,
+          new Message(Type.TEXT, errorMessage)
       );
       setAbortResult(job, jobBatchDAO.get(job.getBatchId()), interpreterResult);
       return;
@@ -105,58 +96,52 @@ public class PendingHandler extends AbstractHandler {
 
     // prepare notecontext
     final Note note = noteDAO.get(job.getNoteId());
-    final Map<String, String> noteContext = new HashMap<>();
+    final Paragraph paragraph = paragraphDAO.get(job.getParagraphId());
 
-    noteContext.put(NoteContext.Z_ENV_NOTE_ID.name(), String.valueOf(job.getNoteId()));
-    noteContext.put(NoteContext.Z_ENV_NOTE_UUID.name(), String.valueOf(note.getUuid()));
-    noteContext.put(NoteContext.Z_ENV_PARAGRAPH_ID.name(), String.valueOf(job.getParagraphId()));
-    noteContext.put(NoteContext.Z_ENV_PARAGRAPH_SHEBANG.name(), job.getShebang());
+    final Context context = new Context(
+        note.getId(),
+        note.getUuid(),
+        paragraph.getId(),
+        paragraph.getUuid(),
+        job.getPriority() == JobPriority.SCHEDULER.getIndex()
+            ? Context.StartType.SCHEDULED
+            : Context.StartType.REGULAR
+    );
 
-    noteContext.put(NoteContext.Z_ENV_MARKER_PREFIX.name(), Configuration.getInstanceMarkerPrefix());
 
-    // prepare usercontext
-    final Map<String, String> userContext = new HashMap<>();
-    userContext.put(UserContext.Z_ENV_USER_NAME.name(), job.getUsername());
-    userContext.put(UserContext.Z_ENV_USER_ROLES.name(), job.getRoles().toString());
+    context.getNoteContext().put(NoteContext.Z_ENV_NOTE_ID.name(), String.valueOf(job.getNoteId()));
+    context.getNoteContext().put(NoteContext.Z_ENV_NOTE_UUID.name(), String.valueOf(note.getUuid()));
+    context.getNoteContext().put(NoteContext.Z_ENV_PARAGRAPH_ID.name(), String.valueOf(job.getParagraphId()));
+    context.getNoteContext().put(NoteContext.Z_ENV_PARAGRAPH_SHEBANG.name(), job.getShebang());
+
+    context.getUserContext().put(UserContext.Z_ENV_USER_NAME.name(), job.getUsername());
+    context.getUserContext().put(UserContext.Z_ENV_USER_ROLES.name(), job.getRoles().toString());
 
     // put all available credentials
     credentialService.getUserReadableCredentials(job.getUsername(), job.getRoles(), false)
-            .forEach(c -> userContext.put(c.getKey(), c.getValue()));
+        .forEach(c -> context.getUserContext().put(c.getKey(), c.getValue()));
 
     // prepare configuration
-    final Map<String, String> configuration = new HashMap<>();
     innerConfig.getProperties()
-            .forEach((p, v) -> configuration.put(p, String.valueOf(v.getCurrentValue())));
+        .forEach((p, v) -> context.getConfiguration().put(p, String.valueOf(v.getCurrentValue())));
 
-    ZLog.log(ET.JOB_READY_FOR_EXECUTION, "Задача готова к исполнению id=" + job.getId(),
-        SystemEvent.SYSTEM_USERNAME);
-    final PushResult result = ((InterpreterRemoteProcess) process).push(payload, noteContext, userContext, configuration);
+    final PushResult result = ((InterpreterRemoteProcess) process).push(payload, new Gson().toJson(context));
     if (result == null) {
-      ZLog.log(ET.JOB_REQUEST_IS_EMPTY, "Задача не добавлена на исполнение, "
-          + "PushResult равен \"null\", id задачи=" + job.getId(), SystemEvent.SYSTEM_USERNAME);
       return;
     }
 
     switch (result.getStatus()) {
       case ACCEPT:
-        ZLog.log(ET.JOB_ACCEPTED, "Задача начала исполняться, id=" + job.getId(), SystemEvent.SYSTEM_USERNAME);
         setRunningState(job, result.getInterpreterProcessUUID(), result.getInterpreterJobUUID());
         break;
       case DECLINE:
-        ZLog.log(ET.JOB_DECLINED, "Задаче отклонена, id=" + job.getId(), SystemEvent.SYSTEM_USERNAME);
-        break;
       case ERROR:
-        ZLog.log(ET.JOB_REQUEST_ERRORED, "Ошибка при попытке запустить задачу, id=" + job.getId(),
-            SystemEvent.SYSTEM_USERNAME);
-        break;
       default:
-        ZLog.log(ET.JOB_UNDEFINED,
-            String.format("Системная ошибка, статус PushResult не определен, id=%s, status=%s",
-                job.getId(), result.getStatus()), SystemEvent.SYSTEM_USERNAME);
+        // SKIP
     }
   }
 
-  private boolean userIsInterpreterOwner(final Job job, final ModuleConfiguration option) {
+  private boolean canUseInterpreter(final Job job, final ModuleConfiguration option) {
     if (!option.getPermissions().isEnabled()) {
       return true;
     }

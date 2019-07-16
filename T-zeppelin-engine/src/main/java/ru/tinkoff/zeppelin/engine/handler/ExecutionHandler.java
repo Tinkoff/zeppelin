@@ -16,17 +16,15 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.util.List;
-import java.util.Set;
-
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.storage.*;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Class for handle ready for execute jobs
@@ -78,10 +76,6 @@ public class ExecutionHandler extends AbstractHandler {
       // append to existing batcb
       appendJob(jobBatch, note, paragraph, jobs.size(), JobPriority.USER.getIndex(), username, roles);
     } else {
-
-      ZLog.log(ET.JOB_SUBMITTED_FOR_EXECUTION,
-          String.format("Задача добавлена в очередь на исполнение (ноут[id=%s], автор задачи=%s)", note.getId(), username),
-          SystemEvent.SYSTEM_USERNAME);
       publishBatch(note, paragraphs, username, roles, JobPriority.USER.getIndex());
     }
   }

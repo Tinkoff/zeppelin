@@ -16,28 +16,23 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import javax.annotation.PostConstruct;
-
+import com.google.gson.Gson;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import ru.tinkoff.zeppelin.SystemEvent;
-import ru.tinkoff.zeppelin.core.notebook.Job;
-import ru.tinkoff.zeppelin.core.notebook.JobBatch;
-import ru.tinkoff.zeppelin.core.notebook.JobPriority;
+import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
+import ru.tinkoff.zeppelin.engine.server.AbstractRemoteProcess;
+import ru.tinkoff.zeppelin.engine.server.InterpreterRemoteProcess;
+import ru.tinkoff.zeppelin.engine.server.RemoteProcessType;
+import ru.tinkoff.zeppelin.interpreter.Context;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+import ru.tinkoff.zeppelin.storage.*;
+
+import javax.annotation.PostConstruct;
+import java.util.List;
 
 /**
  * Class for handle intepreter results
@@ -49,7 +44,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
 @Component
 public class InterpreterResultHandler extends AbstractHandler {
 
-  private ApplicationContext applicationContext;
+  private final ApplicationContext applicationContext;
 
   private static InterpreterResultHandler instance;
 
@@ -79,11 +74,8 @@ public class InterpreterResultHandler extends AbstractHandler {
   public void handleResult(final String interpreterJobUUID,
                            final InterpreterResult interpreterResult) {
 
-    Job job = getWithTimeout(interpreterJobUUID);
-
+    final Job job = getWithTimeout(interpreterJobUUID);
     if (job == null) {
-      ZLog.log(ET.JOB_NOT_FOUND, "Задача не найдена, interpreterJobUUID=" + interpreterJobUUID,
-          SystemEvent.SYSTEM_USERNAME);
       return;
     }
 
@@ -91,49 +83,63 @@ public class InterpreterResultHandler extends AbstractHandler {
     removeTempOutput(job);
 
     final JobBatch batch = jobBatchDAO.get(job.getBatchId());
-    ZLog.log(ET.GOT_JOB,
-        String.format("Получен батч[status=%s, id=%s] для задачи[id=%s, noteId=%s, paragraphId=%s]",
-            batch.getStatus(), batch.getId(), job.getId(), job.getNoteId(), job.getParagraphId()),
-        SystemEvent.SYSTEM_USERNAME);
-
     if (batch.getStatus() == JobBatch.Status.ABORTING || batch.getStatus() == JobBatch.Status.ABORTED) {
-      ZLog.log(ET.GOT_ABORTED_BATCH, "Батч находится в статусе " + batch.getStatus(), SystemEvent.SYSTEM_USERNAME);
       setAbortResult(job, batch, interpreterResult);
       return;
     }
 
     if (interpreterResult == null) {
-      ZLog.log(ET.INTERPRETER_RESULT_NOT_FOUND,
-          "Полученный результат равен \"null\", interpreterJobUUID=" + interpreterJobUUID,
-          SystemEvent.SYSTEM_USERNAME
-      );
-
       setErrorResult(job, batch, PredefinedInterpreterResults.ERROR_WHILE_INTERPRET);
       return;
     }
 
     switch (interpreterResult.code()) {
       case SUCCESS:
-        ZLog.log(ET.SUCCESSFUL_RESULT,
-            "Задача успешно выполнена interpreterJobUUID=" + interpreterJobUUID,
-            SystemEvent.SYSTEM_USERNAME
-        );
-
         setSuccessResult(job, batch, interpreterResult);
+        if (batch.getStatus() == JobBatch.Status.DONE && job.getPriority() == JobPriority.SCHEDULER.getIndex()) {
+          noteEventService.successNoteScheduleExecution(batch.getNoteId());
+        }
         break;
       case ABORTED:
-        ZLog.log(ET.ABORTED_RESULT, "Задача отменена interpreterJobUUID=%s" + interpreterJobUUID,
-            SystemEvent.SYSTEM_USERNAME);
         setAbortResult(job, batch, interpreterResult);
         break;
       case ERROR:
-        ZLog.log(ET.ERRORED_RESULT, "Задача завершена с ошибкой interpreterJobUUID=" + interpreterJobUUID,
-            SystemEvent.SYSTEM_USERNAME);
-        if ( job.getPriority() == JobPriority.SCHEDULER.getIndex()){
+        if (job.getPriority() == JobPriority.SCHEDULER.getIndex()) {
           noteEventService.errorOnNoteScheduleExecution(job);
         }
         setErrorResult(job, batch, interpreterResult);
         break;
+    }
+
+    if (!JobBatch.Status.getRunningStatuses().contains(batch.getStatus())) {
+      // работа закончена, сигналим интерпретаторам
+      final Note note = noteDAO.get(batch.getNoteId());
+      final List<Job> jobs = jobDAO.loadByBatch(batch.getId());
+      for (final Job iterateJob : jobs) {
+        try {
+          final AbstractRemoteProcess process =
+              iterateJob.getShebang() != null
+                  ? AbstractRemoteProcess.get(iterateJob.getShebang(), RemoteProcessType.INTERPRETER)
+                  : null;
+
+          if (process != null && process.getStatus() == AbstractRemoteProcess.Status.READY) {
+            final Paragraph paragraph = paragraphDAO.get(iterateJob.getParagraphId());
+            final Context context = new Context(
+                note.getId(),
+                note.getUuid(),
+                paragraph.getId(),
+                paragraph.getUuid(),
+                iterateJob.getPriority() == JobPriority.SCHEDULER.getIndex()
+                    ? Context.StartType.SCHEDULED
+                    : Context.StartType.REGULAR
+
+            );
+            ((InterpreterRemoteProcess) process).finish(new Gson().toJson(context));
+          }
+        } catch (final Throwable th) {
+          // SKIP
+        }
+      }
     }
   }
 
@@ -141,10 +147,8 @@ public class InterpreterResultHandler extends AbstractHandler {
   public void handleTempOutput(final String interpreterJobUUID,
                                final String append) {
 
-    Job job = getWithTimeout(interpreterJobUUID);
+    final Job job = getWithTimeout(interpreterJobUUID);
     if (job == null) {
-      ZLog.log(ET.JOB_NOT_FOUND, "Job not found by uuid=" + interpreterJobUUID,
-              "Job not found by uuid=" + interpreterJobUUID, "Unknown");
       return;
     }
 

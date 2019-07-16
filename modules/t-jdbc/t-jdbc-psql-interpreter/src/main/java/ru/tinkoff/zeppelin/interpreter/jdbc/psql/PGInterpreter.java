@@ -16,16 +16,17 @@
  */
 package ru.tinkoff.zeppelin.interpreter.jdbc.psql;
 
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nonnull;
 import org.postgresql.PGConnection;
 import ru.tinkoff.zeppelin.commons.jdbc.AbstractJDBCInterpreter;
 import ru.tinkoff.zeppelin.commons.jdbc.analyzer.Analyzer;
+import ru.tinkoff.zeppelin.interpreter.Context;
 import ru.tinkoff.zeppelin.interpreter.jdbc.psql.analyzer.PGAnalyzer;
 import ru.tinkoff.zeppelin.interpreter.jdbc.psql.analyzer.PGResourceGroupActivityDTO;
+
+import javax.annotation.Nonnull;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class PGInterpreter extends AbstractJDBCInterpreter {
@@ -36,16 +37,16 @@ public class PGInterpreter extends AbstractJDBCInterpreter {
   /**
    * Installs driver if needed and opens the database connection.
    *
-   * @param configuration interpreter configuration.
+   * @param context interpreter configuration.
    * @param classPath     class path.
    */
   @Override
-  public void open(@Nonnull final Map<String, String> configuration, @Nonnull final String classPath) {
+  public void open(@Nonnull final Context context, @Nonnull final String classPath) {
     //TODO: add check on driver
-    super.open(configuration, classPath);
+    super.open(context, classPath);
     executorService.scheduleWithFixedDelay(this::publishStats, 2, 30, TimeUnit.SECONDS);
     if (resourceQueueAnalyzer == null) {
-      resourceQueueAnalyzer = new PGAnalyzer(configuration);
+      resourceQueueAnalyzer = new PGAnalyzer(context);
       getTempTextPublisher().accept(Analyzer.logMessage("Analyzer successfully created"));
       return;
     }

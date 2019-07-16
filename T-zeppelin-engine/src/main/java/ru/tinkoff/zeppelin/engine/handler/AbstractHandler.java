@@ -16,13 +16,6 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
 import ru.tinkoff.zeppelin.core.notebook.*;
@@ -31,13 +24,14 @@ import ru.tinkoff.zeppelin.engine.EventService;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.forms.FormsProcessor;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+import ru.tinkoff.zeppelin.storage.*;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Base class for handlers
@@ -313,7 +307,7 @@ abstract class AbstractHandler {
       return false;
     }
     final Status status = jobBatch.getStatus();
-    return Status.running.contains(status);
+    return Status.getRunningStatuses().contains(status);
   }
 
   void publishTempOutput(final Job job, final String tempText) {

@@ -101,8 +101,6 @@ public class CompletionService {
         noteContext.put(NoteContext.Z_ENV_PARAGRAPH_ID.name(), String.valueOf(paragraph.getId()));
         noteContext.put(NoteContext.Z_ENV_PARAGRAPH_SHEBANG.name(), paragraph.getShebang());
 
-        noteContext.put(NoteContext.Z_ENV_MARKER_PREFIX.name(), Configuration.getInstanceMarkerPrefix());
-
         // prepare usercontext
         final Map<String, String> userContext = new HashMap<>();
         userContext.put(UserContext.Z_ENV_USER_NAME.name(), user);
@@ -146,6 +144,8 @@ public class CompletionService {
                 serverBootstrap.getServer().getPort(),
                 config.getJvmOptions(),
                 config.getConcurrentTasks(),
+                config.getRegularTTL(),
+                config.getScheduledTTL(),
                 Configuration.getInstanceMarkerPrefix());
       }
     } catch (final Exception e) {

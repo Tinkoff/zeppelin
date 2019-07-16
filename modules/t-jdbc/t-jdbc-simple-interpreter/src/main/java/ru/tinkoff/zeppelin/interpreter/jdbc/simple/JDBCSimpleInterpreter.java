@@ -16,16 +16,21 @@
  */
 package ru.tinkoff.zeppelin.interpreter.jdbc.simple;
 
-import java.util.Iterator;
-import javax.annotation.Nonnull;
 import ru.tinkoff.zeppelin.commons.jdbc.AbstractJDBCInterpreter;
-import ru.tinkoff.zeppelin.commons.jdbc.JDBCUtil;
+
+import javax.annotation.Nonnull;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.stream.Collectors;
 
 
 public class JDBCSimpleInterpreter extends AbstractJDBCInterpreter {
 
   @Override
   public Iterator<String> getStatementIterator(@Nonnull final String statements) {
-    return JDBCUtil.splitStatements(statements).iterator();
+    return Arrays.stream(statements.split(";"))
+        .filter(s -> !s.trim().isEmpty())
+        .collect(Collectors.toList())
+        .iterator();
   }
 }

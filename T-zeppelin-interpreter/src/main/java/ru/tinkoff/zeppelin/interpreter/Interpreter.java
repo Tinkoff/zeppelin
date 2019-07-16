@@ -58,18 +58,19 @@ public abstract class Interpreter extends Base {
     this.zeppelinConsumer = c;
   }
 
-  public Interpreter() {
-  }
+  public Interpreter() { }
 
   public abstract boolean isAlive();
 
   public abstract boolean isOpened();
 
-  public abstract void open(final Map<String, String> configuration, final String classPath);
+  public abstract void open(final Context context,  final String classPath);
 
   public abstract boolean isReusableForConfiguration(final Map<String, String> configuration);
 
   public abstract void cancel();
+
+  public abstract void hibernate();
 
   public abstract void close();
 
