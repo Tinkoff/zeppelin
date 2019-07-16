@@ -98,9 +98,9 @@ public class ParagraphHandler extends AbstractHandler {
     final Note note = safeLoadNote("noteId", fromMessage, Permission.WRITER, authenticationInfo, conn);
     final Paragraph p = safeLoadParagraph("id", fromMessage, note);
 
+    noteService.removeParagraph(note, p);
     LOGGER.info("Удаление параграфа noteId: {}, noteUuid : {} paragraphId: {} ",
         note.getId(), note.getUuid(), p.getId());
-    noteService.removeParagraph(note, p);
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
     paragraphs.sort(Comparator.comparingInt(Paragraph::getPosition));
 

@@ -18,13 +18,11 @@ package ru.tinkoff.zeppelin.engine;
 
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
+import ru.tinkoff.zeppelin.core.notebook.JobBatch;
 import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.NoteRevision;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.NoteRevisionDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+import ru.tinkoff.zeppelin.storage.*;
 
 import java.util.List;
 
@@ -42,15 +40,18 @@ public class NoteService {
   private final ParagraphDAO paragraphDAO;
   private final FullParagraphDAO fullParagraphDAO;
   private final NoteRevisionDAO noteRevisionDAO;
+  private final JobBatchDAO jobBatchDAO;
 
   public NoteService(final NoteDAO noteDAO,
                      final ParagraphDAO paragraphDAO,
                      final FullParagraphDAO fullParagraphDAO,
-                     final NoteRevisionDAO noteRevisionDAO) {
+                     final NoteRevisionDAO noteRevisionDAO,
+                     final JobBatchDAO jobBatchDAO) {
     this.noteDAO = noteDAO;
     this.paragraphDAO = paragraphDAO;
     this.fullParagraphDAO = fullParagraphDAO;
     this.noteRevisionDAO = noteRevisionDAO;
+    this.jobBatchDAO = jobBatchDAO;
   }
 
   public List<Note> getAllNotes() {
@@ -106,6 +107,10 @@ public class NoteService {
   }
 
   public void removeParagraph(final Note note, final Paragraph paragraph) {
+    if (noteIsRunning(note)) {
+      throw new IllegalStateException("Note is running. Can't delete paragraph.");
+    }
+
     final ParagraphDTO before = fullParagraphDAO.getById(paragraph.getId());
 
     paragraphDAO.remove(paragraph);
@@ -132,5 +137,14 @@ public class NoteService {
     paragraphDAO.getByRevisionId(revision.getId()).stream()
         .peek(p -> p.setRevisionId(null))
         .forEach(paragraphDAO::persist);
+  }
+
+  private boolean noteIsRunning(final Note note) {
+    final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
+    if (jobBatch == null) {
+      return false;
+    }
+    final JobBatch.Status status = jobBatch.getStatus();
+    return JobBatch.Status.running.contains(status);
   }
 }
