@@ -145,6 +145,6 @@ public class NoteService {
       return false;
     }
     final JobBatch.Status status = jobBatch.getStatus();
-    return JobBatch.Status.running.contains(status);
+    return JobBatch.Status.getRunningStatuses().contains(status);
   }
 }
