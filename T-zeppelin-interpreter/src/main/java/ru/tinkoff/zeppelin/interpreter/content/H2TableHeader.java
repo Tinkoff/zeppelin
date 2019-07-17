@@ -9,4 +9,12 @@ public class H2TableHeader {
     this.name = name;
     this.type = type;
   }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getTypeName() {
+    return type.getSchemaName();
+  }
 }

@@ -17,28 +17,20 @@
 package ru.tinkoff.zeppelin.interpreter.content;
 
 
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 public class H2TableMetadata {
 
-  private final Map<String, String> columns;
+  private final LinkedHashMap<String, String> columns;
   private long rowCount;
 
-  H2TableMetadata(final Map<String, String> columns, final long rowCount) {
+  H2TableMetadata(final LinkedHashMap<String, String> columns, final long rowCount) {
     this.columns = columns;
     this.rowCount = rowCount;
   }
 
-  H2TableMetadata(final Map<String, String> columns) {
-    this.columns = columns;
-  }
-
-  public Map<String, String> getColumns() {
+  public LinkedHashMap<String, String> getColumns() {
     return columns;
-  }
-
-  public void setRowCount(final long rowCount) {
-    this.rowCount = rowCount;
   }
 
   public long getRowCount() {

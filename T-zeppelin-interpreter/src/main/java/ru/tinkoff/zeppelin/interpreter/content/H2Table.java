@@ -2,7 +2,7 @@ package ru.tinkoff.zeppelin.interpreter.content;
 
 import java.util.ArrayList;
 
-public class H2Table<T> {
+public class H2Table {
   private H2TableHeader header;
   private H2TableMetadata metadata;
   private ArrayList<ArrayList<Object>> table;
@@ -23,10 +23,6 @@ public class H2Table<T> {
 
   public H2TableMetadata getMetadata() {
     return metadata;
-  }
-
-  public void setMetadata(final H2TableMetadata metadata) {
-    this.metadata = metadata;
   }
 
   public ArrayList<ArrayList<Object>> getTable() {

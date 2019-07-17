@@ -61,33 +61,24 @@ public class H2MonitoringService {
                     + noteDAO.get(noteId).getUuid()
                     + File.separator
                     + "outputDB";
-    try (final Connection con = h2Manager.getConnection(Configuration.getNoteStorePath(),
-            noteDAO.get(noteId).getUuid())) {
-      compareH2ToContext(con, noteContextPath, noteId);
+    try {
+      h2Manager.setConnection(Configuration.getNoteStorePath(), noteDAO.get(noteId).getUuid());
+      h2Manager.releaseConnection();
+      compareH2ToContext(noteContextPath, noteId);
     } catch (final Throwable th) {
       //Connection error
       LOG.info(th.getMessage());
     }
   }
 
-  private void compareH2ToContext(final Connection connection,
-                                  final String locationBase,
+  private void compareH2ToContext(final String locationBase,
                                   final long noteId) throws SQLException, NullPointerException {
     final LinkedList<String> schemas = new LinkedList<>(Arrays.asList("V_TABLES", "R_TABLES", "S_TABLES"));
 
-    //delete noteId content
     contentDAO.remove(noteId);
 
     for (final String schema : schemas) {
-      //get table names for each schema
-      final ResultSet resultSet = connection
-              .createStatement()
-              .executeQuery(
-                      String.format("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES " +
-                                      "WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME NOT LIKE '%%\\_META'",
-                              schema)
-              );
-
+      final ResultSet resultSet = h2Manager.getTableNames(schema);
       final List<String> tables = new LinkedList<>();
       while (resultSet.next()) {
         tables.add(resultSet.getString("TABLE_NAME"));
@@ -95,7 +86,7 @@ public class H2MonitoringService {
 
       for (final String tableName : tables) {
         final String location = locationBase + ":" + schema + "." + tableName;
-        final H2TableMetadata h2TableMetadata = h2Manager.getMetadata(tableName, H2TableType.valueOf(schema), connection);
+        final H2TableMetadata h2TableMetadata = h2Manager.getMetadata(tableName, H2TableType.valueOf(schema));
 
         try {
           contentDAO.persist(new Content(noteId, ContentType.TABLE, String.valueOf(h2TableMetadata.getRowCount()), location, null));
