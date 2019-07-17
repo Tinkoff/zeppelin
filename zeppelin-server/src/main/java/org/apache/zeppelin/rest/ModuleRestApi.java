@@ -544,7 +544,8 @@ public class ModuleRestApi {
       for (final ModuleConfiguration configuration : configurations) {
         // check permissions
         if (configuration.getPermissions().isEnabled()
-            && !configuration.getPermissions().getOwners().removeAll(userPermissions)){
+            && configuration.getPermissions().getOwners().stream().noneMatch(userPermissions::contains)){
+          // skip if no permission
           continue;
         }
 
