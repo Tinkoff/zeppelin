@@ -19,20 +19,7 @@ limitations under the License.
       ng-hide="viewOnly"
       ng-include src="'app/notebook/database-explorer/database-explorer.html'"></span>
 
-
-<div id="graph" ng-if="note.viewMode === 'SCHEMA'"
-     style="width:95% !important; height: 90% !important; min-height: 500px; position:absolute;">
-</div>
-
-<div id="graph-menu" ng-if="currentGraphParagraph"
-     style="z-index: 99999999; display: none; position: absolute; background = '#eee'; padding = '10px';"
-     ng-include src="'app/notebook/paragraph/paragraph-dropdown-menu.html'"
-     ng-controller="ParagraphCtrl"
-     ng-init="init(currentGraphParagraph, note)">
-</div>
-
-
-<div id="content" class="notebookContent" ng-if="note.viewMode !== 'SCHEMA'">
+<div id="content" class="notebookContent">
   <!-- revisions comparator-->
   <div ng-if="showRevisionsComparator" class="revisions-comparator">
     <div>
@@ -206,5 +193,6 @@ limitations under the License.
       </div>
     </div>
   </div>
+
   <div style="clear:both;height:10px"></div>
 </div>

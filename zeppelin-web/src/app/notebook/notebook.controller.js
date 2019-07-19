@@ -13,9 +13,8 @@
  */
 
 import moment from 'moment';
-import {isParagraphRunning, ParagraphStatus} from './paragraph/paragraph.status';
 
-const echarts = require('echarts');
+import {isParagraphRunning} from './paragraph/paragraph.status';
 
 angular.module('zeppelinWebApp').controller('NotebookCtrl', NotebookCtrl);
 
@@ -27,7 +26,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
   ngToast.dismiss();
 
-  $scope.schema = null;
   $scope.note = null;
   $scope.actionOnFormSelectionChange = true;
   $scope.hideForms = false;
@@ -41,7 +39,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.showRevisionsComparator = false;
   $scope.collaborativeMode = false;
   $scope.collaborativeModeUsers = [];
-  $scope.noteViewModes = ['DEFAULT', 'SIMPLE', 'REPORT', 'SCHEMA'];
+  $scope.noteViewModes = ['DEFAULT', 'SIMPLE', 'REPORT'];
   $scope.noteFormTitle = null;
   $scope.selectedParagraphsIds = new Set();
   // notification
@@ -49,21 +47,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.showNotifications = false;
   $scope.interpreterQueueDTO = null;
   $scope.interpreterQueuePromise = null;
-
-  // schema
-  let vertexParams = {
-    x: 0,
-    y: 1,
-    id: 2,
-    name: 3,
-    shebang: 4,
-    updated: 5,
-    user: 6,
-    status: 7,
-    text: 8,
-  };
-  $scope.schemaZoomStart = null;
-  $scope.schemaZoomEnd = null;
 
   $scope.isWaiting = function(paragraph) {
     if (paragraph.config && paragraph.config.editorSetting && paragraph.config.editorSetting.language) {
@@ -218,8 +201,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
     for (let i = 0; i < $scope.note.paragraphs.length; i++) {
       let paragraphId = $scope.note.paragraphs[i].id;
-      if (jQuery.contains(angular.element('#' + paragraphId + '_container')) &&
-      jQuery.contains(angular.element('#' + paragraphId + '_container')[0], clickEvent.target)) {
+      if (jQuery.contains(angular.element('#' + paragraphId + '_container')[0], clickEvent.target)) {
         $scope.$broadcast('focusParagraph', paragraphId, 0, null, true);
         break;
       }
@@ -455,7 +437,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
               title: p.title,
               paragraph: p.text,
               config: p.config,
-              params: p.settings ? p.settings.params : {},
+              params: p.settings.params,
             };
           });
           websocketMsgSrv.runAllParagraphs(noteId, paragraphs);
@@ -569,103 +551,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }, 10000);
   };
 
-  /**
-   * Updates paragraph in note and update its vertex.
-   */
-  $scope.$on('updateParagraph', function(event, data) {
-    if ($scope.note.viewMode === 'SCHEMA') {
-      for (let i = 0; i < $scope.note.paragraphs.length; ++i) {
-        if ($scope.note.paragraphs[i].id === data.paragraph.id) {
-          $scope.note.paragraphs[i] = data.paragraph;
-          break;
-        }
-      }
-      $scope.schema.setOption(makeSchema());
-    }
-  });
-
-  /**
-   * Aborts graph menu closing.
-   */
-  function stopHidePopup() {
-    if ($scope.graphMenuTimer) {
-      $timeout.cancel($scope.graphMenuTimer);
-      $scope.graphMenuTimer = null;
-    }
-  }
-
-  /**
-   * Closes graph menu.
-   */
-  function hidePopup() {
-    stopHidePopup();
-    let menu = angular.element('#graph-menu');
-    if (menu) {
-      $scope.graphMenuTimer = $timeout(() => {
-        menu.css('display', 'none');
-        $scope.currentGraphParagraph = null;
-        $scope.schema.setOption(makeSchema());
-      }, 600);
-    }
-  }
-
   $scope.setViewMode = function(mode) {
     $scope.note.viewMode = mode;
     $rootScope.$broadcast('setViewMode', $scope.note.viewMode);
     websocketMsgSrv.updateNote($scope.note.id, $scope.note.path, $scope.note.viewMode);
-    if ($scope.note.viewMode === 'SCHEMA') {
-      let option = makeSchema();
-      if (option) {
-        // wait for graph div
-        setTimeout(() => {
-          const container = document.getElementById('graph');
-          $scope.schema = echarts.init(container);
-          $scope.schema.setOption(option);
-
-          $scope.schema.on('click', function(params) {
-            $scope.toggleSelection(params.value[vertexParams.id]);
-            $scope.schema.setOption(makeSchema());
-          });
-
-          $scope.schema.on('dblclick', function(params) {
-            $rootScope.goTo($scope.note.id + '/?paragraph=' + params.value[vertexParams.id]);
-          });
-
-          $scope.schema.on('dataZoom', function(e) {
-            // save position in canvas
-            $scope.schemaZoomStart = e.start;
-            $scope.schemaZoomEnd = e.end;
-          });
-
-          $scope.schema.on('contextmenu', function(params) {
-            let event = params.event.event;
-            event.preventDefault();
-            for (let i = 0; i < $scope.note.paragraphs.length; ++i) {
-              if ($scope.note.paragraphs[i].id === params.value[vertexParams.id]) {
-                $scope.currentGraphParagraph = $scope.note.paragraphs[i];
-                $rootScope.$broadcast('updateCurrentParagraph', $scope.currentGraphParagraph);
-                break;
-              }
-            }
-            // must wait until menu is created
-            setTimeout(() => {
-              let menu = angular.element('#graph-menu');
-              menu.css('display', 'block');
-              menu.css('left', event.pageX + 'px');
-              menu.css('top', event.pageY + 'px');
-              [].forEach.call(menu, function(el) {
-                el.addEventListener('mouseleave', hidePopup);
-                el.addEventListener('mouseenter', stopHidePopup);
-              });
-            }, 250);
-            $scope.schema.setOption(makeSchema());
-            $scope.schema.dispatchAction({
-              type: 'hideTip',
-            });
-          });
-        }, 200);
-      }
-    }
   };
 
   /** Update the note name */
@@ -790,9 +679,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     if ($scope.selectedParagraphsIds !== null) {
       $scope.selectedParagraphsIds.clear();
     }
-    if ($scope.note.viewMode === 'SCHEMA') {
-      $scope.schema.setOption(makeSchema());
-    }
   };
 
   $scope.isSelectionMode = function() {
@@ -855,9 +741,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
           });
           return;
         } else {
-          action = function() {
-            $scope.selectedParagraphsIds.forEach((id) => websocketMsgSrv.removeParagraph(id));
-          };
+          action = broadcastAction();
         }
         break;
 
@@ -871,7 +755,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
                 title: p.title,
                 paragraph: p.text,
                 config: p.config,
-                params: p.settings ? p.settings.params : {},
+                params: p.settings.params,
               };
             });
           websocketMsgSrv.runAllParagraphs(noteId, paragraphs);
@@ -1080,287 +964,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       $scope.showPermissions = false;
     }
   };
-
-  function convertTime(time) {
-    return new Date(time.date.year, time.date.month - 1, time.date.day, time.time.hour,
-      time.time.minute, time.time.second, Math.floor(time.time.nano / 1000000));
-  }
-
-  /**
-   * Gets vertex color based on paragraph status.
-   */
-  function getVertexColor(paragraph) {
-    if (!paragraph.status) {
-      return '#b7d0f7';
-    } else if (paragraph.status === ParagraphStatus.PENDING) {
-      return '#d9f25c';
-    } else if (paragraph.status === ParagraphStatus.RUNNING) {
-      return '#0733f7';
-    } else if (paragraph.status === 'DONE') {
-      return '#2ea34b';
-    } else if (paragraph.status === ParagraphStatus.ABORTED) {
-      return '#e05f09';
-    } else if (paragraph.status === ParagraphStatus.ABORTING) {
-      return '#ebc34b';
-    } else {
-      return '#ed1118';
-    }
-  }
-
-  /**
-   * Gets vertex value based on paragraph info
-   * @returns title, shebang, last execution time/last update time, user, status, text (cutted to 25 letters).
-   */
-  function getVertexValue(paragraph) {
-    let updated = paragraph.endedAt? paragraph.endedAt : paragraph.updated;
-    let title = paragraph.id;
-    if (paragraph.title && paragraph.title !== '') {
-      title = paragraph.title;
-    }
-    let user = paragraph.user === undefined || paragraph.user === null
-      ? 'anonymous' : paragraph.user;
-
-    let text = paragraph.text ? paragraph.text: 'empty';
-    let secondLineIdx = -1;
-    for (let i = 0; i < Math.min(text.length, 25); ++i) {
-      if (text[i] === '\n') {
-        if (secondLineIdx !== -1) {
-          secondLineIdx = i;
-          text = text.substr(0, secondLineIdx) + '...';
-          break;
-        } else {
-          // first occurrence of '\n'
-          secondLineIdx = i;
-        }
-      }
-    }
-
-    if (text.length > 25) {
-      text = text.substr(0, 22) + '...';
-    }
-
-    return [
-      title,
-      paragraph.shebang,
-      convertTime(updated),
-      user,
-      paragraph.status,
-      text,
-    ];
-  }
-
-  /**
-   * Determines vertex border color.
-   * @returns yellow if paragraph is selected, light blue if it is used in context menu, white otherwise.
-   */
-  function getVertexBorderColor(paragraphId) {
-    if ($scope.currentGraphParagraph && $scope.currentGraphParagraph.id === paragraphId) {
-      return '#03fcec';
-    }
-    if ($scope.selectedParagraphsIds.has(paragraphId)) {
-      return '#f5e042';
-    }
-    return '#000';
-  }
-
-  /**
-   * Determines vertex width.
-   * @returns 3 if paragraph is selected or used in context menu, 0 otherwise.
-   */
-  function getVertexBorderWidth(paragraphId) {
-    if ($scope.selectedParagraphsIds.has(paragraphId)
-    || $scope.currentGraphParagraph && $scope.currentGraphParagraph.id === paragraphId) {
-      return 3;
-    }
-    return 0;
-  }
-
-  /**
-   * Creates options for graph which represents note structure.
-   * @see https://echarts.apache.org/en/option.html#series-graph
-   */
-  function makeSchema() {
-    if ($scope.note && $scope.note.paragraphs) {
-      let width = window.innerWidth
-      || document.documentElement.clientWidth
-      || document.body.clientWidth;
-
-      let height = window.innerHeight
-      || document.documentElement.clientHeight
-      || document.body.clientHeight;
-
-      // Maximum count of paragraphs in a group, which could be displayed normal
-      // 200 is a magic constant.
-      let paragraphLimit = Math.max(Math.floor(height / 200), 1);
-      // what percent of full canvas is a group of paragraphs whose size is less than the paragraphLimit
-      let limitPerWindow = Math.min(100 / ($scope.note.paragraphs.length / paragraphLimit), 100);
-
-      let links = [];
-      let data = [];
-      for (let i = 0; i < $scope.note.paragraphs.length; i++) {
-        data.push({
-          name: i,
-          value: [width / 2, 50 + 100 * i, $scope.note.paragraphs[i].id,
-            ...getVertexValue($scope.note.paragraphs[i])],
-          x: width / 2,
-          y: 50 + 100 * i,
-          itemStyle: {
-            color: getVertexColor($scope.note.paragraphs[i]),
-            borderColor: getVertexBorderColor($scope.note.paragraphs[i].id),
-            borderWidth: getVertexBorderWidth($scope.note.paragraphs[i].id),
-          },
-        });
-        if (i < $scope.note.paragraphs.length - 1) {
-          links.push({
-            source: i,
-            target: i + 1,
-          });
-        }
-      }
-
-      let zoomStart = $scope.schemaZoomStart !== null ? $scope.schemaZoomStart : 0;
-      let zoomEnd = $scope.schemaZoomEnd !== null ? $scope.schemaZoomEnd : limitPerWindow;
-      return {
-        title: {},
-        tooltip: {
-          trigger: 'item',
-          formatter: function(params) {
-            if (params.value) {
-              let status = params.value[vertexParams.status] ? params.value[vertexParams.status] : 'New paragraph';
-              return [
-                'Last updated by ' + params.value[vertexParams.user] + ' at ' +
-                echarts.format.formatTime('MM-dd hh:mm', params.value[vertexParams.updated]),
-                'Status: ' + status,
-                'Name： ' + params.value[vertexParams.name],
-                'Shebang： ' + params.value[vertexParams.shebang],
-              ].join('<br>');
-            }
-          },
-        },
-        xAxis: {
-          type: 'value',
-          min: 0,
-          max: width,
-          axisLine: {
-            show: false,
-          },
-          splitLine: {
-            show: false,
-          },
-          axisTick: {
-            show: false,
-          },
-          axisLabel: {
-            show: false,
-          },
-        },
-        yAxis: {
-          type: 'value',
-          inverse: true,
-          axisLine: {
-            show: false,
-          },
-          splitLine: {
-            show: false,
-          },
-          axisTick: {
-            show: false,
-          },
-          axisLabel: {
-            show: false,
-          },
-        },
-        dataZoom: [
-          {
-            type: 'inside',
-            yAxisIndex: 0,
-            start: zoomStart,
-            end: zoomEnd,
-            rangeMode: 'percent',
-            maxSpan: limitPerWindow,
-            // inside zoom specific
-            moveOnMouseWheel: true,
-            zoomOnMouseWheel: false,
-            moveOnMouseMove: false,
-            preventDefaultMouseMove: false,
-          }, {
-            type: 'slider',
-            yAxisIndex: 0,
-            start: zoomStart,
-            end: zoomEnd,
-            rangeMode: 'percent',
-            maxSpan: limitPerWindow,
-            // slider zoom specific
-            left: '93%',
-            show: true,
-            showDetail: false,
-          }],
-        animation: false,
-        series: [
-          {
-            type: 'graph',
-            layout: 'none',
-            top: 'top',
-            // define coordinate system for scrolling
-            coordinateSystem: 'cartesian2d',
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            // vertexes
-            data: data,
-            // edges
-            links: links,
-            // vertex type
-            symbol: 'roundRect',
-            symbolSize: [180, 65],
-            // text in vertex:
-            //   shebang
-            //   id: paragraph name or id if name is not set
-            //   paragraph text
-            // (all cutted to 25 letters)
-            label: {
-              position: 'inside',
-              show: true,
-              formatter: function(params) {
-                if (params.value) {
-                  let shebang = params.value[vertexParams.shebang];
-                  if (shebang.length > 25) {
-                    shebang = shebang.substr(0, 22) + '...';
-                  }
-                  let name = params.value[vertexParams.name];
-                  if (name.length > 25) {
-                    name = name.substr(0, 22) + '...';
-                  }
-
-                  return [
-                    shebang,
-                    (params.name === '' ? '0' : params.name) + ': ' + name,
-                    params.value[vertexParams.text],
-                  ].join('\n');
-                }
-              },
-            },
-            edgeSymbol: ['circle', 'arrow'],
-            edgeSymbolSize: [4, 10],
-            nodeScaleRatio: 0,
-            edgeLabel: {
-              normal: {
-                textStyle: {
-                  fontSize: 10,
-                },
-              },
-            },
-            lineStyle: {
-              normal: {
-                opacity: 0.9,
-                width: 2,
-                curveness: 0,
-              },
-            },
-          },
-        ],
-      };
-    }
-  }
 
   function convertPermissionsToArray() {
     $scope.permissions.owners = angular.element('#selectOwners').val();
@@ -1865,7 +1468,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         title: p.title,
         paragraph: p.text,
         config: p.config,
-        params: p.settings ? p.settings.params : {},
+        params: p.settings.params,
       };
     });
 
@@ -1884,9 +1487,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       });
     }
 
-    if ($scope.note.viewMode !== 'schema') {
-      $scope.saveCursorPosition(paragraph);
-    }
+    $scope.saveCursorPosition(paragraph);
   });
 
   $scope.$on('collaborativeModeStatus', function(event, data) {
@@ -1919,7 +1520,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         title: p.title,
         paragraph: p.text,
         config: p.config,
-        params: p.settings ? p.settings.params : {},
+        params: p.settings.params,
       };
     });
 
@@ -1938,9 +1539,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       });
     }
 
-    if ($scope.note.viewMode !== 'schema') {
-      $scope.saveCursorPosition(paragraph);
-    }
+    $scope.saveCursorPosition(paragraph);
   });
 
   $scope.saveCursorPosition = function(paragraph) {
@@ -1967,8 +1566,14 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
     // save dirtyText of moving paragraphs.
     let prevParagraph = $scope.note.paragraphs[newIndex];
-    $scope.$broadcast('saveParagraph', paragraph);
-    $scope.$broadcast('saveParagraph', prevParagraph);
+    angular
+      .element('#' + paragraph.id + '_paragraphColumn_main')
+      .scope()
+      .saveParagraph(paragraph);
+    angular
+      .element('#' + prevParagraph.id + '_paragraphColumn_main')
+      .scope()
+      .saveParagraph(prevParagraph);
     websocketMsgSrv.moveParagraph(paragraph.id, newIndex);
   });
 
@@ -1986,8 +1591,14 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
     // save dirtyText of moving paragraphs.
     let nextParagraph = $scope.note.paragraphs[newIndex];
-    $scope.$broadcast('saveParagraph', paragraph);
-    $scope.$broadcast('saveParagraph', nextParagraph);
+    angular
+      .element('#' + paragraph.id + '_paragraphColumn_main')
+      .scope()
+      .saveParagraph(paragraph);
+    angular
+      .element('#' + nextParagraph.id + '_paragraphColumn_main')
+      .scope()
+      .saveParagraph(nextParagraph);
     websocketMsgSrv.moveParagraph(paragraph.id, newIndex);
   });
 

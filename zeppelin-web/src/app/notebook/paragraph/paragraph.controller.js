@@ -157,23 +157,6 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
   let angularObjectRegistry = {};
 
-  $scope.$on('updateCurrentParagraph', function(event, newParagraph) {
-    $scope.paragraph = newParagraph;
-    $scope.originalText = angular.copy(newParagraph.text);
-    $scope.paragraphFocused = false;
-    if (newParagraph.focus) {
-      $scope.paragraphFocused = true;
-    }
-    if (!$scope.paragraph.config) {
-      $scope.paragraph.config = {};
-    }
-    noteVarShareService.put($scope.paragraph.id + '_paragraphScope', paragraphScope);
-
-    initializeDefault($scope.paragraph.config);
-    getInterpreterSettings();
-    setTimeout(() => parseForm($scope.originalText), 250);
-  });
-
   // Controller init
   $scope.init = function(newParagraph, note) {
     $scope.paragraph = newParagraph;
@@ -490,10 +473,6 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   $scope.unBindBeforeUnload = function() {
     angular.element(window).off('beforeunload');
   };
-
-  $scope.$on('saveParagraph', function(event, paragraph) {
-    $scope.saveParagraph(paragraph);
-  });
 
   $scope.saveParagraph = function(paragraph) {
     const dirtyText = paragraph.text;
@@ -2256,6 +2235,10 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       case 'toggleEnableRun':
         $scope.paragraph.config.enabled = data.toggleEnableRunStatus;
         $scope.commitParagraph($scope.paragraph);
+        break;
+
+      case 'delete':
+        websocketMsgSrv.removeParagraph($scope.paragraph.id);
         break;
     }
   });
