@@ -122,7 +122,7 @@ public class NoteHandler extends AbstractHandler {
     final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
     final Note note = safeLoadNote("id", fromMessage, Permission.READER, authenticationInfo, conn);
     final String path = normalizePath(fromMessage.getNotNull("path"));
-    final NoteViewMode viewMode = NoteViewMode.valueOf(fromMessage.getNotNull("mode"));
+    final NoteViewMode viewMode = NoteViewMode.valueOf(fromMessage.getOrDefault("mode", note.getViewMode().name()));
     LOGGER.info("Обновление ноута noteId: {}, noteUuid: {}, viewMode: {}", note.getId(), note.getUuid(), note.getViewMode());
     note.setPath(path);
     note.setViewMode(viewMode);
