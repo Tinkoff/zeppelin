@@ -61,6 +61,7 @@ public class NoteExecutorService {
   private final SchedulerHandler schedulerHandler;
   private final ExecutionHandler executionHandler;
   private final ThriftServerBootstrap serverBootstrap;
+  private final BaseConfigurationService baseConfigurationService;
 
   public NoteExecutorService(final AbortHandler abortHandler,
                              final PendingHandler pendingHandler,
@@ -71,7 +72,8 @@ public class NoteExecutorService {
                              final InterpreterStarterHandler interpreterStarterHandler,
                              final SchedulerHandler schedulerHandler,
                              final ExecutionHandler executionHandler,
-                             final ThriftServerBootstrap serverBootstrap) {
+                             final ThriftServerBootstrap serverBootstrap,
+                             final BaseConfigurationService baseConfigurationService) {
     this.abortHandler = abortHandler;
     this.pendingHandler = pendingHandler;
     this.interpreterDeadHandler = interpreterDeadHandler;
@@ -82,6 +84,7 @@ public class NoteExecutorService {
     this.schedulerHandler = schedulerHandler;
     this.executionHandler = executionHandler;
     this.serverBootstrap = serverBootstrap;
+    this.baseConfigurationService = baseConfigurationService;
   }
 
 
@@ -116,7 +119,6 @@ public class NoteExecutorService {
                   config,
                   innerConfig,
                   source,
-                  serverBootstrap.getServer().getRemoteServerClassPath(),
                   serverBootstrap.getServer().getAddr(),
                   serverBootstrap.getServer().getPort());
         }
@@ -165,9 +167,17 @@ public class NoteExecutorService {
 
   @Scheduled(fixedDelay = 10_000)
   private void notesScheduler() {
-    final List<Scheduler> triggered = schedulerHandler.loadJobs();
-    for (final Scheduler scheduler : triggered) {
-      schedulerHandler.handle(scheduler);
+
+    final boolean isCronEnable = Boolean.logicalAnd(
+        Configuration.isCronEnable(),
+        baseConfigurationService.get("SCHEDULER_ENABLE_FLAG", true)
+    );
+
+    if(isCronEnable) {
+      final List<Scheduler> triggered = schedulerHandler.loadJobs();
+      for (final Scheduler scheduler : triggered) {
+        schedulerHandler.handle(scheduler);
+      }
     }
   }
 

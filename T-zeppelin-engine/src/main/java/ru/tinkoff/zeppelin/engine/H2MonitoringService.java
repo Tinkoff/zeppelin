@@ -63,8 +63,8 @@ public class H2MonitoringService {
                     + "outputDB";
     try {
       h2Manager.setConnection(Configuration.getNoteStorePath(), noteDAO.get(noteId).getUuid());
-      h2Manager.releaseConnection();
       compareH2ToContext(noteContextPath, noteId);
+      h2Manager.releaseConnection();
     } catch (final Throwable th) {
       //Connection error
       LOG.info(th.getMessage());

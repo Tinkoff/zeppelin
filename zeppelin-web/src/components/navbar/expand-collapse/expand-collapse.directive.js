@@ -16,7 +16,7 @@ import './expand-collapse.css';
 
 angular.module('zeppelinWebApp').directive('expandCollapse', expandCollapseDirective);
 
-function expandCollapseDirective() {
+function expandCollapseDirective($compile) {
   return {
     restrict: 'EA',
     link: function(scope, element, attrs) {
@@ -25,6 +25,19 @@ function expandCollapseDirective() {
           angular.element(element).next('.expandable:visible').slideUp('slow');
           angular.element(element).find('i.fa-folder-open').toggleClass('fa-folder fa-folder-open');
         } else {
+          let ulElem = angular.element(element).next('.expandable')[0].children[0];
+          if (ulElem.children.length === 0) {
+            let innerHtml = angular.element(
+              '<li ng-repeat="node in node.children | ' +
+              'orderBy:node:false:navbar.arrayOrderingSrv.noteComparator track by $index"\n' +
+              '   ng-class="{\'active\' : navbar.isActive(node.id)}"\n' +
+              '   ng-include="\'components/navbar/navbar-note-list-elem.html\'">\n' +
+              '</li>')[0];
+            ulElem.append(innerHtml);
+            $compile(innerHtml)(scope);
+            scope.$apply();
+          }
+
           angular.element(element).next('.expandable').first().slideToggle('200', function() {
             // do not toggle trash folder
             if (angular.element(element).find('.fa-trash-o').length === 0) {

@@ -31,6 +31,16 @@ import org.apache.zeppelin.utils.IdHashes;
  */
 public class Note implements Serializable {
 
+  /**
+   * Note representing mode.
+   */
+  public enum NoteViewMode {
+    SIMPLE,
+    DEFAULT,
+    REPORT,
+    SCHEMA
+  }
+
   public final static String TRASH_FOLDER = "~Trash";
 
   private Long id;
@@ -39,6 +49,7 @@ public class Note implements Serializable {
   private String name;
   private String path;
   private NoteRevision revision;
+  private NoteViewMode viewMode;
 
   private Map<String, Object> formParams;
 
@@ -57,6 +68,7 @@ public class Note implements Serializable {
     this.uuid = IdHashes.generateId();
     this.name = name;
     this.path = path;
+    this.viewMode = NoteViewMode.DEFAULT;
 
     this.formParams = new HashMap<>();
 
@@ -133,6 +145,14 @@ public class Note implements Serializable {
 
   public void setBatchJobId(final Long batchJobId) {
     this.batchJobId = batchJobId;
+  }
+
+  public NoteViewMode getViewMode() {
+    return viewMode;
+  }
+
+  public void setViewMode(final NoteViewMode viewMode) {
+    this.viewMode = viewMode;
   }
 
   @Override

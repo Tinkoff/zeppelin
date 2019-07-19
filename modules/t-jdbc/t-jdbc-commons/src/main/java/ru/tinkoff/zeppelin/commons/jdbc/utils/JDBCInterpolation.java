@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package ru.tinkoff.zeppelin.commons.jdbc;
+package ru.tinkoff.zeppelin.commons.jdbc.utils;
 
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
-import java.util.Set;
 
 public class JDBCInterpolation {
 
@@ -45,11 +44,11 @@ public class JDBCInterpolation {
 
 
   /**
-   * Replaces all environment variables in query.
+   * Replaces all environment variables in remoteStatement.
    *
-   * @param query, initial query, never {@code null}.
+   * @param query, initial remoteStatement, never {@code null}.
    * @param intpContext, interpreter context, never {@code null}.
-   * @return new query with replaced env variables, never {@code null}.
+   * @return new remoteStatement with replaced env variables, never {@code null}.
    */
   @Nonnull
   public static String interpolate(@Nonnull final String query,

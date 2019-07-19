@@ -21,8 +21,7 @@ import ru.tinkoff.zeppelin.core.notebook.NoteStatisticInner;
 public class NoteStatisticsDAO {
 
     private static final String GET_USER_FAV_NOTES_STAT = "" +
-            "SELECT DISTINCT ON (NOTES.ID, JOB.PARAGRAPH_ID)\n" +
-            "       FAVORITE_NOTES.NOTE_UUID\n" +
+            "SELECT FAVORITE_NOTES.NOTE_UUID\n" +
             "      ,NOTES.ID as NOTE_ID\n" +
             "      ,NOTES.PATH\n" +
             "      ,JOB.PARAGRAPH_ID\n" +
@@ -34,18 +33,15 @@ public class NoteStatisticsDAO {
             "FROM FAVORITE_NOTES\n" +
             "JOIN NOTES\n" +
             "       ON NOTES.UUID = FAVORITE_NOTES.NOTE_UUID\n" +
-            "LEFT JOIN JOB_BATCH\n" +
-            "       ON JOB_BATCH.NOTE_ID = NOTES.ID\n" +
-            "JOIN JOB\n" +
-            "       ON JOB.BATCH_ID = JOB_BATCH.ID\n" +
-            "LEFT JOIN PARAGRAPHS\n" +
-            "   ON PARAGRAPHS.ID = JOB.PARAGRAPH_ID\n" +
+            "JOIN PARAGRAPHS\n" +
+            "       ON NOTES.ID = PARAGRAPHS.NOTE_ID\n" +
+            "LEFT JOIN JOB\n" +
+            "       ON JOB.ID = PARAGRAPHS.JOB_ID\n" +
             "WHERE FAVORITE_NOTES.USER_NAME = :USER_NAME\n" +
-            "ORDER BY NOTES.ID, JOB.PARAGRAPH_ID, JOB.STARTED_AT DESC;";
+            "ORDER BY NOTES.ID, PARAGRAPHS.POSITION;";
 
     private static final String GET_USER_RECENT_NOTES_STAT = "" +
-            "SELECT DISTINCT ON (NOTES.ID, JOB.PARAGRAPH_ID)\n" +
-            "       RECENT_NOTES.NOTE_UUID\n" +
+            "SELECT RECENT_NOTES.NOTE_UUID\n" +
             "      ,NOTES.ID as NOTE_ID\n" +
             "      ,NOTES.PATH\n" +
             "      ,JOB.PARAGRAPH_ID\n" +
@@ -57,14 +53,12 @@ public class NoteStatisticsDAO {
             "FROM RECENT_NOTES\n" +
             "JOIN NOTES\n" +
             "       ON NOTES.UUID = RECENT_NOTES.NOTE_UUID\n" +
-            "LEFT JOIN JOB_BATCH\n" +
-            "       ON JOB_BATCH.NOTE_ID = NOTES.ID\n" +
-            "JOIN JOB\n" +
-            "       ON JOB.BATCH_ID = JOB_BATCH.ID\n" +
-            "LEFT JOIN PARAGRAPHS\n" +
-            "   ON PARAGRAPHS.ID = JOB.PARAGRAPH_ID\n" +
+            "JOIN PARAGRAPHS\n" +
+            "       ON NOTES.ID = PARAGRAPHS.NOTE_ID\n" +
+            "LEFT JOIN JOB\n" +
+            "       ON JOB.ID = PARAGRAPHS.JOB_ID\n" +
             "WHERE RECENT_NOTES.USER_NAME = :USER_NAME\n" +
-            "ORDER BY NOTES.ID, JOB.PARAGRAPH_ID, JOB.STARTED_AT DESC;";
+            "ORDER BY NOTES.ID, PARAGRAPHS.POSITION;";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -95,7 +89,9 @@ public class NoteStatisticsDAO {
         NoteStatisticInner noteStatisticInner = new NoteStatisticInner();
         noteStatisticInner.setParagraphId(resultSet.getLong("PARAGRAPH_ID"));
         noteStatisticInner.setParagraphUuid(resultSet.getString("PARAGRAPH_UUID"));
-        noteStatisticInner.setStatus(Job.Status.valueOf(resultSet.getString("STATUS")));
+        if (resultSet.getString("STATUS") != null) {
+            noteStatisticInner.setStatus(Job.Status.valueOf(resultSet.getString("STATUS")));
+        }
         noteStatisticInner.setUserName(resultSet.getString("USER_NAME"));
         noteStatisticInner.setStartedAt(startedAt);
         noteStatisticInner.setEndedAt(endedAt);

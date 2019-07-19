@@ -29,12 +29,6 @@
   <description>Zeppelin project</description>
   <url>http://zeppelin.apache.org</url>
 
-  <parent>
-    <groupId>org.apache</groupId>
-    <artifactId>apache</artifactId>
-    <version>17</version>
-  </parent>
-
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -44,9 +38,10 @@
   </licenses>
 
   <scm>
-    <url>https://git-wip-us.apache.org/repos/asf/zeppelin.git</url>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/zeppelin.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/zeppelin.git</developerConnection>
+    <connection>scm:git:ssh:git@github.com:TinkoffCreditSystems/zeppelin.git</connection>
+    <developerConnection>scm:git:ssh:git@github.com:TinkoffCreditSystems/zeppelin.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/TinkoffCreditSystems/zeppelin.git</url>
   </scm>
 
   <inceptionYear>2013</inceptionYear>
@@ -69,6 +64,8 @@
     <module>modules/t-jdbc/t-jdbc-interpreter</module>
     <module>modules/t-jdbc/t-jdbc-completer</module>
     <module>modules/t-jdbc/t-jdbc-simple-interpreter</module>
+    <module>modules/t-jdbc/t-jdbc-gp-interpreter</module>
+    <module>modules/t-jdbc/t-jdbc-psql-interpreter</module>
 
     <module>modules/t-python/t-python-commons</module>
     <module>modules/t-python/t-python-interpreter</module>
@@ -162,4 +159,50 @@
       <url>http://repo.spring.io/libs-release/</url>
     </repository>
   </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.3</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <id>default-deploy</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>deploy</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <serverId>nexus-repo</serverId>
+          <nexusUrl>https://registry.tcsbank.ru/</nexusUrl>
+          <skipStaging>true</skipStaging>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>nexus-repo</id>
+      <url>https://registry.tcsbank.ru/repository/dwh/</url>
+    </snapshotRepository>
+    <repository>
+      <id>nexus-repo</id>
+      <url>https://registry.tcsbank.ru/repository/dwh/</url>
+    </repository>
+  </distributionManagement>
+
+
 </project>

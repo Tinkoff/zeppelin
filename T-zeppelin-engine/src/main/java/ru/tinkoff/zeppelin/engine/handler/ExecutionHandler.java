@@ -16,25 +16,15 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.util.List;
-import java.util.Set;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import ru.tinkoff.zeppelin.SystemEvent;
-import ru.tinkoff.zeppelin.core.notebook.JobPriority;
-import ru.tinkoff.zeppelin.core.notebook.Note;
-import ru.tinkoff.zeppelin.core.notebook.Paragraph;
+import ru.tinkoff.zeppelin.core.notebook.*;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+import ru.tinkoff.zeppelin.storage.*;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Class for handle ready for execute jobs
@@ -44,7 +34,7 @@ import ru.tinkoff.zeppelin.storage.ZLog;
  * @since 1.0
  */
 @Component
-public class ExecutionHandler extends AbstractHandler{
+public class ExecutionHandler extends AbstractHandler {
 
   public ExecutionHandler(final JobBatchDAO jobBatchDAO,
                           final JobDAO jobDAO,
@@ -60,15 +50,33 @@ public class ExecutionHandler extends AbstractHandler{
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void run(final Note note, final List<Paragraph> paragraphs, final String username, final Set<String> roles) {
     if (noteIsRunning(note)) {
-      ZLog.log(ET.JOB_ALREADY_RUNNING,
-          String.format("Ноут[id=%s] уже исполняется. Задача не будет добавлена на исполнение [автор задачи=%s]", note.getId(), username),
-          SystemEvent.SYSTEM_USERNAME);
-      return;
-    }
 
-    ZLog.log(ET.JOB_SUBMITTED_FOR_EXECUTION,
-        String.format("Задача добавлена в очередь на исполнение (ноут[id=%s], автор задачи=%s)", note.getId(), username),
-        SystemEvent.SYSTEM_USERNAME);
-    publishBatch(note, paragraphs, username, roles, JobPriority.USER.getIndex());
+      // only for single paragraph
+      if (paragraphs.size() != 1) {
+        return;
+      }
+
+      // check user
+      final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
+      final List<Job> jobs = jobDAO.loadByBatch(jobBatch.getId());
+
+      if (jobs.size() == 0 ||
+          !jobs.get(0).getUsername().equals(username) ||
+          jobs.get(0).getPriority() == JobPriority.SCHEDULER.getIndex()) { // run on scheduler
+        return;
+      }
+
+      // check is batch already contains job
+      final Paragraph paragraph = paragraphs.get(0);
+      final boolean contains = jobs.stream().anyMatch(j -> j.getParagraphId() == paragraph.getId());
+      if (contains) {
+        return;
+      }
+
+      // append to existing batcb
+      appendJob(jobBatch, note, paragraph, jobs.size(), JobPriority.USER.getIndex(), username, roles);
+    } else {
+      publishBatch(note, paragraphs, username, roles, JobPriority.USER.getIndex());
+    }
   }
 }

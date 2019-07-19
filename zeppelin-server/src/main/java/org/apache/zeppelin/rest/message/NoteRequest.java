@@ -97,6 +97,10 @@ public class NoteRequest {
     return noteRequest;
   }
 
+  public void setRunning(final boolean running) {
+    isRunning = running;
+  }
+
   private static String normalizePath(String path) {
     // fix 'folder/noteName' --> '/folder/noteName'
     if (!path.startsWith("/")) {

@@ -139,12 +139,18 @@ public class NoteEventService {
                             .replace("{server}", server)
                             .replace("{note.uuid}", note.getUuid())
                             .replace("{note.path}", note.getPath())
-                            .replace("{oldScheduler.expression}", oldScheduler.getExpression())
-                            .replace("{newScheduler.enable}", currentScheduler.isEnabled() ? "True" : "False")
-                            .replace("{newScheduler.expression}", currentScheduler.getExpression())
-                            .replace("{oldScheduler.enable}", oldScheduler.isEnabled() ? "True" : "False")
-                            .replace("{newScheduler.user}", currentScheduler.getUser())
-                            .replace("{newScheduler.nextExecution}", currentScheduler.getNextExecution().toString());
+                            .replace("{oldScheduler.expression}", oldScheduler != null ?
+                  oldScheduler.getExpression() : "<b><i>scheduler not found (deleted)</b></i>")
+                            .replace("{newScheduler.enable}", currentScheduler != null ?
+                  (currentScheduler.isEnabled() ? "True" : "False") : "<b><i>scheduler not found (deleted)</b></i>")
+                            .replace("{newScheduler.expression}", currentScheduler != null ?
+                  currentScheduler.getExpression() : "<b><i>scheduler not found (deleted)</b></i>")
+                            .replace("{oldScheduler.enable}", oldScheduler != null ?
+                  (oldScheduler.isEnabled() ? "True" : "False") : "<b><i>scheduler not found (deleted)</b></i>")
+                            .replace("{newScheduler.user}", currentScheduler != null ?
+                  currentScheduler.getUser() : "<b><i>scheduler not found (deleted)</b></i>")
+                            .replace("{newScheduler.nextExecution}", currentScheduler != null ?
+                  currentScheduler.getNextExecution().toString() : "<b><i>scheduler not found (deleted)</b></i>");
 
                     break;
                 }
@@ -176,8 +182,8 @@ public class NoteEventService {
             }
             mimeMessage.setContent(text, "text/html");
             emailSender.send(mimeMessage);
-        } catch (final MessagingException | RuntimeException exception) {
-            LOG.info("Error on email send: " + exception.getMessage());
+        } catch (final Throwable th) {
+            LOG.info("Error on email send: " + th.getMessage());
         }
     }
 }

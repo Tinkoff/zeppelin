@@ -51,11 +51,17 @@ limitations under the License.
       ></code-editor>
     </div>
 
+    <div ng-show="!paragraph.config.editorHide && !viewOnly"
+         id="{{paragraph.id}}_cursorPos"
+         class="cursorPos">
+      {{cursorMsg}}
+    </div>
+
     <div ng-include src="'app/notebook/paragraph/paragraph-progress-bar.html'"></div>
     <div>
       <dynamic-forms
         id="paragraph.id"
-        hide="paragraph.config.tableHide"
+        hide="paragraph.config.formsHide"
         disable="paragraph.status == 'RUNNING' || paragraph.status == 'PENDING'"
         actiononchange="true"
         forms="paragraph.settings.forms"
@@ -86,13 +92,14 @@ limitations under the License.
 
   <div ng-if="!asIframe" class="paragraphFooter">
     <div ng-show="!paragraph.config.tableHide && !viewOnly"
-         id="{{paragraph.id}}_cursorPos"
-         class="cursorPos">
-      {{cursorMsg}}
-    </div>
-    <div ng-show="!paragraph.config.tableHide && !viewOnly"
          id="{{paragraph.id}}_executionTime"
          class="executionTime" ng-bind-html="getExecutionTime(paragraph)">
+    </div>
+    <div style="display: inline-block; float: right; font-size: 10px; color: grey; padding-top: 5px;">
+      <a href="https://github.com/TinkoffCreditSystems/zeppelin/blob/9a016f8bada4b077b8d8e95f123aa0a595a40c23/docs/usage/dynamic_form/TZeppleinDynamicFormsDocs.md"
+         target="_blank">
+        <span style="color: grey !important;">Form's docs</span>
+      </a>
     </div>
     <div ng-if = "paragraph.status === 'RUNNING'" class = "paragraphFooterElapsed">
       <div id="{{paragraph.id}}_elapsedTime"

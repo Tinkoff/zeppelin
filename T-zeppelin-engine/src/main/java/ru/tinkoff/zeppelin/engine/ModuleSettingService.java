@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.Repository;
 import org.springframework.stereotype.Component;
@@ -66,13 +67,18 @@ public class ModuleSettingService {
                     || ms.getStatus() == ModuleSource.Status.INSTALLED && !ModuleInstaller.isInstalled(ms.getName()))
             .forEach(src -> {
               uninstallSource(src, false);
-              installSource(src, true, false);
+              try {
+                installSource(src, true, false);
+              } catch (final Exception e) {
+                src.setStatus(ModuleSource.Status.NOT_INSTALLED);
+                moduleSourcesDAO.update(src);
+              }
 
               // enable configurations
               for (final ModuleConfiguration configuration : configurations) {
                 if (configuration.getModuleSourceId() == src.getId()) {
                   final ModuleConfiguration mc = moduleConfigurationDAO.getById(configuration.getId());
-                  mc.setEnabled(true);
+                  mc.setEnabled(src.getStatus() == ModuleSource.Status.INSTALLED);
                   moduleConfigurationDAO.update(mc);
                 }
               }
@@ -96,9 +102,13 @@ public class ModuleSettingService {
     final String installationDir;
     try {
       ModuleInstaller.uninstallInterpreter(source.getName());
-      installationDir = ModuleInstaller.install(source.getName(), source.getArtifact(), getAllRepositories());
+
+      final List<String> repos = new ArrayList<>();
+      getAllRepositories().forEach(r -> repos.add(r.getUrl()));
+
+      installationDir = ModuleInstaller.install(source.getName(), source.getArtifact(), repos);
       if (StringUtils.isEmpty(installationDir)) {
-        throw new RuntimeException();
+        throw new RuntimeException("Empty installation dir path. Can't install module.");
       }
 
     } catch (final Exception e) {

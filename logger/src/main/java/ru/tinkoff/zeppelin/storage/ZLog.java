@@ -21,10 +21,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
 
 
@@ -33,6 +34,7 @@ import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
  */
 @Component
 public class ZLog {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ZLog.class);
 
   private final ApplicationContext applicationContext;
 
@@ -69,9 +71,7 @@ public class ZLog {
       try {
         storage.persist(event);
       } catch (final Exception e) {
-        log(ET.FAILED_TO_SAVE_EVENT,
-            String.format("Ошибка при сохранении системного события: %s", e.getMessage()),
-            SystemEvent.SYSTEM_USERNAME);
+        LOGGER.error("Ошибка при сохранении системного события", e);
       }
     }
   }
@@ -81,14 +81,8 @@ public class ZLog {
                        @Nullable final String description,
                        @Nonnull final String username,
                        @Nonnull final LocalDateTime time) {
-    try {
-      final SystemEventDTO event = new SystemEventDTO(username, eventType.name(), message, description, time);
-      eventQueue.add(event);
-    } catch (final Exception e) {
-      log(ET.FAILED_TO_ADD_SYSTEM_EVENT,
-          String.format("Ошибка при добавлении системного события в очередь: %s", e.getMessage()),
-          SystemEvent.SYSTEM_USERNAME);
-    }
+    final SystemEventDTO event = new SystemEventDTO(username, eventType.name(), message, description, time);
+    eventQueue.add(event);
   }
 
   public static void log(@Nonnull final ET eventType,
@@ -99,7 +93,7 @@ public class ZLog {
       instance.enqueue(eventType, message, description, username, LocalDateTime.now());
     } catch (final Exception e) {
       // Logs from interpreter reinstall will be ignored because instance is null at start.
-      // skip
+      LOGGER.error("Ошибка при добавлении системного события в очередь", e);
     }
   }
 

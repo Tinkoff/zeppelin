@@ -33,24 +33,36 @@
 
 
   <dependencies>
+    <dependency>
+      <groupId>org.apache.zeppelin</groupId>
+      <artifactId>T-zeppelin-remote</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.zeppelin</groupId>
       <artifactId>T-zeppelin-interpreter</artifactId>
-      <version>1.0.0-T-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.zeppelin</groupId>
       <artifactId>zeppelin-dependency</artifactId>
-      <version>1.0.0-T-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.zeppelin</groupId>
       <artifactId>t-jdbc-commons</artifactId>
-      <version>1.0.0-T-SNAPSHOT</version>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.jsqlparser</groupId>
+      <artifactId>jsqlparser</artifactId>
+      <!-- 1.2 is required -->
+      <version>1.2</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->

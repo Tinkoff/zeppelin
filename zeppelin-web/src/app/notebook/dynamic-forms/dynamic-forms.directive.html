@@ -101,5 +101,28 @@ limitations under the License.
                ng-click="toggleCheckbox(formulaire, option, params)"/> {{option.displayName||option.value}}
       </label>
     </div>
+    <div ng-if="forms[formulaire.name].type == 'DatePicker'"
+         ng-controller="DatetimePickerDFormCtrl"
+         style="padding-left: 0"
+         ng-init="controllerInit(formulaire, 'datepicker_' + id + '_' + formulaire.name)"
+         ng-model-options='{ debounce: 1000 }'
+         ng-class="{'disable': disable}"
+         name="{{formulaire.name}}"
+         class="container">
+      <div class="form-group">
+        <div class='input-group datetimepicker-div'>
+          <input id='datepicker_{{id}}_{{formulaire.name}}'
+                 ng-model="params[formulaire.name]"
+                 ng-change="action(formulaire)"
+                 type='text'
+                 class="form-control"
+                 autocomplete="off"/>
+          <span class="btn input-group-addon"
+                ng-click="onCalendarClick()">
+            <span style="font-size: 18px" class="glyphicon glyphicon-calendar"></span>
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 </form>

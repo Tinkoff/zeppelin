@@ -24,7 +24,7 @@ public class HeliumEnabledRegistries {
   private static final Set<HeliumRegistry> registries = new HashSet<>();
 
   public static Set<HeliumRegistry> getRegistries() {
-    return registries;
+    return new HashSet<>();
   }
 
   static {

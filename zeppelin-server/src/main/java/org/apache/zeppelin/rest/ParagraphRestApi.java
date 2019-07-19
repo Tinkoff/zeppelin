@@ -75,7 +75,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId,
       @RequestBody final String message) {
     LOGGER.info("Создание параграфа в ноуте noteId: {} из {} через RestApi", noteId, message);
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     final ParagraphRequest request = ParagraphRequest.fromJson(message);
     final List<Paragraph> paragraphs = noteService.getParagraphs(note);
 
@@ -130,7 +130,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @RequestBody final String message) {
     final ParagraphRequest request = ParagraphRequest.fromJson(message);
 
-    final Note note = secureLoadNote(noteId, Permission.WRITER);
+    final Note note = secureLoadNoteById(noteId, Permission.WRITER);
     final Paragraph paragraph = getParagraph(note, paragraphId);
     LOGGER.info("Обновление параграфа paragraphId: {}, ноута noteId: {}, noteUuid: {} через RestApi", paragraph.getId(), note.getId(), note.getUuid());
 
@@ -161,7 +161,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("paragraphId") final long paragraphId) {
     LOGGER.info("Получение параграфа paragraphId: {} ноута noteId: {} через RestApi(GET)", paragraphId, noteId);
 
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     final ParagraphRequest response = new ParagraphRequest(getParagraph(note, paragraphId));
     return new JsonResponse(HttpStatus.OK, "Paragraph info", response).build();
   }
@@ -176,7 +176,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId) {
     LOGGER.info("Получение всех параграфов ноута noteId: {} через RestApi(POST)", noteId);
 
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     final List<ParagraphRequest> response = noteService.getParagraphs(note).stream()
         .map(ParagraphRequest::new)
         .collect(Collectors.toList());
@@ -220,7 +220,7 @@ public class ParagraphRestApi extends AbstractRestApi {
   public ResponseEntity deleteParagraph(@PathVariable("noteId") final long noteId,
                                         @PathVariable("paragraphId") final long paragraphId) {
     LOGGER.info("Удаление параграфа paragraphId: {} ноута noteId: {} через RestApi", paragraphId, noteId);
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     final Paragraph paragraph = getParagraph(note, paragraphId);
     noteService.removeParagraph(note, paragraph);
     return new JsonResponse(HttpStatus.OK, "Paragraph deleted").build();
@@ -231,7 +231,7 @@ public class ParagraphRestApi extends AbstractRestApi {
       @PathVariable("noteId") final long noteId,
       @PathVariable("paragraphId") final long paragraphId,
       @RequestBody final Map<String, Object> formValues) {
-    final Note note = secureLoadNote(noteId, Permission.WRITER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     final Paragraph paragraph = getParagraph(note, paragraphId);
     final Map<String, Object> params = paragraph.getFormParams();
     LOGGER.info("Изменение параметров параграфа paragraphId: {} ноута noteId: {}, noteUuid: {} через RestApi", paragraphId, note.getId(), note.getUuid());

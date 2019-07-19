@@ -17,17 +17,20 @@
 package org.apache.zeppelin.rest;
 
 import com.google.gson.Gson;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zeppelin.Repository;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
+import org.apache.zeppelin.rest.message.JsonResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zeppelin.rest.message.JsonResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -259,7 +262,7 @@ public class ModuleRestApi {
               addModuleSourceDTO.artifact,
               ModuleSource.Status.NOT_INSTALLED,
               StringUtils.EMPTY,
-              false
+              addModuleSourceDTO.artifact.toLowerCase().endsWith(":default")
       );
 
       moduleSettingService.installSource(moduleSource, false, true);
@@ -532,20 +535,31 @@ public class ModuleRestApi {
   public ResponseEntity listInterpretersSettings() {
     LOGGER.info("Получение списка настроек интерпретаторов");
     try {
+      final AuthenticationInfo authenticationInfo = AuthorizationService.getAuthenticationInfo();
+      final Set<String> userPermissions = new HashSet<>(authenticationInfo.getRoles());
+      userPermissions.add(authenticationInfo.getUser());
 
       final List<ConfigurationDTO> result = new ArrayList<>();
       final List<ModuleConfiguration> configurations = moduleConfigurationDAO.getAll();
       for (final ModuleConfiguration configuration : configurations) {
+        // check permissions
+        if (configuration.getPermissions().isEnabled()
+            && configuration.getPermissions().getOwners().stream().noneMatch(userPermissions::contains)){
+          // skip if no permission
+          continue;
+        }
+
+        // check type
         final ModuleSource source = moduleSourcesDAO.get(configuration.getModuleSourceId());
         if (source != null && source.getType().equals(Type.COMPLETER)) {
           continue;
         }
 
+        // hide passwords
         final ModuleInnerConfiguration inner = moduleInnerConfigurationDAO.getById(configuration.getModuleInnerConfigId());
         inner.getProperties().values().stream()
                 .filter(moduleProperty -> moduleProperty.getType().equals("password"))
                 .forEach(moduleProperty -> moduleProperty.setCurrentValue("*****"));
-
         final ConfigurationDTO conf = new ConfigurationDTO();
         conf.id = configuration.getId();
         conf.shebang = configuration.getShebang();

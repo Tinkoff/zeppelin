@@ -1,0 +1,100 @@
+ {
+    "className": "ru.tinkoff.zeppelin.interpreter.jdbc.gp.GPInterpreter",
+    "properties": {
+      "connection.url": {
+        "envName": null,
+        "propertyName": "connection.url",
+        "defaultValue": "jdbc:postgresql://localhost:5432/",
+        "currentValue": "jdbc:postgresql://localhost:5432/",
+        "description": "The URL for JDBC.",
+        "type": "textarea"
+      },
+      "connection.user": {
+        "envName": null,
+        "propertyName": "connection.user",
+        "defaultValue": "gpadmin",
+        "currentValue": "gpadmin",
+        "description": "The JDBC user name",
+        "type": "textarea"
+      },
+      "connection.password": {
+        "envName": null,
+        "propertyName": "connection.password",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "The JDBC user password",
+        "type": "password"
+      },
+      "driver.className": {
+        "envName": null,
+        "propertyName": "driver.className",
+        "defaultValue": "org.postgresql.Driver",
+        "currentValue": "org.postgresql.Driver",
+        "description": "JDBC Driver Name",
+        "type": "textarea"
+      },
+      "driver.artifact": {
+        "envName": null,
+        "propertyName": "driver.artifact",
+        "defaultValue": "org.postgresql:postgresql:jar:42.2.5",
+        "currentValue": "org.postgresql:postgresql:jar:42.2.5",
+        "description": "JDBC Driver Maven Artifact",
+        "type": "textarea"
+      },
+      "driver.artifact.dependency": {
+        "envName": null,
+        "propertyName": "driver.artifact.dependency",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "JDBC Driver dependencies. Separator ';'",
+        "type": "textarea"
+      },
+      "driver.maven.repository.url": {
+        "envName": null,
+        "propertyName": "driver.maven.repository.url",
+        "defaultValue": "http://repo1.maven.org/maven2/",
+        "currentValue": "http://repo1.maven.org/maven2/",
+        "description": "Maven Repository url to download driver",
+        "type": "textarea"
+      },
+      "query.timeout": {
+        "envName": null,
+        "propertyName": "query.timeout",
+        "defaultValue": "0",
+        "currentValue": "0",
+        "description": "The number of seconds the driver will wait for a query to execute, 0 means no limit",
+        "type": "number"
+      },
+      "query.rowlimit": {
+        "envName": null,
+        "propertyName": "query.rowlimit",
+        "defaultValue": "0",
+        "currentValue": "0",
+        "description": "Max query row count, 0 means no limit",
+        "type": "number"
+      },
+      "query.precode": {
+        "envName": null,
+        "propertyName": "query.precode",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Query which will be executed before each user query",
+        "type": "textarea"
+      },
+      "query.postcode": {
+        "envName": null,
+        "propertyName": "query.postcode",
+        "defaultValue": "",
+        "currentValue": "",
+        "description": "Query which will be executed after each user query",
+        "type": "textarea"
+      }
+    },
+    "editor": {
+      "language": "sql",
+      "enableLiveAutocompletion": true,
+      "editOnDblClick": false,
+      "completionSupport": false,
+      "completionKey": "TAB"
+    }
+  }

@@ -157,6 +157,23 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
   let angularObjectRegistry = {};
 
+  $scope.$on('updateCurrentParagraph', function(event, newParagraph) {
+    $scope.paragraph = newParagraph;
+    $scope.originalText = angular.copy(newParagraph.text);
+    $scope.paragraphFocused = false;
+    if (newParagraph.focus) {
+      $scope.paragraphFocused = true;
+    }
+    if (!$scope.paragraph.config) {
+      $scope.paragraph.config = {};
+    }
+    noteVarShareService.put($scope.paragraph.id + '_paragraphScope', paragraphScope);
+
+    initializeDefault($scope.paragraph.config);
+    getInterpreterSettings();
+    setTimeout(() => parseForm($scope.originalText), 250);
+  });
+
   // Controller init
   $scope.init = function(newParagraph, note) {
     $scope.paragraph = newParagraph;
@@ -474,6 +491,10 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     angular.element(window).off('beforeunload');
   };
 
+  $scope.$on('saveParagraph', function(event, paragraph) {
+    $scope.saveParagraph(paragraph);
+  });
+
   $scope.saveParagraph = function(paragraph) {
     const dirtyText = paragraph.text;
     if (dirtyText === undefined || dirtyText === $scope.originalText) {
@@ -788,6 +809,11 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.commitParagraph(paragraph);
   };
 
+  $scope.toggleForms = function(paragraph) {
+    paragraph.config.formsHide = !paragraph.config.formsHide;
+    $scope.commitParagraph(paragraph);
+  };
+
   $scope.setCompletionWidth = function() {
     if ($rootScope.completionLineWidth && $rootScope.completionLineWidth !== -1 && $scope.editor
     && $scope.editor.completer && $scope.editor.completer.popup) {
@@ -819,7 +845,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.dirtyText = dirtyText;
     if ($scope.dirtyText !== $scope.originalText) {
       if ($scope.collaborativeMode) {
-        $scope.saveNote();
+        $scope.saveParagraph($scope.paragraph);
       } else {
         $scope.startSaveTimer();
       }
@@ -884,6 +910,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
           options: f.options,
           runOnChange: f.autorun ? f.autorun === 'true' : f.options !== undefined,
           hidden: false,
+          pattern: f.pattern,
         };
       });
       setForms(formMap);
@@ -1678,20 +1705,33 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   }
 
   $scope.updateAllScopeTexts = function(oldPara, newPara) {
-    if (oldPara.text !== newPara.text) {
-      if ($scope.dirtyText) {         // check if editor has local update
-        if ($scope.dirtyText === newPara.text) {  // when local update is the same from remote, clear local update
-          $scope.paragraph.text = newPara.text;
-          $scope.dirtyText = undefined;
-          $scope.originalText = angular.copy(newPara.text);
-        } else { // if there're local update, keep it.
-          $scope.paragraph.text = newPara.text;
-        }
-      } else {
-        $scope.paragraph.text = newPara.text;
-        $scope.originalText = angular.copy(newPara.text);
-      }
+    prepareTextUpdate(oldPara, newPara);
+  };
+
+  let updaterTimerId = null;
+  let prepareTextUpdate = function(oldPara, newPara) {
+    if (updaterTimerId !== null) {
+      clearTimeout(updaterTimerId);
     }
+
+    let timerTime = $scope.collaborativeMode ? 1500 : 0;
+
+    updaterTimerId = setTimeout(() => {
+      if (oldPara.text !== newPara.text) {
+        if ($scope.dirtyText) {         // check if editor has local update
+          if ($scope.dirtyText === newPara.text) {  // when local update is the same from remote, clear local update
+            $scope.paragraph.text = newPara.text;
+            $scope.dirtyText = undefined;
+            $scope.originalText = angular.copy(newPara.text);
+          } else { // if there're local update, keep it.
+            $scope.paragraph.text = newPara.text;
+          }
+        } else {
+          $scope.paragraph.text = newPara.text;
+          $scope.originalText = angular.copy(newPara.text);
+        }
+      }
+    }, timerTime);
   };
 
   $scope.updateParagraphObjectWhenUpdated = function(newPara) {
@@ -1953,6 +1993,10 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   });
 
   $scope.$on('focusParagraph', function(event, paragraphId, cursorPosRow, cursorPosCol, mouseEvent) {
+    if (!$scope.editor) {
+      return;
+    }
+
     if (cursorPosCol === null || cursorPosCol === undefined) {
       cursorPosCol = 0;
     }
@@ -2009,6 +2053,16 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
   $scope.$on('closeEditor', function(event) {
     $scope.closeEditor($scope.paragraph);
+  });
+
+  $scope.$on('openForms', function(event) {
+    $scope.paragraph.config.formsHide = false;
+    $scope.commitParagraph($scope.paragraph);
+  });
+
+  $scope.$on('closeForms', function(event) {
+    $scope.paragraph.config.formsHide = true;
+    $scope.commitParagraph($scope.paragraph);
   });
 
   $scope.$on('openTable', function(event) {
@@ -2142,11 +2196,27 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       currentRange.markerId = $scope.editor.session.addMarker(
         searchRanges[currentRange.id].range, 'ace_selection', 'text');
     }
+
+    if ($scope.editor) {
+      let paragraphText = $scope.editor.getValue();
+      if (paragraphText) {
+        $scope.paragraph.text = paragraphText;
+        $scope.commitParagraph($scope.paragraph);
+      }
+    }
   });
 
   $scope.$on('replaceAll', function(event, from, to) {
     clearSearchSelection();
     $scope.editor.replaceAll(to, {needle: from});
+
+    if ($scope.editor) {
+      let paragraphText = $scope.editor.getValue();
+      if (paragraphText) {
+        $scope.paragraph.text = paragraphText;
+        $scope.commitParagraph($scope.paragraph);
+      }
+    }
   });
 
   $scope.$on('checkOccurrences', function() {
@@ -2170,6 +2240,11 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
         $scope.commitParagraph($scope.paragraph);
         break;
 
+      case 'toggleForms':
+        $scope.paragraph.config.formsHide = data.toggleFormsStatus;
+        $scope.commitParagraph($scope.paragraph);
+        break;
+
       case 'toggleEditor':
         if (data.toggleEditorStatus) {
           $scope.openEditor($scope.paragraph);
@@ -2181,10 +2256,6 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       case 'toggleEnableRun':
         $scope.paragraph.config.enabled = data.toggleEnableRunStatus;
         $scope.commitParagraph($scope.paragraph);
-        break;
-
-      case 'delete':
-        websocketMsgSrv.removeParagraph($scope.paragraph.id);
         break;
     }
   });

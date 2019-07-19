@@ -24,7 +24,7 @@ import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.NoteService;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
-import ru.tinkoff.zeppelin.storage.*;
+import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -66,7 +66,7 @@ public class NoteDTOConverter {
             paragraphDTO.getResults().setMsg(interpreterResultDTO);
             noteDTO.getParagraphs().add(paragraphDTO);
         }
-        noteDTO.getConfig().put("looknfeel", false);
+        noteDTO.setViewMode(note.getViewMode());
 
         return noteDTO;
     }

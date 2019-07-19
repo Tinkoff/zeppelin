@@ -232,6 +232,8 @@ function InterpreterCtrl($rootScope, $scope, $http, baseUrlSrv, websocketMsgSrv,
       $scope.creatingModuleConfiguration.moduleConfiguration.humanReadableName = '';
       $scope.creatingModuleConfiguration.moduleConfiguration.jvmOptions = '';
       $scope.creatingModuleConfiguration.moduleConfiguration.concurrentTasks = 10;
+      $scope.creatingModuleConfiguration.moduleConfiguration.regularTTL = 720;
+      $scope.creatingModuleConfiguration.moduleConfiguration.scheduledTTL = 1440;
       $scope.creatingModuleConfiguration.moduleConfiguration.moduleInnerConfigId = -1;
       $scope.creatingModuleConfiguration.moduleConfiguration.moduleSourceId = moduleSource.id;
       $scope.creatingModuleConfiguration.moduleConfiguration.permissions = {};

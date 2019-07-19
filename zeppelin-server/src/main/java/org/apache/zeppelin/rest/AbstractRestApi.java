@@ -44,16 +44,20 @@ abstract class AbstractRestApi {
     this.connectionManager = connectionManager;
   }
 
-  Note secureLoadNote(final String noteUuid, final Permission permission) {
+  Note secureLoadNoteByUuid(final String noteUuid, final Permission permission) {
     final Note note = noteService.getNote(noteUuid);
-    return secureLoadNote(note.getId(), permission);
+    return secureLoadNoteById(note.getId(), permission);
   }
 
-  Note secureLoadNote(final long noteId, final Permission permission) {
+  Note secureLoadNoteById(final long noteId, final Permission permission) {
     final Note note = noteService.getNote(noteId);
 
     if (note == null) {
       throw new NoteNotFoundException("Can't find note with id " + noteId);
+    }
+
+    if (userHasOwnerPermission(note) || userHasAdminPermission()) {
+      return note;
     }
 
     boolean isAllowed = false;
@@ -70,10 +74,6 @@ abstract class AbstractRestApi {
       case RUNNER:
         isAllowed = userHasRunnerPermission(note);
         allowed = note.getRunners();
-        break;
-      case OWNER:
-        isAllowed = userHasOwnerPermission(note);
-        allowed = note.getOwners();
         break;
     }
     if (!isAllowed) {
@@ -108,19 +108,19 @@ abstract class AbstractRestApi {
   }
 
   private boolean userHasOwnerPermission(final Note note) {
-    return userRolesContains(note.getOwners()) || userHasAdminPermission();
+    return userRolesContains(note.getOwners());
   }
 
   private boolean userHasWriterPermission(final Note note) {
-    return userRolesContains(note.getWriters()) || userHasAdminPermission();
+    return userRolesContains(note.getWriters());
   }
 
   private boolean userHasRunnerPermission(final Note note) {
-    return userRolesContains(note.getRunners()) || userHasAdminPermission();
+    return userRolesContains(note.getRunners());
   }
 
   boolean userHasReaderPermission(final Note note) {
-    return userRolesContains(note.getReaders()) || userHasAdminPermission();
+    return userRolesContains(note.getReaders()) || userHasAdminPermission() || userHasOwnerPermission(note);
   }
 
   private static Set<String> getUserAvailableRoles() {

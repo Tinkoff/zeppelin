@@ -60,9 +60,16 @@ struct CancelResult {
   3: string uuid
 }
 
+enum FinishResultStatus {
+     ACCEPT,
+     NOT_FOUND,
+     ERROR
+}
+
 service RemoteInterpreterThriftService extends RemoteProcessThriftService {
 
-  PushResult push(1: string st, 2: map<string, string> noteContext, 3: map<string, string> userContext, 4:  map<string, string> configuration);
+  PushResult push(1: string st, 2: string contextJson);
+  FinishResultStatus finish(1: string contextJson);
   CancelResult cancel(1: string UUID);
 }
 

@@ -16,11 +16,6 @@
  */
 package ru.tinkoff.zeppelin.engine.handler;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import ru.tinkoff.zeppelin.core.externalDTO.ParagraphDTO;
 import ru.tinkoff.zeppelin.core.notebook.*;
@@ -29,13 +24,14 @@ import ru.tinkoff.zeppelin.engine.EventService;
 import ru.tinkoff.zeppelin.engine.NoteEventService;
 import ru.tinkoff.zeppelin.engine.forms.FormsProcessor;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
-import ru.tinkoff.zeppelin.storage.FullParagraphDAO;
-import ru.tinkoff.zeppelin.storage.JobBatchDAO;
-import ru.tinkoff.zeppelin.storage.JobDAO;
-import ru.tinkoff.zeppelin.storage.JobPayloadDAO;
-import ru.tinkoff.zeppelin.storage.JobResultDAO;
-import ru.tinkoff.zeppelin.storage.NoteDAO;
-import ru.tinkoff.zeppelin.storage.ParagraphDAO;
+import ru.tinkoff.zeppelin.storage.*;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Base class for handlers
@@ -200,11 +196,11 @@ abstract class AbstractHandler {
   }
 
   long publishBatch(
-          final Note note,
-          final List<Paragraph> paragraphs,
-          final String username,
-          final Set<String> roles,
-          final int priority) {
+      final Note note,
+      final List<Paragraph> paragraphs,
+      final String username,
+      final Set<String> roles,
+      final int priority) {
     final JobBatch batch = new JobBatch();
     batch.setId(0L);
     batch.setNoteId(note.getId());
@@ -218,44 +214,7 @@ abstract class AbstractHandler {
     for (int i = 0; i < paragraphs.size(); i++) {
       final Paragraph p = paragraphs.get(i);
 
-      if (!(boolean) p.getConfig().getOrDefault("enabled", true)
-          || StringUtils.isEmpty(p.getText().trim())) {
-        continue;
-      }
-
-      final ParagraphDTO before = fullParagraphDAO.getById(p.getId());
-
-      final Job job = new Job();
-      job.setId(0L);
-      job.setBatchId(saved.getId());
-      job.setNoteId(note.getId());
-      job.setParagraphId(p.getId());
-      job.setIndex(i);
-      job.setPriority(priority);
-      job.setShebang(p.getShebang());
-      job.setStatus(Job.Status.PENDING);
-      job.setInterpreterProcessUUID(null);
-      job.setInterpreterJobUUID(null);
-      job.setCreatedAt(LocalDateTime.now());
-      job.setStartedAt(null);
-      job.setEndedAt(null);
-      job.setUsername(username);
-      job.setRoles(roles);
-      jobDAO.persist(job);
-
-      final JobPayload jobPayload = new JobPayload();
-      jobPayload.setId(0L);
-      jobPayload.setJobId(job.getId());
-      String payload = StringUtils.firstNonEmpty(p.getSelectedText(), p.getText());
-      jobPayload.setPayload(FormsProcessor.injectFormValues(payload, p.getFormParams()));
-      jobPayloadDAO.persist(jobPayload);
-
-      p.setJobId(job.getId());
-      paragraphDAO.update(p);
-
-      final ParagraphDTO after = fullParagraphDAO.getById(job.getParagraphId());
-      EventService.publish(job.getNoteId(), before, after);
-      hasParagraphToExecute = true;
+      hasParagraphToExecute = appendJob(saved, note, p, i, priority, username, roles) || hasParagraphToExecute;
     }
 
     // in case of empty note
@@ -273,27 +232,90 @@ abstract class AbstractHandler {
     return saved.getId();
   }
 
+  boolean appendJob(final JobBatch batch,
+                    final Note note,
+                    final Paragraph p,
+                    final int index,
+                    final long priority,
+                    final String username,
+                    final Set<String> roles) {
+    if (!(boolean) p.getConfig().getOrDefault("enabled", true)
+        || StringUtils.isEmpty(p.getText().trim())) {
+      return false;
+    }
+
+    final ParagraphDTO before = fullParagraphDAO.getById(p.getId());
+
+    final Job job = new Job();
+    job.setId(0L);
+    job.setBatchId(batch.getId());
+    job.setNoteId(note.getId());
+    job.setParagraphId(p.getId());
+    job.setIndex(index);
+    job.setPriority(priority);
+    job.setShebang(p.getShebang());
+    job.setStatus(Job.Status.PENDING);
+    job.setInterpreterProcessUUID(null);
+    job.setInterpreterJobUUID(null);
+    job.setCreatedAt(LocalDateTime.now());
+    job.setStartedAt(null);
+    job.setEndedAt(null);
+    job.setUsername(username);
+    job.setRoles(roles);
+    jobDAO.persist(job);
+
+    final JobPayload jobPayload = new JobPayload();
+    jobPayload.setId(0L);
+    jobPayload.setJobId(job.getId());
+
+    // build forms params
+    final List<Paragraph> paragraphList = paragraphDAO.getByNoteId(note.getId());
+    final Map<String, Object> forms = new HashMap<>();
+    for (final Paragraph pl : paragraphList) {
+      forms.putAll(pl.getFormParams());
+      if(pl.getId().equals(p.getId())) {
+        break;
+      }
+    }
+
+    // build payload
+    final String payload = FormsProcessor.injectFormValues(
+        StringUtils.firstNonEmpty(p.getSelectedText(), p.getText()),
+        forms
+    );
+
+    jobPayload.setPayload(payload);
+    jobPayloadDAO.persist(jobPayload);
+
+    p.setJobId(job.getId());
+    paragraphDAO.update(p);
+
+    final ParagraphDTO after = fullParagraphDAO.getById(job.getParagraphId());
+    EventService.publish(job.getNoteId(), before, after);
+    return true;
+  }
+
   void abortingBatch(final Note note) {
     final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
     jobBatch.setStatus(JobBatch.Status.ABORTING);
     jobBatchDAO.update(jobBatch);
   }
 
-  boolean noteIsRunning(final Note note) {
-    JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
+  public boolean noteIsRunning(final Note note) {
+    final JobBatch jobBatch = jobBatchDAO.get(note.getBatchJobId());
     if (jobBatch == null) {
       return false;
     }
-    Status status = jobBatch.getStatus();
-    return Status.running.contains(status);
+    final Status status = jobBatch.getStatus();
+    return Status.getRunningStatuses().contains(status);
   }
 
   void publishTempOutput(final Job job, final String tempText) {
     final ParagraphDTO before = fullParagraphDAO.getById(job.getParagraphId());
 
     final List<JobResult> results = jobResultDAO.getByJobId(job.getId()).stream()
-            .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
-            .collect(Collectors.toList());
+        .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
+        .collect(Collectors.toList());
 
     if (results.isEmpty()) {
       final JobResult jobResult = new JobResult();
@@ -314,7 +336,7 @@ abstract class AbstractHandler {
 
   void removeTempOutput(final Job job) {
     jobResultDAO.getByJobId(job.getId()).stream()
-            .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
-            .forEach(j -> jobResultDAO.delete(j.getId()));
+        .filter(j -> InterpreterResult.Message.Type.TEXT_TEMP.name().equals(j.getType()))
+        .forEach(j -> jobResultDAO.delete(j.getId()));
   }
 }

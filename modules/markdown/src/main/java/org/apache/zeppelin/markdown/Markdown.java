@@ -17,12 +17,14 @@
 
 package org.apache.zeppelin.markdown;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.tinkoff.zeppelin.interpreter.Context;
 import ru.tinkoff.zeppelin.interpreter.Interpreter;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * MarkdownInterpreter interpreter for Zeppelin.
@@ -54,8 +56,8 @@ public class Markdown extends Interpreter {
     }
 
     @Override
-    public void open(final Map<String, String> configuration, final String classPath) {
-        this.configuration = configuration;
+    public void open(final Context context, final String classPath) {
+        this.configuration = context.getConfiguration();
         this.classPath = classPath;
         this.parserType = configuration.get(MARKDOWN_PARSER_TYPE);
 
@@ -77,14 +79,13 @@ public class Markdown extends Interpreter {
     }
 
     @Override
-    public void cancel() {
-
-    }
+    public void cancel() { }
 
     @Override
-    public void close() {
+    public void close() { }
 
-    }
+    @Override
+    public void hibernate() { }
 
     @Override
     public InterpreterResult interpretV2(final String st,
@@ -100,7 +101,7 @@ public class Markdown extends Interpreter {
             final InterpreterResult result = new InterpreterResult(InterpreterResult.Code.SUCCESS);
             result.message().add(new InterpreterResult.Message(InterpreterResult.Message.Type.HTML, html));
             return result;
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             LOGGER.error("Exception in MarkdownInterpreter while interpret ", e);
             final InterpreterResult result = new InterpreterResult(InterpreterResult.Code.ERROR);
             result.message().add(new InterpreterResult.Message(InterpreterResult.Message.Type.TEXT, ""));

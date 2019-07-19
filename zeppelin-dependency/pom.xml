@@ -30,10 +30,7 @@
   </parent>
 
   <artifactId>zeppelin-dependency</artifactId>
-  <packaging>jar</packaging>
   <version>1.0.0-T-SNAPSHOT</version>
-  <name>Zeppelin: Dependency</name>
-  <description>Runtime dependency resolver for Zeppelin</description>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -43,6 +40,12 @@
   </properties>
 
   <dependencies>
+
+    <dependency>
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+      <version>3.1</version>
+    </dependency>
 
     <dependency>
       <groupId>com.google.guava</groupId>

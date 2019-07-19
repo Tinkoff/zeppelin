@@ -16,21 +16,18 @@
  */
 package ru.tinkoff.zeppelin.interpreter.python;
 
+import org.apache.commons.exec.*;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import ru.tinkoff.zeppelin.interpreter.Context;
+import ru.tinkoff.zeppelin.interpreter.Interpreter;
+import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteResultHandler;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
-import ru.tinkoff.zeppelin.interpreter.Interpreter;
-import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 
 @SuppressWarnings("unused")
 public abstract class AbstractPythonInterpreter extends Interpreter {
@@ -49,12 +46,12 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
   }
 
   @Override
-  public void open(Map<String, String> configuration, String classPath) {
+  public void open(final Context context, String classPath) {
     this.classPath = classPath;
   }
 
   @Override
-  public boolean isReusableForConfiguration(Map<String, String> configuration) {
+  public boolean isReusableForConfiguration(final Map<String, String> configuration) {
     return true;
   }
 
@@ -73,6 +70,19 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
 
   @Override
   public void close() {
+    if (watchdog != null) {
+      // valid only for ExecuteWatchdog
+      try {
+        watchdog.timeoutOccured(null);
+        watchdog.stop();
+      } catch (final Throwable th) {
+        //SKIP
+      }
+    }
+  }
+
+  @Override
+  public void hibernate() {
     if (watchdog != null) {
       // valid only for ExecuteWatchdog
       try {
@@ -130,7 +140,7 @@ public abstract class AbstractPythonInterpreter extends Interpreter {
       }
 
       // copy jep lib into workingDir
-      final String jepDest = instanceTempDir.getAbsolutePath() + "/" + "libjep.dylib";
+      final String jepDest = instanceTempDir.getAbsolutePath() + "/" + System.mapLibraryName("jep");
       final File jepDestFile = new File(jepDest);
       FileUtils.copyFile(jepLibrary, jepDestFile);
 

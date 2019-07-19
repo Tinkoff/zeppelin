@@ -17,16 +17,20 @@
 
 package ru.tinkoff.zeppelin.engine.server;
 
-import java.util.Map;
-import ru.tinkoff.zeppelin.SystemEvent;
+import ru.tinkoff.zeppelin.interpreter.RemoteConfiguration;
 import ru.tinkoff.zeppelin.interpreter.thrift.RemoteCompleterThriftService;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
+
+import java.util.Map;
 
 public class CompleterRemoteProcess extends AbstractRemoteProcess<RemoteCompleterThriftService.Client> {
 
-  CompleterRemoteProcess(final String shebang, final AbstractRemoteProcess.Status status, final String host, final int port) {
-    super(shebang, status, host, port);
+  CompleterRemoteProcess(
+      final String shebang,
+      final AbstractRemoteProcess.Status status,
+      final String host,
+      final int port,
+      final RemoteConfiguration remoteConfiguration) {
+    super(shebang, status, host, port, remoteConfiguration);
   }
 
   public String complete(final String payload,
@@ -36,20 +40,12 @@ public class CompleterRemoteProcess extends AbstractRemoteProcess<RemoteComplete
                          final Map<String, String> configuration) {
     final RemoteCompleterThriftService.Client client = getConnection();
     if (client == null) {
-      ZLog.log(ET.PUSH_FAILED_CLIENT_NOT_FOUND,
-          String.format("Не удалось вызвать автокомплит: клиент не найден, uuid=%s", this.uuid),
-          String.format("Не удалось вызвать автокомплит: клиент не найден, информация о процессе=%s", this.toString()),
-          SystemEvent.SYSTEM_USERNAME);
       return null;
     }
 
     try {
       return client.compete(payload, cursorPosition, noteContext, userContext, configuration);
     } catch (final Throwable throwable) {
-      ZLog.log(ET.PUSH_FAILED,
-          String.format("Не удалось вызвать автокомплит: uuid=%s", this.uuid),
-          String.format("Ошибка в ходе вызова автокомплита, описание процесса=%s, ошибка=%s",
-              this.toString(), throwable.getMessage()), SystemEvent.SYSTEM_USERNAME);
       return null;
     } finally {
       releaseConnection(client);

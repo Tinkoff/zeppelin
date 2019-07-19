@@ -19,8 +19,13 @@ package org.apache.zeppelin.rest;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.realm.AuthorizationService;
@@ -34,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -89,7 +95,7 @@ public class CronRestApi extends AbstractRestApi {
     final boolean doUpdateUser = params.get("doUpdateUser") != null && Boolean.parseBoolean(params.get("doUpdateUser"));
 
     final long noteId = Long.parseLong(noteIdParam);
-    final Note note = secureLoadNote(noteId, Permission.OWNER);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
     Scheduler scheduler = schedulerDAO.getByNote(note.getId());
 
     LOGGER.info("Регистрация задания планировщика для ноута noteId: {}, noteUuid: {}  с расписанием {}, флаг включения = {}", note.getId(), note.getUuid(), expression, isEnable);
@@ -140,7 +146,7 @@ public class CronRestApi extends AbstractRestApi {
     final SockMessage message = new SockMessage(Operation.NOTE_UPDATED);
     message.put("path", note.getPath());
     message.put("config", note.getFormParams());
-    message.put("info", null);
+    message.put("mode", note.getViewMode());
     connectionManager.broadcast(note.getId(), message);
 
     // send response
@@ -203,7 +209,7 @@ public class CronRestApi extends AbstractRestApi {
   public ResponseEntity getCronJob(@PathVariable("noteId") final String noteIdParam)
       throws IllegalArgumentException {
     final long noteId = Long.parseLong(noteIdParam);
-    final Note note = secureLoadNote(noteId, Permission.READER);
+    final Note note = secureLoadNoteById(noteId, Permission.READER);
     LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
     final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
     final Map<String, Object> response = new HashMap<>();
@@ -215,4 +221,28 @@ public class CronRestApi extends AbstractRestApi {
     return new JsonResponse(HttpStatus.OK, response).build();
   }
 
+  /**
+   * Remove cron job REST API | Endpoint: <b>DELETE - /api/notebook/{noteId}/cron</b>
+   *
+   * @param noteIdParam ID of Note
+   * @return JSON with status.OK
+   */
+  @DeleteMapping(value = "/notebook/{noteId}/cron", produces = "application/json")
+  public ResponseEntity removeCronJob(@PathVariable("noteId") final String noteIdParam) {
+    final long noteId = Long.parseLong(noteIdParam);
+    final Note note = secureLoadNoteById(noteId, Permission.OWNER);
+    LOGGER.info("Получение данных о планировщике для ноута noteId: {}, noteUuid: {} ", note.getId(), note.getUuid());
+    final Scheduler scheduler = schedulerDAO.getByNote(note.getId());
+    schedulerDAO.remove(scheduler);
+
+    noteEventService.noteScheduleChange(note, scheduler);
+
+    // broadcast event
+    final SockMessage message = new SockMessage(Operation.NOTE_UPDATED);
+    message.put("path", note.getPath());
+    message.put("config", note.getFormParams());
+    message.put("info", null);
+    connectionManager.broadcast(note.getId(), message);
+    return new JsonResponse(HttpStatus.OK).build();
+  }
 }

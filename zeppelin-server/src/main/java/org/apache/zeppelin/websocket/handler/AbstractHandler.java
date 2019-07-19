@@ -19,6 +19,12 @@ package org.apache.zeppelin.websocket.handler;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.apache.zeppelin.realm.AuthenticationInfo;
 import org.apache.zeppelin.rest.exception.ForbiddenException;
 import org.apache.zeppelin.rest.exception.NoteNotFoundException;
@@ -30,10 +36,6 @@ import ru.tinkoff.zeppelin.core.notebook.Note;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
 import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.engine.NoteService;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public abstract class AbstractHandler {
 
@@ -54,14 +56,17 @@ public abstract class AbstractHandler {
                               final Permission permission,
                               final AuthenticationInfo authenticationInfo,
                               final WebSocketSession conn) {
+
     final Long noteId = connectionManager.getAssociatedNoteId(conn) != null
             ? connectionManager.getAssociatedNoteId(conn)
-            : noteService.getNote((String)message.getNotNull(paramName)).getId();
+            : Optional.ofNullable(noteService.getNote((String) message.getNotNull(paramName)))
+            .orElseThrow(() -> new NoteNotFoundException("Note not found"))
+            .getId();
 
     checkPermission(noteId, permission, authenticationInfo);
     final Note note = noteService.getNote(noteId);
     if (note == null) {
-      throw new NoteNotFoundException("Can't find note with id '" + noteId +"'.");
+      throw new NoteNotFoundException("Can't find note with id '" + noteId + "'.");
     }
     return note;
   }
@@ -108,24 +113,25 @@ public abstract class AbstractHandler {
     userRoles.addAll(authenticationInfo.getRoles());
     userRoles.add(authenticationInfo.getUser());
 
+    if (userRoles.removeAll(target.getOwners()) || userRoles.removeAll(admin)) {
+      // user is owner or admin.
+      return;
+    }
+
     boolean isAllowed = false;
     Set<String> allowed = null;
     switch (permission) {
       case READER:
-        isAllowed = userRoles.removeAll(target.getReaders()) || userRoles.removeAll(admin);
+        isAllowed = userRoles.removeAll(target.getReaders());
         allowed = target.getReaders();
         break;
       case WRITER:
-        isAllowed = userRoles.removeAll(target.getWriters()) || userRoles.removeAll(admin);
+        isAllowed = userRoles.removeAll(target.getWriters());
         allowed = target.getWriters();
         break;
       case RUNNER:
-        isAllowed = userRoles.removeAll(target.getRunners()) || userRoles.removeAll(admin);
+        isAllowed = userRoles.removeAll(target.getRunners());
         allowed = target.getRunners();
-        break;
-      case OWNER:
-        isAllowed = userRoles.removeAll(target.getOwners()) || userRoles.removeAll(admin);
-        allowed = target.getOwners();
         break;
     }
     if (!isAllowed) {

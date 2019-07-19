@@ -131,6 +131,10 @@ let zeppelinWebApp = angular.module('zeppelinWebApp', requiredModules)
         templateUrl: 'app/search/result-list.html',
         controller: 'SearchResultCtrl',
       })
+      .when('/credential', {
+        templateUrl: 'app/credential/credential.html',
+        controller: 'CredentialCtrl',
+      })
       .otherwise({
         redirectTo: '/',
       });

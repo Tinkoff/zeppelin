@@ -45,6 +45,7 @@ public class H2Manager {
             return;
         }
         connection.close();
+        connection = null;
     }
 
     public Connection getConnection() {

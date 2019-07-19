@@ -17,7 +17,7 @@ angular.module('zeppelinWebApp').controller('MainCtrl', MainCtrl);
 function MainCtrl($scope, $rootScope, $window, arrayOrderingSrv) {
   'ngInject';
 
-  $scope.looknfeel = 'default';
+  $scope.viewMode = 'DEFAULT';
 
   let init = function() {
     $scope.asIframe = (($window.location.href.indexOf('asIframe') > -1) ? true : false);
@@ -50,16 +50,16 @@ function MainCtrl($scope, $rootScope, $window, arrayOrderingSrv) {
     }
   });
 
-  $rootScope.$on('setLookAndFeel', function(event, data) {
-    if (!event.defaultPrevented && data && data !== '' && data !== $scope.looknfeel) {
-      $scope.looknfeel = data;
+  $rootScope.$on('setViewMode', function(event, data) {
+    if (!event.defaultPrevented && data && data !== '' && data !== $scope.viewMode) {
+      $scope.viewMode = data;
       event.preventDefault();
     }
   });
 
   // Set The lookAndFeel to default on every page
   $rootScope.$on('$routeChangeStart', function(event, next, current) {
-    $rootScope.$broadcast('setLookAndFeel', 'default');
+    $rootScope.$broadcast('setViewMode', 'DEFAULT');
   });
 
   $rootScope.noteName = function(note) {

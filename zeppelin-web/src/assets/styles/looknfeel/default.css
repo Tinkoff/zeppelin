@@ -25,7 +25,7 @@ body {
 .editor,
 .executionTime,
 .nv-controlsWrap {
-  display: block;
+  display: inline-block;
 }
 
 .paragraph-col .focused {

@@ -87,6 +87,9 @@ body {
   visibility: visible;
 }
 
+.paragraph .cursorPos {
+  display: none;
+}
 
 .noteAction span,
 .noteAction button,
@@ -107,7 +110,7 @@ body {
 .editor,
 .executionTime,
 .nv-controlsWrap {
-  display: block;
+  display: inline-block;
 }
 
 .ng-toast.ng-toast--top {

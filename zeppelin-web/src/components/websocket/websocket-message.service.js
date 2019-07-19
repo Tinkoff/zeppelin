@@ -91,12 +91,8 @@ function WebsocketMessageService($rootScope, websocketEvents) {
       websocketEvents.sendNewEvent({op: 'GET_NOTE', data: {id: noteId}});
     },
 
-    updateNote: function(noteId, notePath, noteConfig) {
-      websocketEvents.sendNewEvent({op: 'NOTE_UPDATE', data: {id: noteId, path: notePath, config: noteConfig}});
-    },
-
-    updatePersonalizedMode: function(noteId, modeValue) {
-      websocketEvents.sendNewEvent({op: 'UPDATE_PERSONALIZED_MODE', data: {id: noteId, personalized: modeValue}});
+    updateNote: function(noteId, notePath, viewMode) {
+      websocketEvents.sendNewEvent({op: 'NOTE_UPDATE', data: {id: noteId, path: notePath, mode: viewMode}});
     },
 
     renameFolder: function(folderId, folderPath) {

@@ -101,6 +101,7 @@ limitations under the License.
             <ul class="dropdown-menu">
               <li><a href="" data-toggle="modal" data-target="#aboutModal">About Zeppelin</a></li>
               <li role="separator" style="margin: 5px 0;" class="divider"></li>
+              <li><a href="#/credential">Credential</a></li>
               <li><a href="#/interpreter">Interpreter</a></li>
               <li><a href="#/configuration">Configuration</a></li>
               <li><a href="#/monitoring">Monitoring</a></li>
@@ -135,17 +136,29 @@ limitations under the License.
             <img src="assets/images/zepLogo.png" alt="Apache Zeppelin" title="Apache Zeppelin" />
           </div>
           <div class="col-xs-12 col-sm-8 content">
-            <h3>Apache Zeppelin</h3>
-            <br/>
+            <h3>T-Zeppelin</h3>
+            <h5>Uptime: {{zeppelinUptime}}</h5>
             <span id="i18n-14">Version</span>
             <span class="modal-body-about-version"> {{zeppelinVersion}} </span>
             <br/>
+            <span id="i18n-15">Builded at</span>
+            <span class="modal-body-about-version"> {{zeppelinBuildTime}} </span>
             <br/>
-            <a href="http://zeppelin.apache.org/" target="_blank"><span id="i18n-15">Get involved!</span></a>
+            <span id="i18n-16">Branch</span>
+            <a href="https://github.com/TinkoffCreditSystems/zeppelin/tree/{{zeppelinBranch}}" target="_blank">
+              <span class="modal-body-about-version"> {{zeppelinBranch}} </span>
+            </a>
             <br/>
-            <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank"><span id="i18n-16">Licensed under the Apache License, Version 2.0</span></a>
+            <span id="i18n-17">Commit</span>
+            <a href="https://github.com/TinkoffCreditSystems/zeppelin/commit/{{zeppelinCommitHash}}" target="_blank">
+              <span class="modal-body-about-version"> {{zeppelinCommitHash | limitTo:7}} </span>
+            </a>
+            <br/>
+            <span class="modal-body-about-version"><i>{{zeppelinCommitMessage | limitTo:35}}</i></span>
+            <br/>
+            <br/>
+            <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank"><span id="i18n-21">Licensed under the Apache License, Version 2.0</span></a>
         </div>
-
       </div>
     </div>
   </div>

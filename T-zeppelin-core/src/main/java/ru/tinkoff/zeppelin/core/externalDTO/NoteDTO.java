@@ -16,13 +16,12 @@
  */
 package ru.tinkoff.zeppelin.core.externalDTO;
 
-import ru.tinkoff.zeppelin.core.notebook.NoteRevision;
-import ru.tinkoff.zeppelin.core.notebook.Scheduler;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import ru.tinkoff.zeppelin.core.notebook.Note.NoteViewMode;
+import ru.tinkoff.zeppelin.core.notebook.NoteRevision;
+import ru.tinkoff.zeppelin.core.notebook.Scheduler;
 
 public class NoteDTO {
 
@@ -38,7 +37,7 @@ public class NoteDTO {
 
     private Scheduler scheduler;
 
-    private Map<String, Object> config = new HashMap<>();
+    private NoteViewMode viewMode;
 
     public long getDatabaseId() {
         return databaseId;
@@ -104,11 +103,11 @@ public class NoteDTO {
         this.scheduler = scheduler;
     }
 
-    public Map<String, Object> getConfig() {
-        return config;
+    public NoteViewMode getViewMode() {
+        return viewMode;
     }
 
-    public void setConfig(Map<String, Object> config) {
-        this.config = config;
+    public void setViewMode(final NoteViewMode viewMode) {
+        this.viewMode = viewMode;
     }
 }

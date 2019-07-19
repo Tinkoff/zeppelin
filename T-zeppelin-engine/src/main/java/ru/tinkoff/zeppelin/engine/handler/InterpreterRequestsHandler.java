@@ -44,7 +44,7 @@ import java.util.Set;
 @Component
 public class InterpreterRequestsHandler extends AbstractHandler {
 
-  private ApplicationContext applicationContext;
+  private final ApplicationContext applicationContext;
   private static InterpreterRequestsHandler instance;
 
   public static InterpreterRequestsHandler getInstance() {

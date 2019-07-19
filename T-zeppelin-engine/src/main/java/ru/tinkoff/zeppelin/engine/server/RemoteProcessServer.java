@@ -20,18 +20,13 @@ import com.google.gson.Gson;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
-import org.apache.zeppelin.Repository;
-import ru.tinkoff.zeppelin.SystemEvent;
 import ru.tinkoff.zeppelin.engine.Configuration;
 import ru.tinkoff.zeppelin.engine.handler.InterpreterRequestsHandler;
 import ru.tinkoff.zeppelin.engine.handler.InterpreterResultHandler;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.PredefinedInterpreterResults;
 import ru.tinkoff.zeppelin.interpreter.thrift.*;
-import ru.tinkoff.zeppelin.storage.SystemEventType.ET;
-import ru.tinkoff.zeppelin.storage.ZLog;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -46,29 +41,16 @@ public class RemoteProcessServer {
   private TServerSocket serverSocket;
   private TThreadPoolServer thriftServer;
 
-  private String remoteServerClassPath;
-
-  public void initSources(final List<Repository> repositories) {
-    ModuleInstaller.uninstallInterpreter("remote-server");
-    ModuleInstaller.install("remote-server", "org.apache.zeppelin:T-zeppelin-remote:1.0.0-T-SNAPSHOT", repositories);
-    remoteServerClassPath = ModuleInstaller.getDirectory("remote-server");
-  }
-
   public void start() throws TTransportException {
     this.serverSocket = new TServerSocket(Configuration.getThriftPort());
 
     final Thread startingThread = new Thread(() -> {
-      ZLog.log(ET.REMOTE_PROCESS_SERVER_STARTING,
-              String.format("RemoteProcessServer запускается по адресу %s:%s",
-                      serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                      serverSocket.getServerSocket().getLocalPort()), SystemEvent.SYSTEM_USERNAME);
-
       final ZeppelinThriftService.Processor<ZeppelinThriftService.Iface> processor;
       processor = new ZeppelinThriftService.Processor<>(new ZeppelinThriftService.Iface() {
 
         @Override
-        public void registerInterpreterProcess(final RegisterInfo registerInfo) {
-          AbstractRemoteProcess.handleRegisterEvent(registerInfo);
+        public String registerInterpreterProcess(final RegisterInfo registerInfo) {
+          return AbstractRemoteProcess.handleRegisterEvent(registerInfo);
         }
 
         @Override
@@ -131,38 +113,19 @@ public class RemoteProcessServer {
       try {
         Thread.sleep(500);
       } catch (final InterruptedException e) {
-
-        ZLog.log(ET.REMOTE_PROCESS_SERVER_START_FAILED,
-                String.format("Не удалось запустить RemoteProcessServer по адресу %s:%s",
-                        serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                        serverSocket.getServerSocket().getLocalPort()),
-                String.format("Ошибка при запуске RemoteProcessServer по адресу %s:%s, ошибка:%s",
-                        serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                        serverSocket.getServerSocket().getLocalPort(), e.getMessage()),
-                SystemEvent.SYSTEM_USERNAME);
+        // SKIP
       }
     }
 
     if (thriftServer != null && !thriftServer.isServing()) {
       throw new TTransportException("Fail to start InterpreterEventServer in 30 seconds.");
     }
-    ZLog.log(ET.REMOTE_PROCESS_SERVER_STARTED,
-            String.format("RemoteProcessServer успешно запущен по адресу %s:%s",
-                    serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                    serverSocket.getServerSocket().getLocalPort()),
-            SystemEvent.SYSTEM_USERNAME);
   }
 
   public void stop() {
     if (thriftServer != null) {
       thriftServer.stop();
     }
-    ZLog.log(ET.REMOTE_PROCESS_SERVER_STOPPED,
-            String.format("RemoteProcessServer по адресу %s:%s успешно остановлен",
-                    serverSocket.getServerSocket().getInetAddress().getHostAddress(),
-                    serverSocket.getServerSocket().getLocalPort()),
-            SystemEvent.SYSTEM_USERNAME
-    );
   }
 
   public String getAddr() {
@@ -171,10 +134,6 @@ public class RemoteProcessServer {
 
   public int getPort() {
     return Configuration.getThriftPort();
-  }
-
-  public String getRemoteServerClassPath() {
-    return remoteServerClassPath;
   }
 
   public TServerSocket getServerSocket() {

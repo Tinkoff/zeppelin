@@ -34,6 +34,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.notebook.Note;
+import ru.tinkoff.zeppelin.core.notebook.Note.NoteViewMode;
 
 @Component
 public class NoteDAO {
@@ -43,20 +44,23 @@ public class NoteDAO {
           "                   PATH,\n" +
           "                   PERMISSIONS,\n" +
           "                   FORM_PARAMS,\n" +
-          "                   JOB_BATCH_ID)\n" +
+          "                   JOB_BATCH_ID,\n" +
+          "                   VIEW_MODE)\n" +
           "VALUES (:UUID,\n" +
           "        :PATH,\n" +
           "        :PERMISSIONS,\n" +
           "        :FORM_PARAMS,\n" +
-          "        :JOB_BATCH_ID);";
+          "        :JOB_BATCH_ID,\n" +
+          "        :VIEW_MODE);";
 
   private static final String UPDATE_NOTE = "" +
           "UPDATE NOTES\n" +
           "SET UUID         = :UUID,\n" +
           "    PATH         = :PATH,\n" +
           "    PERMISSIONS  = :PERMISSIONS,\n" +
-          "    FORM_PARAMS          = :FORM_PARAMS,\n" +
-          "    JOB_BATCH_ID =:JOB_BATCH_ID\n" +
+          "    FORM_PARAMS  = :FORM_PARAMS,\n" +
+          "    JOB_BATCH_ID = :JOB_BATCH_ID,\n" +
+          "    VIEW_MODE    = :VIEW_MODE\n" +
           "WHERE ID = :ID;";
 
 
@@ -66,7 +70,8 @@ public class NoteDAO {
           "       PATH,\n" +
           "       PERMISSIONS,\n" +
           "       FORM_PARAMS,\n" +
-          "       JOB_BATCH_ID\n" +
+          "       JOB_BATCH_ID,\n" +
+          "       VIEW_MODE\n" +
           "FROM NOTES\n" +
           "WHERE ID = :ID;";
 
@@ -76,7 +81,8 @@ public class NoteDAO {
           "       PATH,\n" +
           "       PERMISSIONS,\n" +
           "       FORM_PARAMS,\n" +
-          "       JOB_BATCH_ID\n" +
+          "       JOB_BATCH_ID,\n" +
+          "       VIEW_MODE\n" +
           "FROM NOTES\n" +
           "WHERE UUID = :UUID;";
 
@@ -86,8 +92,9 @@ public class NoteDAO {
           "       PATH,\n" +
           "       PERMISSIONS,\n" +
           "       FORM_PARAMS,\n" +
-          "       JOB_BATCH_ID\n" +
-          "FROM NOTES\n";
+          "       JOB_BATCH_ID,\n" +
+          "       VIEW_MODE\n" +
+      "FROM NOTES\n";
 
   private static final String DELETE_NOTE = "" +
           "DELETE\n" +
@@ -105,17 +112,20 @@ public class NoteDAO {
 
   private static Note mapRow(final ResultSet resultSet, final int i) throws SQLException {
     final Type formParamsType = new TypeToken<Map<String, String>>() {}.getType();
-    long dbNoteId = resultSet.getLong("id");
-    String noteId = resultSet.getString("UUID");
-    String notePath = resultSet.getString("path");
+    final long dbNoteId = resultSet.getLong("id");
+    final String noteId = resultSet.getString("UUID");
+    final String notePath = resultSet.getString("path");
     final Map<String, String> formParams = gson.fromJson(resultSet.getString("FORM_PARAMS"), formParamsType);
     Map<String, Set<String>> permission = new HashMap<>(4);
     permission = gson.fromJson(resultSet.getString("permissions"), permission.getClass());
     final Long jobBatchId = resultSet.getString("JOB_BATCH_ID") != null
             ? resultSet.getLong("JOB_BATCH_ID")
             : null;
+    final NoteViewMode viewMode = resultSet.getString("VIEW_MODE") != null
+        ? NoteViewMode.valueOf(resultSet.getString("VIEW_MODE"))
+        : NoteViewMode.DEFAULT;
 
-    Note note = new Note(notePath);
+    final Note note = new Note(notePath);
     note.setId(dbNoteId);
     note.setUuid(noteId);
     note.getOwners().addAll(permission.get("owners"));
@@ -124,31 +134,12 @@ public class NoteDAO {
     note.getWriters().addAll(permission.get("writers"));
     note.getFormParams().putAll(formParams);
     note.setBatchJobId(jobBatchId);
+    note.setViewMode(viewMode);
     return note;
   }
 
   public Note persist(final Note note) {
-    HashMap<String, Set<String>> permission = new HashMap<>();
-    permission.put("owners", note.getOwners());
-    permission.put("readers", note.getReaders());
-    permission.put("runners", note.getRunners());
-    permission.put("writers", note.getWriters());
-
-    final KeyHolder holder = new GeneratedKeyHolder();
-    final SqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("UUID", note.getUuid())
-            .addValue("PATH", note.getPath())
-            .addValue("PERMISSIONS", generatePGjson(permission))
-            .addValue("FORM_PARAMS", generatePGjson(note.getFormParams()))
-            .addValue("JOB_BATCH_ID", note.getBatchJobId());
-    jdbcTemplate.update(PERSIST_NOTE, parameters, holder);
-
-    note.setId((Long) holder.getKeys().get("id"));
-    return note;
-  }
-
-  public Note update(final Note note) {
-    HashMap<String, Set<String>> permission = new HashMap<>();
+    final HashMap<String, Set<String>> permission = new HashMap<>();
     permission.put("owners", note.getOwners());
     permission.put("readers", note.getReaders());
     permission.put("runners", note.getRunners());
@@ -161,7 +152,29 @@ public class NoteDAO {
             .addValue("PERMISSIONS", generatePGjson(permission))
             .addValue("FORM_PARAMS", generatePGjson(note.getFormParams()))
             .addValue("JOB_BATCH_ID", note.getBatchJobId())
-            .addValue("ID", note.getId());
+            .addValue("VIEW_MODE", note.getViewMode().name());
+    jdbcTemplate.update(PERSIST_NOTE, parameters, holder);
+
+    note.setId((Long) holder.getKeys().get("id"));
+    return note;
+  }
+
+  public Note update(final Note note) {
+    final HashMap<String, Set<String>> permission = new HashMap<>();
+    permission.put("owners", note.getOwners());
+    permission.put("readers", note.getReaders());
+    permission.put("runners", note.getRunners());
+    permission.put("writers", note.getWriters());
+
+    final KeyHolder holder = new GeneratedKeyHolder();
+    final SqlParameterSource parameters = new MapSqlParameterSource()
+            .addValue("UUID", note.getUuid())
+            .addValue("PATH", note.getPath())
+            .addValue("PERMISSIONS", generatePGjson(permission))
+            .addValue("FORM_PARAMS", generatePGjson(note.getFormParams()))
+            .addValue("JOB_BATCH_ID", note.getBatchJobId())
+            .addValue("ID", note.getId())
+            .addValue("VIEW_MODE", note.getViewMode().name());
 
     jdbcTemplate.update(UPDATE_NOTE, parameters, holder);
     return note;

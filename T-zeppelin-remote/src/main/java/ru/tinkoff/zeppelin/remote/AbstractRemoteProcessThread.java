@@ -17,12 +17,14 @@
 
 package ru.tinkoff.zeppelin.remote;
 
+import com.google.gson.Gson;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import ru.tinkoff.zeppelin.interpreter.RemoteConfiguration;
 import ru.tinkoff.zeppelin.interpreter.thrift.*;
 
 import java.util.UUID;
@@ -36,6 +38,8 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
   private String processType;
   private String processClassName;
   int poolSize;
+  int regularTTL;
+  int scheduledTTL;
   String processClasspath;
 
   private TServerSocket serverTransport;
@@ -48,18 +52,16 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
   void init(final String zeppelinServerHost,
             final String zeppelinServerPort,
             final String processShebang,
-            final String processType,
-            final String processClassPath,
-            final String processClassName,
-            final int poolSize) {
+            final String processType) {
     this.zeppelinServerHost = zeppelinServerHost;
     this.zeppelinServerPort = zeppelinServerPort;
     this.processShebang = processShebang;
     this.processType = processType;
-    this.processClasspath = processClassPath;
-    this.processClassName = processClassName;
-    this.poolSize = poolSize;
   }
+
+
+
+  protected abstract void postInit();
 
 
   protected abstract TProcessor getProcessor();
@@ -85,17 +87,14 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
   }
 
 
-
   @Override
   public void run() {
     try {
-      processClass = Class.forName(processClassName);
-
       serverTransport = createTServerSocket();
       server = new TThreadPoolServer(
-              new TThreadPoolServer
-                      .Args(serverTransport)
-                      .processor(getProcessor())
+          new TThreadPoolServer
+              .Args(serverTransport)
+              .processor(getProcessor())
       );
 
       final TTransport transport = new TSocket(zeppelinServerHost, Integer.parseInt(zeppelinServerPort));
@@ -109,24 +108,34 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
           while (!interrupted && !server.isServing()) {
             try {
               Thread.sleep(1000);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
               interrupted = true;
             }
           }
 
           if (!interrupted) {
             final RegisterInfo registerInfo = new RegisterInfo(
-                    "127.0.0.1",
-                    serverTransport.getServerSocket().getLocalPort(),
-                    processShebang,
-                    processType,
-                    processUUID.toString()
+                "127.0.0.1",
+                serverTransport.getServerSocket().getLocalPort(),
+                processShebang,
+                processType,
+                processUUID.toString()
             );
             try {
               final ZeppelinThriftService.Client zeppelin = getZeppelin();
-              zeppelin.registerInterpreterProcess(registerInfo);
+              final String configurationJson = zeppelin.registerInterpreterProcess(registerInfo);
+              final RemoteConfiguration conf = new Gson().fromJson(configurationJson, RemoteConfiguration.class);
+
+              processClasspath = conf.getProcessClasspath();
+              processClassName = conf.getProcessClassName();
+              poolSize = conf.getPoolSize();
+              regularTTL = conf.getRegularTTL();
+              scheduledTTL = conf.getScheduledTTL();
+              processClass = Class.forName(conf.getProcessClassName());
+              postInit();
+
               releaseZeppelin(zeppelin);
-            } catch (Throwable e) {
+            } catch (final Throwable e) {
               shutdown();
             }
           }
@@ -151,12 +160,12 @@ public abstract class AbstractRemoteProcessThread extends Thread implements Remo
 
 
   private static TServerSocket createTServerSocket() {
-    int start = 1024;
-    int end = 65535;
+    final int start = 1024;
+    final int end = 65535;
     for (int i = start; i <= end; ++i) {
       try {
         return new TServerSocket(i);
-      } catch (Exception e) {
+      } catch (final Exception e) {
         // ignore this
       }
     }

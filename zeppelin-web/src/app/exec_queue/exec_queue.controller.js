@@ -22,10 +22,14 @@ function ExecQueueCtrl($scope, $rootScope, $http, baseUrlSrv, ngToast) {
 
   let init = function() {
     getExecQueue();
+    $scope.timer = moment(new Date()).format('h:mm:ss A');
     console.log($scope.execQueue);
   };
 
   init();
+
+  // refresh execQueue each 10s.
+  setInterval(() => init(), 10000);
 
   /**
    * Gets available Interpreters execution queues.

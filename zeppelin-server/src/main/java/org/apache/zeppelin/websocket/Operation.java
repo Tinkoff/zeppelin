@@ -51,9 +51,6 @@ public enum Operation {
   // @param object notebook
   NOTE_UPDATE,
 
-  UPDATE_PERSONALIZED_MODE, // [c-s] update personalized mode (boolean)
-  // @param note id and boolean personalized mode value
-
   FOLDER_RENAME,
 
   RUN_PARAGRAPH,    // [c-s] run paragraph

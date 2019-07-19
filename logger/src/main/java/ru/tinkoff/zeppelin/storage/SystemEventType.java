@@ -70,7 +70,8 @@ public class SystemEventType {
     NOTE_RESTORED,
     USER_POST_LOGIN,
     USER_LOGOUT,
-    USER_CONNECTED
+    USER_CONNECTED,
+    MODULE_VERSION_SUBMITTED,
   }
 
   private final ET name;

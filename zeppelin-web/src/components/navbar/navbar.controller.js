@@ -12,10 +12,11 @@
  * limitations under the License.
  */
 
+import moment from 'moment';
 angular.module('zeppelinWebApp').controller('NavCtrl', NavCtrl);
 
 function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
-                 noteListFactory, baseUrlSrv, websocketMsgSrv,
+                 noteListFactory, baseUrlSrv, websocketMsgSrv, $interval,
                  arrayOrderingSrv, searchService, TRASH_FOLDER_ID) {
   'ngInject';
 
@@ -39,11 +40,24 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
   function getZeppelinVersion() {
     $http.get(baseUrlSrv.getRestApiBase() + '/version').success(
       function(data, status, headers, config) {
-        $rootScope.zeppelinVersion = data.body.version;
+        let response = JSON.parse(data.body);
+        $rootScope.zeppelinVersion = response['git.build.version'];
+        $rootScope.zeppelinBranch = response['git.branch'];
+        $rootScope.zeppelinCommitHash = response['git.commit.id'];
+        $rootScope.zeppelinBuildTime = response['git.build.time'];
+        $rootScope.zeppelinCommitMessage = response['git.commit.message.short'];
+        $rootScope.zeppelinStartTime = response['start.time'];
+        $rootScope.zeppelinUptime = moment.duration(moment().diff($rootScope.zeppelinStartTime))
+        .format('D[ day(s)] H[ hour(s)] m[ minute(s)] s[ second(s)]');
       }).error(
       function(data, status, headers, config) {
         console.log('Error %o %o', status, data.message);
       });
+  }
+
+  function updateUptime() {
+    $rootScope.zeppelinUptime = moment.duration(moment().diff($rootScope.zeppelinStartTime))
+    .format('D[ day(s)] H[ hour(s)] m[ minute(s)] s[ second(s)]');
   }
 
   function initController() {
@@ -55,6 +69,10 @@ function NavCtrl($scope, $rootScope, $http, $routeParams, $location,
     });
 
     getZeppelinVersion();
+
+    // refresh uptime each second.
+    $interval(updateUptime, 1000);
+
     loadNotes();
   }
 
