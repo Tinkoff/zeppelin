@@ -64,10 +64,15 @@ public class H2MonitoringService {
     try {
       h2Manager.setConnection(Configuration.getNoteStorePath(), noteDAO.get(noteId).getUuid());
       compareH2ToContext(noteContextPath, noteId);
-      h2Manager.releaseConnection();
     } catch (final Throwable th) {
       //Connection error
       LOG.info(th.getMessage());
+    } finally {
+      try {
+        h2Manager.releaseConnection();
+      } catch (final Exception e) {
+        // SKIP
+      }
     }
   }
 

@@ -10,7 +10,7 @@ import java.util.LinkedHashMap;
 public class H2TableConverter {
     private int rowsCount = 0;
 
-    public H2Table resultSetToTable(ResultSet resultSet,
+    public H2Table resultSetToTable(final ResultSet resultSet,
                                     final String tableName,
                                     final H2TableType h2TableType,
                                     final int rowCount,
@@ -54,8 +54,6 @@ public class H2TableConverter {
                             break;
                         case 12:
                         case 1:
-                            table.get(i).add(resultSet.getString(i + 1));
-                            break;
                         default:
                             table.get(i).add(resultSet.getString(i + 1));
                             break;

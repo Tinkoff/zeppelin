@@ -25,11 +25,4 @@ import java.util.stream.Collectors;
 
 
 public class JDBCInterpreter extends AbstractJDBCInterpreter {
-    @Override
-    public Iterator<String> getStatementIterator(@Nonnull final String statements) {
-        return Arrays.stream(statements.split(";"))
-                .filter(s -> !s.trim().isEmpty())
-                .collect(Collectors.toList())
-                .iterator();
-    }
 }
