@@ -18,20 +18,17 @@
 package org.apache.zeppelin.websocket;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.zeppelin.realm.AuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 import ru.tinkoff.zeppelin.engine.EventService;
+
+import javax.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Manager class for managing websocket connections
@@ -44,6 +41,25 @@ public class ConnectionManager {
   // noteId -> connection
   private final Map<Long, Queue<WebSocketSession>> noteSocketMap = new ConcurrentHashMap<>();
 
+  @PostConstruct
+  private void init() {
+    //start event broadcast thread
+    final Thread eventBroadcastThread = new Thread(() -> {
+      while (!Thread.interrupted()) {
+        try {
+          final EventService.Event event = EventService.getEvent();
+          if (event == null) {
+            Thread.sleep(5);
+            continue;
+          }
+          broadcastEvent(event);
+        } catch (final Exception ignored) {
+        }
+      }
+    });
+    eventBroadcastThread.setDaemon(true);
+    eventBroadcastThread.start();
+  }
 
   public Long getAssociatedNoteId(final WebSocketSession socket) {
     final Set<Long> noteIds = noteSocketMap.keySet();
@@ -66,7 +82,7 @@ public class ConnectionManager {
       sessions.add(socket);
     }
 
-    sendColaborativeStatus(sessions);
+    sendCollaborativeStatus(sessions);
   }
 
   private void removeSubscriberFromNote(final Long noteId, final WebSocketSession socket) {
@@ -74,11 +90,11 @@ public class ConnectionManager {
     final Queue<WebSocketSession> sessions = noteSocketMap.get(noteId);
     if (sessions != null) {
       sessions.remove(socket);
-      sendColaborativeStatus(sessions);
+      sendCollaborativeStatus(sessions);
     }
   }
 
-  private void sendColaborativeStatus(final Queue<WebSocketSession> sessions) {
+  private void sendCollaborativeStatus(final Queue<WebSocketSession> sessions) {
 
     final List<String> users = new ArrayList<>();
     if (sessions.size() > 1) {
@@ -141,35 +157,27 @@ public class ConnectionManager {
     }
   }
 
-  @Scheduled(fixedDelay = 5)
-  private void getEvents() {
-    while (true) {
-      final EventService.Event event = EventService.getEvent();
-      if (event == null) {
-        return;
-      }
-
-      if (event.getBefore() != null && event.getAfter() != null) {
-        broadcast(
-                event.getNoteId(),
-                new SockMessage(Operation.PARAGRAPH)
-                        .put("paragraph", event.getAfter())
-        );
-      } else if (event.getBefore() == null && event.getAfter() != null) {
-        broadcast(
-                event.getNoteId(),
-                new SockMessage(Operation.PARAGRAPH_ADDED)
-                        .put("paragraph", event.getAfter())
-                        .put("index", event.getAfter().getPosition())
-        );
-      } else if (event.getBefore() != null && event.getAfter() == null) {
-        broadcast(
-                event.getNoteId(),
-                new SockMessage(Operation.PARAGRAPH_REMOVED)
-                        .put("id", event.getBefore().getId())
-                        .put("index", event.getBefore().getPosition())
-        );
-      }
+  private void broadcastEvent(final EventService.Event event) {
+    if (event.getBefore() != null && event.getAfter() != null) {
+      broadcast(
+          event.getNoteId(),
+          new SockMessage(Operation.PARAGRAPH)
+              .put("paragraph", event.getAfter())
+      );
+    } else if (event.getBefore() == null && event.getAfter() != null) {
+      broadcast(
+          event.getNoteId(),
+          new SockMessage(Operation.PARAGRAPH_ADDED)
+              .put("paragraph", event.getAfter())
+              .put("index", event.getAfter().getPosition())
+      );
+    } else if (event.getBefore() != null && event.getAfter() == null) {
+      broadcast(
+          event.getNoteId(),
+          new SockMessage(Operation.PARAGRAPH_REMOVED)
+              .put("id", event.getBefore().getId())
+              .put("index", event.getBefore().getPosition())
+      );
     }
   }
 }

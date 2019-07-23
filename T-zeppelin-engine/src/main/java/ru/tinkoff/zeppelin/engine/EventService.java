@@ -53,7 +53,7 @@ public class EventService {
     }
   }
 
-  private static ConcurrentLinkedQueue<Event> paragraphEvents = new ConcurrentLinkedQueue<>();
+  private static final ConcurrentLinkedQueue<Event> paragraphEvents = new ConcurrentLinkedQueue<>();
 
   public static Event getEvent() {
     return paragraphEvents.poll();
