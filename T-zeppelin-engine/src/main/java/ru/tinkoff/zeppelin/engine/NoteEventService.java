@@ -180,7 +180,7 @@ public class NoteEventService {
                     throw new RuntimeException("Unknown Event Type. Can't build message body.");
 
             }
-            mimeMessage.setContent(text, "text/html");
+            mimeMessage.setContent(text, "text/html; charset=utf-8");
             emailSender.send(mimeMessage);
         } catch (final Throwable th) {
             LOG.info("Error on email send: " + th.getMessage());
