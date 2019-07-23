@@ -107,8 +107,8 @@ function CronCtrl($rootScope, $scope, $http, baseUrlSrv) {
 
     // Custom
     if (seconds !== '0' || month !== '*' || minutes === '*' || hours === '*' || minutes.indexOf('/') !== -1
-      || [seconds, minutes, hours, dayOfM, month].some(p => p.includes(','))
-      || [seconds, minutes, hours, dayOfM, month, dayOfW].some(p => p.includes('-'))) {
+      || [seconds, minutes, hours, dayOfM, month].some((p) => p.includes(','))
+      || [seconds, minutes, hours, dayOfM, month, dayOfW].some((p) => p.includes('-'))) {
       $scope.cron.timePeriod.selected = 'Custom';
 
     // Monthly
