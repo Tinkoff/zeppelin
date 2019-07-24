@@ -79,17 +79,17 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   @Nullable
   protected volatile Statement query = null;
 
-  protected static final String CONNECTION_USER_KEY = "connection.user";
-  protected static final String CONNECTION_URL_KEY = "connection.url";
-  protected static final String CONNECTION_PASSWORD_KEY = "connection.password";
+  private static final String CONNECTION_USER_KEY = "connection.user";
+  private static final String CONNECTION_URL_KEY = "connection.url";
+  private static final String CONNECTION_PASSWORD_KEY = "connection.password";
 
-  protected static final String DRIVER_CLASS_NAME_KEY = "driver.className";
-  protected static final String DRIVER_ARTIFACT_KEY = "driver.artifact";
-  protected static final String DRIVER_ARTIFACT_DEPENDENCY = "driver.artifact.dependency";
-  protected static final String DRIVER_MAVEN_REPO_KEY = "driver.maven.repository.url";
+  private static final String DRIVER_CLASS_NAME_KEY = "driver.className";
+  private static final String DRIVER_ARTIFACT_KEY = "driver.artifact";
+  private static final String DRIVER_ARTIFACT_DEPENDENCY = "driver.artifact.dependency";
+  private static final String DRIVER_MAVEN_REPO_KEY = "driver.maven.repository.url";
 
-  protected static final String QUERY_TIMEOUT_KEY = "query.timeout";
-  protected static final String QUERY_ROWLIMIT_KEY = "query.rowlimit";
+  private static final String QUERY_TIMEOUT_KEY = "query.timeout";
+  private static final String QUERY_ROWLIMIT_KEY = "query.rowlimit";
 
   public AbstractJDBCInterpreter() {
     super();
@@ -332,7 +332,20 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     final StringBuilder exception = new StringBuilder();
     try {
       this.query = Objects.requireNonNull(connection).createStatement();
-      prepareQuery();
+      int maxRows = Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0"));
+      if (maxRows < 0) {
+        maxRows = 0;
+      }
+      int timeout = Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0"));
+      if (timeout < 0) {
+        timeout = 0;
+      }
+      try {
+        Objects.requireNonNull(this.query).setMaxRows(maxRows);
+        Objects.requireNonNull(this.query).setQueryTimeout(timeout);
+      } catch (final Exception e) {
+        LOGGER.error("Failed to set query limits", e);
+      }
 
       final InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
       // queryString may consist of multiple statements, so it's needed to process all results.
@@ -344,7 +357,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
           resultSet = Objects.requireNonNull(this.query).getResultSet();
           if (resultSet != null && processResult) {
             // if it is needed to process result to table format.
-            final String processedTable = getResults(resultSet);
+            final String processedTable = getResults(resultSet, maxRows);
             if (processedTable == null) {
               queryResult.add(new Message(Type.TEXT, "Failed to process query result"));
             }
@@ -385,26 +398,6 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
             new Message(Type.TEXT, exception.toString())));
   }
 
-  /**
-   * Sets query timeout and max row count.
-   */
-  private void prepareQuery() {
-    int maxRows = Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0"));
-    if (maxRows < 0) {
-      maxRows = 0;
-    }
-    int timeout = Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0"));
-    if (timeout < 0) {
-      timeout = 0;
-    }
-    try {
-      Objects.requireNonNull(this.query).setMaxRows(maxRows);
-      Objects.requireNonNull(this.query).setQueryTimeout(timeout);
-    } catch (final Exception e) {
-      LOGGER.error("Failed to set query limits", e);
-    }
-  }
-
 
   /**
    * Converts result set to table.
@@ -413,7 +406,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
    * @return converted result, {@code null} if process failed.
    */
   @Nullable
-  private String getResults(final ResultSet resultSet) {
+  private String getResults(final ResultSet resultSet, final int rowLimit) {
     try {
       final ResultSetMetaData md = resultSet.getMetaData();
       final StringBuilder msg = new StringBuilder();
@@ -430,7 +423,11 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
       }
       msg.append('\n');
 
+      int rowCount = 0;
       while (resultSet.next()) {
+        if(rowCount == rowLimit && rowLimit != 0){
+          break;
+        }
         for (int i = 1; i < md.getColumnCount() + 1; i++) {
           final Object resultObject;
           final String resultValue;
@@ -446,6 +443,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
           }
         }
         msg.append('\n');
+        rowCount++;
       }
       return msg.toString();
     } catch (final Exception e) {
