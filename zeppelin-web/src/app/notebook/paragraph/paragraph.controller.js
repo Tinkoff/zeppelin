@@ -1973,6 +1973,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
   $scope.$on('focusParagraph', function(event, paragraphId, cursorPosRow, cursorPosCol, mouseEvent) {
     if (!$scope.editor) {
+      handleFocus(false);
       return;
     }
 
