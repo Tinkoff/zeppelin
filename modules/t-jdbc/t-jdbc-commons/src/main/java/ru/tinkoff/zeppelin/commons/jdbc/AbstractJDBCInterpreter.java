@@ -130,8 +130,8 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   /**
    * Installs driver if needed and opens the database connection.
    *
-   * @param context interpreter context.
-   * @param classPath     class path.
+   * @param context   interpreter context.
+   * @param classPath class path.
    */
   @Override
   public void open(@Nonnull final Context context, @Nonnull final String classPath) {
@@ -288,8 +288,8 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
     while (statementIterator.hasNext()) {
       final InterpreterResult subQueryResult = executeQuery(
-          statementIterator.next(),
-          true
+              statementIterator.next(),
+              true
       );
       queryResult.message().addAll(subQueryResult.message());
       if (subQueryResult.code().equals(Code.ERROR)) {
@@ -332,20 +332,15 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     final StringBuilder exception = new StringBuilder();
     try {
       this.query = Objects.requireNonNull(connection).createStatement();
-      int maxRows = Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0"));
-      if (maxRows < 0) {
-        maxRows = 0;
-      }
-      int timeout = Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0"));
-      if (timeout < 0) {
-        timeout = 0;
-      }
-      try {
-        Objects.requireNonNull(this.query).setMaxRows(maxRows);
-        Objects.requireNonNull(this.query).setQueryTimeout(timeout);
-      } catch (final Exception e) {
-        LOGGER.error("Failed to set query limits", e);
-      }
+      Optional.ofNullable(query)
+              .ifPresent(statement -> {
+                try {
+                  statement.setMaxRows(getPositiveNumberFromConfigurationOrZero(QUERY_ROWLIMIT_KEY));
+                  statement.setQueryTimeout(getPositiveNumberFromConfigurationOrZero(QUERY_TIMEOUT_KEY));
+                } catch (final SQLException e) {
+                  LOGGER.error("Failed to set query limits", e);
+                }
+              });
 
       final InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
       // queryString may consist of multiple statements, so it's needed to process all results.
@@ -357,7 +352,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
           resultSet = Objects.requireNonNull(this.query).getResultSet();
           if (resultSet != null && processResult) {
             // if it is needed to process result to table format.
-            final String processedTable = getResults(resultSet, maxRows);
+            final String processedTable = getResults(resultSet);
             if (processedTable == null) {
               queryResult.add(new Message(Type.TEXT, "Failed to process query result"));
             }
@@ -399,6 +394,13 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   }
 
 
+  private int getPositiveNumberFromConfigurationOrZero(final String key) {
+    return Optional.ofNullable(configuration.get(key))
+            .map(Integer::parseInt)
+            .filter(s -> s > 0)
+            .orElse(0);
+  }
+
   /**
    * Converts result set to table.
    *
@@ -406,7 +408,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
    * @return converted result, {@code null} if process failed.
    */
   @Nullable
-  private String getResults(final ResultSet resultSet, final int rowLimit) {
+  private String getResults(final ResultSet resultSet) {
     try {
       final ResultSetMetaData md = resultSet.getMetaData();
       final StringBuilder msg = new StringBuilder();
@@ -424,10 +426,8 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
       msg.append('\n');
 
       int rowCount = 0;
-      while (resultSet.next()) {
-        if(rowCount == rowLimit && rowLimit != 0){
-          break;
-        }
+      final int rowLimit = getPositiveNumberFromConfigurationOrZero(QUERY_ROWLIMIT_KEY);
+      while (resultSet.next() && (rowCount != rowLimit || rowLimit == 0)) {
         for (int i = 1; i < md.getColumnCount() + 1; i++) {
           final Object resultObject;
           final String resultValue;
