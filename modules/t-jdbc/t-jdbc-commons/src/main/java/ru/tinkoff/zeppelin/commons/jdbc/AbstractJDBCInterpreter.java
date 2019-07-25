@@ -16,6 +16,8 @@
  */
 package ru.tinkoff.zeppelin.commons.jdbc;
 
+import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
+
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.net.URL;
@@ -36,7 +38,6 @@ import java.util.Objects;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.commons.jdbc.utils.JDBCInstallation;
@@ -341,7 +342,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     //}
 
     ResultSet resultSet = null;
-    final StringBuilder exception = new StringBuilder();
+    final StringBuilder exceptionMessage = new StringBuilder();
     try {
       this.query = Objects.requireNonNull(connection).createStatement();
       prepareQuery();
@@ -375,7 +376,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
       } while (results || updateCount != -1);
       return queryResult;
     } catch (final Exception e) {
-      processException(exception, e);
+      processException(exceptionMessage, e);
     } finally {
       // cleanup.
       try {
@@ -387,12 +388,12 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
           this.query = null;
         }
       } catch (final Exception e) {
-        processException(exception, e);
+        processException(exceptionMessage, e);
       }
     }
     // reachable if smth went wrong during query processing.
     return new InterpreterResult(Code.ERROR, Collections.singletonList(
-            new Message(Type.TEXT, exception.toString())));
+            new Message(Type.TEXT, exceptionMessage.toString())));
   }
 
   /**
@@ -402,10 +403,11 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
    */
   private void processException(final StringBuilder errorMsg, final Exception e) {
     if (e.getLocalizedMessage() == null) {
-      errorMsg.append("System error:\n").append(ExceptionUtils.getStackTrace(e)).append("\n");
+      errorMsg.append("System error:").append(System.lineSeparator()).append(getStackTrace(e));
     } else {
-      errorMsg.append(e.getLocalizedMessage()).append("\n");
+      errorMsg.append(e.getLocalizedMessage());
     }
+    errorMsg.append(System.lineSeparator());
   }
 
   /**
