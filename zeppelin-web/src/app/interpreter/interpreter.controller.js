@@ -82,7 +82,6 @@ function InterpreterCtrl($rootScope, $scope, $http, baseUrlSrv, websocketMsgSrv,
       // needed to work on bootsrap dialog, see https://stackoverflow.com/a/54100010
       dropdownParent: angular.element('#interpreterModal .modal-content'),
       width: ' ',
-      tags: true,
       minimumInputLength: 3,
     };
     return selectJson;
