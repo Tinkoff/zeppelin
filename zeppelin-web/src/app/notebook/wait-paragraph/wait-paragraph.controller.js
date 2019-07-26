@@ -222,7 +222,7 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
     }
   };
 
-  let getInterpreterSettings = function () {
+  let getInterpreterSettings = function() {
     if (!$scope.paragraph.shebang) {
       if ($rootScope.interpreterSettings && $rootScope.interpreterSettings.length > 0) {
         $scope.paragraph.shebang = $rootScope.interpreterSettings[0].shebang;

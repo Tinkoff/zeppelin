@@ -940,16 +940,16 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
   let getInterpreterSettings = function() {
     $http.get(baseUrlSrv.getRestApiBase() + '/modules/setting/interpreters')
-    .then(function (res) {
+    .then(function(res) {
       $rootScope.interpreterSettings = res.data.body;
-    }).catch(function (res) {
+    }).catch(function(res) {
       if (res.status === 401) {
         ngToast.danger({
           content: 'You don\'t have permission on this page',
           verticalPosition: 'bottom',
           timeout: '3000',
         });
-        setTimeout(function () {
+        setTimeout(function() {
           window.location = baseUrlSrv.getBase();
         }, 3000);
       }
