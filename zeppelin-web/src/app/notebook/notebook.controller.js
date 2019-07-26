@@ -70,7 +70,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     return moment.unix(parsedDate / 1000).format('MMMM Do YYYY, HH:mm');
   };
 
-  $scope.interpreterSettings = [];
   $scope.interpreterBindings = [];
   $scope.isNoteDirty = null;
   $scope.saveTimer = null;
@@ -939,6 +938,25 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     });
   };
 
+  let getInterpreterSettings = function() {
+    $http.get(baseUrlSrv.getRestApiBase() + '/modules/setting/interpreters')
+    .then(function (res) {
+      $rootScope.interpreterSettings = res.data.body;
+    }).catch(function (res) {
+      if (res.status === 401) {
+        ngToast.danger({
+          content: 'You don\'t have permission on this page',
+          verticalPosition: 'bottom',
+          timeout: '3000',
+        });
+        setTimeout(function () {
+          window.location = baseUrlSrv.getBase();
+        }, 3000);
+      }
+      console.log('Error %o %o', res.status, res.data ? res.data.message : '');
+    });
+  };
+
   $scope.openPermissions = function() {
     $scope.showPermissions = true;
     getPermissions();
@@ -1695,6 +1713,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     initializeViewMode();
     getPermissions();
     getSubscriptions();
+    getInterpreterSettings();
 
     if (!$scope.note.scheduler) {
       $scope.note.scheduler = {
