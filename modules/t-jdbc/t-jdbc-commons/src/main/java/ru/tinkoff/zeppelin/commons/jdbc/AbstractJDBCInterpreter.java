@@ -79,17 +79,17 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   @Nullable
   protected volatile Statement query = null;
 
-  protected static final String CONNECTION_USER_KEY = "connection.user";
-  protected static final String CONNECTION_URL_KEY = "connection.url";
-  protected static final String CONNECTION_PASSWORD_KEY = "connection.password";
+  private static final String CONNECTION_USER_KEY = "connection.user";
+  private static final String CONNECTION_URL_KEY = "connection.url";
+  private static final String CONNECTION_PASSWORD_KEY = "connection.password";
 
-  protected static final String DRIVER_CLASS_NAME_KEY = "driver.className";
-  protected static final String DRIVER_ARTIFACT_KEY = "driver.artifact";
-  protected static final String DRIVER_ARTIFACT_DEPENDENCY = "driver.artifact.dependency";
-  protected static final String DRIVER_MAVEN_REPO_KEY = "driver.maven.repository.url";
+  private static final String DRIVER_CLASS_NAME_KEY = "driver.className";
+  private static final String DRIVER_ARTIFACT_KEY = "driver.artifact";
+  private static final String DRIVER_ARTIFACT_DEPENDENCY = "driver.artifact.dependency";
+  private static final String DRIVER_MAVEN_REPO_KEY = "driver.maven.repository.url";
 
-  protected static final String QUERY_TIMEOUT_KEY = "query.timeout";
-  protected static final String QUERY_ROWLIMIT_KEY = "query.rowlimit";
+  private static final String QUERY_TIMEOUT_KEY = "query.timeout";
+  private static final String QUERY_ROWLIMIT_KEY = "query.rowlimit";
 
   public AbstractJDBCInterpreter() {
     super();
@@ -130,8 +130,8 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
   /**
    * Installs driver if needed and opens the database connection.
    *
-   * @param context interpreter context.
-   * @param classPath     class path.
+   * @param context   interpreter context.
+   * @param classPath class path.
    */
   @Override
   public void open(@Nonnull final Context context, @Nonnull final String classPath) {
@@ -288,8 +288,8 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
     while (statementIterator.hasNext()) {
       final InterpreterResult subQueryResult = executeQuery(
-          statementIterator.next(),
-          true
+              statementIterator.next(),
+              true
       );
       queryResult.message().addAll(subQueryResult.message());
       if (subQueryResult.code().equals(Code.ERROR)) {
@@ -332,7 +332,15 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     final StringBuilder exception = new StringBuilder();
     try {
       this.query = Objects.requireNonNull(connection).createStatement();
-      prepareQuery();
+      Optional.ofNullable(query)
+              .ifPresent(statement -> {
+                try {
+                  statement.setMaxRows(getPositiveNumberFromConfigurationOrZero(QUERY_ROWLIMIT_KEY));
+                  statement.setQueryTimeout(getPositiveNumberFromConfigurationOrZero(QUERY_TIMEOUT_KEY));
+                } catch (final SQLException e) {
+                  LOGGER.error("Failed to set query limits", e);
+                }
+              });
 
       final InterpreterResult queryResult = new InterpreterResult(Code.SUCCESS);
       // queryString may consist of multiple statements, so it's needed to process all results.
@@ -385,26 +393,13 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
             new Message(Type.TEXT, exception.toString())));
   }
 
-  /**
-   * Sets query timeout and max row count.
-   */
-  private void prepareQuery() {
-    int maxRows = Integer.parseInt(configuration.getOrDefault(QUERY_ROWLIMIT_KEY, "0"));
-    if (maxRows < 0) {
-      maxRows = 0;
-    }
-    int timeout = Integer.parseInt(configuration.getOrDefault(QUERY_TIMEOUT_KEY, "0"));
-    if (timeout < 0) {
-      timeout = 0;
-    }
-    try {
-      Objects.requireNonNull(this.query).setMaxRows(maxRows);
-      Objects.requireNonNull(this.query).setQueryTimeout(timeout);
-    } catch (final Exception e) {
-      LOGGER.error("Failed to set query limits", e);
-    }
-  }
 
+  private int getPositiveNumberFromConfigurationOrZero(final String key) {
+    return Optional.ofNullable(configuration.get(key))
+            .map(Integer::parseInt)
+            .filter(s -> s > 0)
+            .orElse(0);
+  }
 
   /**
    * Converts result set to table.
@@ -430,7 +425,9 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
       }
       msg.append('\n');
 
-      while (resultSet.next()) {
+      int rowCount = 0;
+      final int rowLimit = getPositiveNumberFromConfigurationOrZero(QUERY_ROWLIMIT_KEY);
+      while (resultSet.next() && (rowCount != rowLimit || rowLimit == 0)) {
         for (int i = 1; i < md.getColumnCount() + 1; i++) {
           final Object resultObject;
           final String resultValue;
@@ -446,6 +443,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
           }
         }
         msg.append('\n');
+        rowCount++;
       }
       return msg.toString();
     } catch (final Exception e) {
