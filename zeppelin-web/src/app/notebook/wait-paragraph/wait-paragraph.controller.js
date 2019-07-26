@@ -25,7 +25,6 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
 
   ngToast.dismiss();
 
-  $scope.interpreterSettings = [];
   $scope.notes = noteListFactory;
   $scope.favoriteNotes = [];
   $scope.recentNotes = [];
@@ -85,14 +84,14 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
   };
 
   $scope.setParagraphMode = function() {
-    let index = _.findIndex($scope.interpreterSettings, {'shebang': $scope.paragraph.shebang});
+    let index = _.findIndex($rootScope.interpreterSettings, {'shebang': $scope.paragraph.shebang});
     if (index < 0) {
       return;
     }
 
-    _.merge($scope.paragraph.config.editorSetting, $scope.interpreterSettings[index].config.editor);
+    _.merge($scope.paragraph.config.editorSetting, $rootScope.interpreterSettings[index].config.editor);
 
-    if ($scope.interpreterSettings[index].config.editor.language) {
+    if ($rootScope.interpreterSettings[index].config.editor.language) {
       let editorSetting = $scope.paragraph.config.editorSetting;
       if ($scope.paragraph.config && editorSetting && editorSetting.warning
           && editorSetting.warning_condition && editorSetting.action) {
@@ -224,30 +223,11 @@ function WaitingParagraphCtrl($scope, noteListFactory, websocketMsgSrv, $rootSco
   };
 
   let getInterpreterSettings = function() {
-    $http.get(baseUrlSrv.getRestApiBase() + '/modules/setting/interpreters')
-      .then(function(res) {
-        $scope.interpreterSettings = res.data.body;
-        if (!$scope.paragraph.shebang) {
-          // set default shebang if interpreter exist
-          if ($scope.interpreterSettings && $scope.interpreterSettings.length > 0) {
-            $scope.paragraph.shebang = $scope.interpreterSettings[0].shebang;
-            // it breaks paragraph cloning
-            // $scope.commitParagraph($scope.paragraph);
-          }
-        }
-      }).catch(function(res) {
-        if (res.status === 401) {
-          ngToast.danger({
-            content: 'You don\'t have permission on this page',
-            verticalPosition: 'bottom',
-            timeout: '3000',
-          });
-          setTimeout(function() {
-            window.location = baseUrlSrv.getBase();
-          }, 3000);
-        }
-        console.log('Error %o %o', res.status, res.data ? res.data.message : '');
-      });
+    if (!$scope.paragraph.shebang) {
+      if ($rootScope.interpreterSettings && $rootScope.interpreterSettings.length > 0) {
+        $scope.paragraph.shebang = $rootScope.interpreterSettings[0].shebang;
+      }
+    }
   };
 
   $scope.commitParagraph = function(paragraph) {
