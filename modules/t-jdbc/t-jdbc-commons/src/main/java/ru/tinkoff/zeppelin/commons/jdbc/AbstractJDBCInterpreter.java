@@ -16,7 +16,28 @@
  */
 package ru.tinkoff.zeppelin.commons.jdbc;
 
+import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
+
 import com.google.common.collect.Lists;
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.zeppelin.commons.jdbc.utils.JDBCInstallation;
@@ -27,14 +48,6 @@ import ru.tinkoff.zeppelin.interpreter.InterpreterResult;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Code;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message;
 import ru.tinkoff.zeppelin.interpreter.InterpreterResult.Message.Type;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.sql.*;
-import java.util.*;
 
 
 /**
@@ -329,7 +342,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
     //}
 
     ResultSet resultSet = null;
-    final StringBuilder exception = new StringBuilder();
+    final StringBuilder exceptionMessage = new StringBuilder();
     try {
       this.query = Objects.requireNonNull(connection).createStatement();
       Optional.ofNullable(query)
@@ -371,8 +384,7 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
       } while (results || updateCount != -1);
       return queryResult;
     } catch (final Exception e) {
-      // increment exception message if smth went wrong.
-      exception.append(e.getLocalizedMessage()).append("\n");
+      processException(exceptionMessage, e);
     } finally {
       // cleanup.
       try {
@@ -384,13 +396,26 @@ public abstract class AbstractJDBCInterpreter extends Interpreter {
           this.query = null;
         }
       } catch (final Exception e) {
-        // increment exception message if smth went wrong.
-        exception.append(e.getLocalizedMessage());
+        processException(exceptionMessage, e);
       }
     }
     // reachable if smth went wrong during query processing.
     return new InterpreterResult(Code.ERROR, Collections.singletonList(
-            new Message(Type.TEXT, exception.toString())));
+            new Message(Type.TEXT, exceptionMessage.toString())));
+  }
+
+  /**
+   * Increments error message with exception message or with exception stack trace if message is empty
+   * @param errorMsg, error message buffer
+   * @param e, target exception
+   */
+  private void processException(final StringBuilder errorMsg, final Exception e) {
+    if (e.getLocalizedMessage() == null) {
+      errorMsg.append("System error:").append(System.lineSeparator()).append(getStackTrace(e));
+    } else {
+      errorMsg.append(e.getLocalizedMessage());
+    }
+    errorMsg.append(System.lineSeparator());
   }
 
 
