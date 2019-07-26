@@ -861,7 +861,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         cache: false,
       },
       width: ' ',
-      tags: true,
       minimumInputLength: 3,
     };
     return selectJson;
@@ -904,7 +903,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
         cache: false,
       },
       width: ' ',
-      tags: true,
       minimumInputLength: 3,
     };
     return selectJson;

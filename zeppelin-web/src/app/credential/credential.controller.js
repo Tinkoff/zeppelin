@@ -90,7 +90,6 @@ function CredentialController($scope, $rootScope, $http, baseUrlSrv, ngToast) {
       // needed to work on bootsrap dialog, see https://stackoverflow.com/a/54100010
       dropdownParent: angular.element('#credentialModal .modal-content'),
       width: ' ',
-      tags: true,
       minimumInputLength: 3,
     };
     return selectJson;
