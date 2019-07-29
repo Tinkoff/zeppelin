@@ -17,8 +17,14 @@
 package ru.tinkoff.zeppelin.storage;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -28,50 +34,71 @@ import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleInnerConfiguration;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleProperty;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-
 
 @Component
 public class ModuleInnerConfigurationDAO {
 
-  public static final String GET_ALL = "" +
+  private static final String GET_ALL = "" +
           "SELECT ID,\n" +
-          "       CLASS_NAME,\n" +
-          "       PROPERTIES,\n" +
-          "       EDITOR\n" +
+          "       CLASS_NAME\n" +
           "FROM MODULE_INNER_CONFIGURATION;";
 
-  public static final String GET_BY_ID = "" +
+  private static final String GET_BY_ID = "" +
           "SELECT ID,\n" +
-          "       CLASS_NAME,\n" +
-          "       PROPERTIES,\n" +
-          "       EDITOR\n" +
+          "       CLASS_NAME\n" +
           "FROM MODULE_INNER_CONFIGURATION\n" +
           "WHERE ID = :ID;";
 
 
   private static final String PERSIST = "" +
-          "INSERT INTO MODULE_INNER_CONFIGURATION (CLASS_NAME,\n" +
-          "                                        PROPERTIES,\n" +
-          "                                        EDITOR)\n" +
-          "VALUES (:CLASS_NAME,\n" +
-          "        :PROPERTIES,\n" +
-          "        :EDITOR);";
+          "INSERT INTO MODULE_INNER_CONFIGURATION (CLASS_NAME)\n" +
+          "VALUES (:CLASS_NAME);";
 
   private static final String UPDATE = "" +
           "UPDATE MODULE_INNER_CONFIGURATION\n" +
-          "SET CLASS_NAME = :CLASS_NAME,\n" +
-          "    PROPERTIES = :PROPERTIES,\n" +
-          "    EDITOR     = :EDITOR\n" +
+          "SET CLASS_NAME = :CLASS_NAME\n" +
           "WHERE ID = :ID;";
 
   private static final String DELETE = "" +
           "DELETE\n" +
           "FROM MODULE_INNER_CONFIGURATION\n" +
           "WHERE ID = :ID;";
+
+  private static final String PERSIST_PROPERTY = "" +
+      "INSERT INTO MODULE_INNER_CONFIGURATION_PROPERTY(PROPERTY_NAME,\n" +
+      "                                                MODULE_INNER_CONFIGURATION_ID)\n" +
+      "VALUES (:PROPERTY_NAME,\n" +
+      "        :MODULE_INNER_CONFIGURATION_ID);";
+
+  private static final String PERSIST_PROPERTY_DETAILS = "" +
+      "INSERT INTO MODULE_INNER_CONFIGURATION_PROPERTY_DETAIL(ENV_NAME,\n" +
+      "                                                       TYPE,\n" +
+      "                                                       KEY,\n" +
+      "                                                       VALUE,\n" +
+      "                                                       DEFAULT_VALUE,\n" +
+      "                                                       DESCRIPTION,\n" +
+      "                                                       MODULE_INNER_CONFIGURATION_PROPERTY_ID)\n" +
+      "VALUES (:ENV_NAME,\n" +
+      "        :TYPE,\n" +
+      "        :KEY,\n" +
+      "        :VALUE,\n" +
+      "        :DEFAULT_VALUE,\n" +
+      "        :DESCRIPTION,\n" +
+      "        :MODULE_INNER_CONFIGURATION_PROPERTY_ID);";
+
+  private static final String GET_PROPERTIES = "" +
+      "SELECT P.ID,\n" +
+      "       P.PROPERTY_NAME,\n" +
+      "       D.ENV_NAME,\n" +
+      "       D.TYPE,\n" +
+      "       D.KEY,\n" +
+      "       D.VALUE,\n" +
+      "       D.DEFAULT_VALUE,\n" +
+      "       D.DESCRIPTION\n" +
+      "FROM MODULE_INNER_CONFIGURATION_PROPERTY P\n" +
+      "JOIN MODULE_INNER_CONFIGURATION_PROPERTY_DETAIL D\n"+
+      "    ON P.ID = D.MODULE_INNER_CONFIGURATION_PROPERTY_ID\n" +
+      "WHERE MODULE_INNER_CONFIGURATION_ID = :MODULE_INNER_CONFIGURATION_ID;";
 
   private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -86,57 +113,114 @@ public class ModuleInnerConfigurationDAO {
     final long id = resultSet.getLong("id");
     final String className = resultSet.getString("class_name");
 
-    final Map<String, ModuleProperty> properties =
-            new Gson().fromJson(
-                    resultSet.getString("properties"),
-                    new TypeToken<Map<String, ModuleProperty>>() {
-                    }.getType()
-            );
-    final Map<String, Object> editor =
-            new Gson().fromJson(
-                    resultSet.getString("editor"),
-                    new TypeToken<Map<String, Object>>() {
-                    }.getType()
-            );
+    final Map<String, ModuleProperty> properties = new HashMap<>();
+    final Map<String, Object> editor = new HashMap<>();
     return new ModuleInnerConfiguration(id, className, properties, editor);
   }
 
   public List<ModuleInnerConfiguration> getAll() {
-
     final SqlParameterSource parameters = new MapSqlParameterSource();
-
     return namedParameterJdbcTemplate.query(
-            GET_ALL,
-            parameters,
-            ModuleInnerConfigurationDAO::mapRow
-    );
+        GET_ALL,
+        parameters,
+        ModuleInnerConfigurationDAO::mapRow)
+        .stream()
+        .peek(c -> {
+          c.getProperties().clear();
+          c.getProperties().putAll(getProperties(c.getId()));
+        })
+        .collect(Collectors.toList());
   }
 
   public ModuleInnerConfiguration getById(final long id) {
-
     final SqlParameterSource parameters = new MapSqlParameterSource()
             .addValue("ID", id);
-
-    return namedParameterJdbcTemplate.query(
+    final Optional<ModuleInnerConfiguration> result =
+        namedParameterJdbcTemplate.query(
             GET_BY_ID,
             parameters,
             ModuleInnerConfigurationDAO::mapRow)
             .stream()
-            .findFirst()
-            .orElse(null);
+            .findFirst();
+
+    result.ifPresent(c -> {
+      c.getProperties().clear();
+      c.getProperties().putAll(getProperties(c.getId()));
+    });
+    return result.orElse(null);
   }
 
   public ModuleInnerConfiguration persist(final ModuleInnerConfiguration config) {
     final KeyHolder holder = new GeneratedKeyHolder();
 
     final MapSqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("CLASS_NAME", config.getClassName())
-            .addValue("PROPERTIES", Utils.generatePGjson(config.getProperties()))
-            .addValue("EDITOR", Utils.generatePGjson(config.getEditor()));
+            .addValue("CLASS_NAME", config.getClassName());
     namedParameterJdbcTemplate.update(PERSIST, parameters, holder);
 
     config.setId((Long) holder.getKeys().get("id"));
+    persistProperties(config);
     return config;
+  }
+
+  private void persistProperties(final ModuleInnerConfiguration configuration) {
+    final long configId = configuration.getId();
+    final KeyHolder holder = new GeneratedKeyHolder();
+
+    configuration.getProperties().forEach((key, value) -> {
+      final MapSqlParameterSource propertyParameters = new MapSqlParameterSource()
+          .addValue("PROPERTY_NAME", key)
+          .addValue("MODULE_INNER_CONFIGURATION_ID", configId);
+      namedParameterJdbcTemplate.update(PERSIST_PROPERTY, propertyParameters, holder);
+      final long propertyId = (Long) holder.getKeys().get("id");
+
+      final MapSqlParameterSource propertyDetails = new MapSqlParameterSource()
+          .addValue("ENV_NAME", value.getEnvName())
+          .addValue("TYPE",value.getType().toUpperCase())
+          .addValue("KEY", value.getPropertyName())
+          .addValue("VALUE", value.getCurrentValue())
+          .addValue("DEFAULT_VALUE", value.getDefaultValue())
+          .addValue("DESCRIPTION", value.getDescription())
+          .addValue("MODULE_INNER_CONFIGURATION_PROPERTY_ID", propertyId);
+      namedParameterJdbcTemplate.update(PERSIST_PROPERTY_DETAILS, propertyDetails);
+    });
+  }
+
+  private static class ModuleInnerConfigurationPropertyDTO {
+    public long id;
+    public String propertyName;
+    public String envName;
+    public String type;
+    public String key;
+    public String value;
+    public String defaultValue;
+    public String description;
+  }
+
+  private Map<String, ModuleProperty> getProperties(final long configurationId) {
+    final RowMapper<ModuleInnerConfigurationPropertyDTO> mapper = ((rs, rowNumber) -> {
+      final ModuleInnerConfigurationPropertyDTO result = new ModuleInnerConfigurationPropertyDTO();
+      result.id = rs.getLong("ID");
+      result.propertyName = rs.getString("PROPERTY_NAME");
+      result.envName = rs.getString("ENV_NAME");
+      result.type = rs.getString("TYPE");
+      result.key = rs.getString("KEY");
+      result.value = rs.getString("VALUE");
+      result.defaultValue = rs.getString("DEFAULT_VALUE");
+      result.description = rs.getString("DESCRIPTION");
+      return  result;
+    });
+
+    return namedParameterJdbcTemplate.query(
+        GET_PROPERTIES,
+        new MapSqlParameterSource().addValue("MODULE_INNER_CONFIGURATION_ID", configurationId),
+        mapper)
+        .stream()
+        .collect(
+            Collectors.toMap(
+                p -> p.propertyName,
+                p -> new ModuleProperty(p.envName, p.key, p.defaultValue, p.value, p.description, p.type)
+            )
+        );
   }
 
 
@@ -144,9 +228,7 @@ public class ModuleInnerConfigurationDAO {
 
     final MapSqlParameterSource parameters = new MapSqlParameterSource()
             .addValue("ID", config.getId())
-            .addValue("CLASS_NAME", config.getClassName())
-            .addValue("PROPERTIES", Utils.generatePGjson(config.getProperties()))
-            .addValue("EDITOR", Utils.generatePGjson(config.getEditor()));
+            .addValue("CLASS_NAME", config.getClassName());
     namedParameterJdbcTemplate.update(UPDATE, parameters);
 
     return config;

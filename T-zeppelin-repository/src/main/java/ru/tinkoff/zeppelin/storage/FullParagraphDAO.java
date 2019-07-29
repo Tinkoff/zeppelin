@@ -18,15 +18,14 @@ package ru.tinkoff.zeppelin.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -50,9 +49,7 @@ public class FullParagraphDAO {
           "       J.STATUS,\n" +
           "       J.STARTED_AT,\n" +
           "       J.ENDED_AT,\n" +
-          "       J.USER_NAME,\n" +
-          "       P.CONFIG,\n" +
-          "       P.FORM_PARAMS\n" +
+          "       J.USER_NAME\n" +
           "FROM PARAGRAPHS P\n" +
           "       LEFT JOIN JOB J ON P.JOB_ID = J.ID\n" +
           "WHERE P.ID = :ID;";
@@ -70,9 +67,7 @@ public class FullParagraphDAO {
           "       J.STATUS,\n" +
           "       J.STARTED_AT,\n" +
           "       J.ENDED_AT,\n" +
-          "       J.USER_NAME,\n" +
-          "       P.CONFIG,\n" +
-          "       P.FORM_PARAMS\n" +
+          "       J.USER_NAME\n" +
           "FROM PARAGRAPHS P\n" +
           "       LEFT JOIN JOB J ON P.JOB_ID = J.ID\n" +
           "WHERE P.UUID = :UUID;";
@@ -90,9 +85,7 @@ public class FullParagraphDAO {
           "       J.STATUS,\n" +
           "       J.STARTED_AT,\n" +
           "       J.ENDED_AT,\n" +
-          "       J.USER_NAME,\n" +
-          "       P.CONFIG,\n" +
-          "       P.FORM_PARAMS\n" +
+          "       J.USER_NAME\n" +
           "FROM NOTES N\n" +
           "       LEFT JOIN PARAGRAPHS P ON N.ID = P.NOTE_ID\n" +
           "       LEFT JOIN JOB J ON P.JOB_ID = J.ID\n" +
@@ -111,9 +104,7 @@ public class FullParagraphDAO {
           "       J.STATUS,\n" +
           "       J.STARTED_AT,\n" +
           "       J.ENDED_AT,\n" +
-          "       J.USER_NAME,\n" +
-          "       P.CONFIG,\n" +
-          "       P.FORM_PARAMS\n" +
+          "       J.USER_NAME\n" +
           "FROM NOTES N\n" +
           "       LEFT JOIN PARAGRAPHS P ON N.ID = P.NOTE_ID\n" +
           "       LEFT JOIN JOB J ON P.JOB_ID = J.ID\n" +
@@ -178,8 +169,8 @@ public class FullParagraphDAO {
     final Integer position = resultSet.getInt("POSITION");
 
     final String user = resultSet.getString("USER_NAME");
-    final Map<String, Object> config = gson.fromJson(resultSet.getString("CONFIG"), configType);
-    final Map<String, Object> formParams = gson.fromJson(resultSet.getString("FORM_PARAMS"), configType);
+    final Map<String, Object> config = new HashMap<>();
+    final Map<String, Object> formParams = new HashMap<>();
 
     final ParagraphDTO paragraphDTO = new ParagraphDTO();
     paragraphDTO.setJobId(jobId);

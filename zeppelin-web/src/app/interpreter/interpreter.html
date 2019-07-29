@@ -296,7 +296,6 @@ limitations under the License.
             </div>
           </div>
         </div>
-
         <div class="row interpreter" style="margin-top:20px !important">
           <div ng-show="_.isEmpty(moduleSetting.innerConfiguration.properties)"
                class="col-md-12 gray40-message">
@@ -316,35 +315,35 @@ limitations under the License.
               <tr ng-repeat="key in moduleSetting.innerConfiguration.properties | sortByKey">
                 <td style="vertical-align: middle; border: 1px solid black;">{{key}}</td>
                 <td style="vertical-align: middle; border: 1px solid black;">
-              <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'textarea'"
+              <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'TEXTAREA'"
                     editable-textarea="moduleSetting.innerConfiguration.properties[key].currentValue" e-form="valueform"
                     e-msd-elastic>
                  {{moduleSetting.innerConfiguration.properties[key].currentValue | breakFilter}}
               </span>
-                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'string'"
+                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'STRING'"
                         editable-text="moduleSetting.innerConfiguration.properties[key].currentValue" e-form="valueform"
                         e-msd-elastic>
                 {{moduleSetting.innerConfiguration.properties[key].currentValue}}
               </span>
-                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'number'"
+                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'NUMBER'"
                         editable-text="moduleSetting.innerConfiguration.properties[key].currentValue" e-widget-number
                         e-form="valueform"
                         e-msd-elastic>
                 {{moduleSetting.innerConfiguration.properties[key].currentValue}}
               </span>
-                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'url'"
+                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'URL'"
                         editable-text="moduleSetting.innerConfiguration.properties[key].currentValue" e-form="valueform"
                         e-msd-elastic>
                 <a ng-href="{{moduleSetting.innerConfiguration.properties[key].currentValue}}">
                   {{moduleSetting.innerConfiguration.properties[key].currentValue}}</a>
               </span>
-                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'password'"
+                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'PASSWORD'"
                         editable-password="moduleSetting.innerConfiguration.properties[key].currentValue"
                         e-form="valueform"
                         e-msd-elastic>
                 {{moduleSetting.innerConfiguration.properties[key].currentValue ? '***' : ''}}
               </span>
-                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'checkbox'"
+                  <span ng-if="moduleSetting.innerConfiguration.properties[key].type === 'CHECKBOX'"
                         editable-checkbox="moduleSetting.innerConfiguration.properties[key].currentValue"
                         e-form="valueform"
                         e-msd-elastic>

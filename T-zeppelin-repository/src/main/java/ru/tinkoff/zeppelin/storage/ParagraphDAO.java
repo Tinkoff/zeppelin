@@ -16,8 +16,17 @@
  */
 package ru.tinkoff.zeppelin.storage;
 
+import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -25,16 +34,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.notebook.Paragraph;
-
-import java.lang.reflect.Type;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-
-import static ru.tinkoff.zeppelin.storage.Utils.generatePGjson;
-import static ru.tinkoff.zeppelin.storage.Utils.toTimestamp;
 
 @Component
 public class ParagraphDAO {
@@ -49,8 +48,6 @@ public class ParagraphDAO {
           "                        UPDATED,\n" +
           "                        POSITION,\n" +
           "                        JOB_ID,\n" +
-          "                        CONFIG,\n" +
-          "                        FORM_PARAMS,\n" +
           "                        REVISION_ID)\n" +
           "VALUES (:NOTE_ID,\n" +
           "        :UUID,\n" +
@@ -61,8 +58,6 @@ public class ParagraphDAO {
           "        :UPDATED,\n" +
           "        :POSITION,\n" +
           "        :JOB_ID,\n" +
-          "        :CONFIG,\n" +
-          "        :FORM_PARAMS,\n" +
           "        :REVISION_ID);";
 
   private final static String UPDATE_PARAGRAPH = "" +
@@ -76,8 +71,6 @@ public class ParagraphDAO {
           "    UPDATED     = :UPDATED,\n" +
           "    POSITION    = :POSITION,\n" +
           "    JOB_ID      = :JOB_ID,\n" +
-          "    CONFIG      = :CONFIG,\n" +
-          "    FORM_PARAMS = :FORM_PARAMS,\n" +
           "    REVISION_ID = :REVISION_ID\n" +
           "WHERE ID = :ID;";
 
@@ -98,8 +91,6 @@ public class ParagraphDAO {
           "       UPDATED,\n" +
           "       POSITION,\n" +
           "       JOB_ID,\n" +
-          "       CONFIG,\n" +
-          "       FORM_PARAMS,\n" +
           "       REVISION_ID\n" +
           "FROM PARAGRAPHS\n" +
           "WHERE REVISION_ID ISNULL;";
@@ -115,8 +106,6 @@ public class ParagraphDAO {
           "       UPDATED,\n" +
           "       POSITION,\n" +
           "       JOB_ID,\n" +
-          "       CONFIG,\n" +
-          "       FORM_PARAMS,\n" +
           "       REVISION_ID\n" +
           "FROM PARAGRAPHS\n" +
           "  WHERE ID = :ID;";
@@ -132,8 +121,6 @@ public class ParagraphDAO {
           "       UPDATED,\n" +
           "       POSITION,\n" +
           "       JOB_ID,\n" +
-          "       CONFIG,\n" +
-          "       FORM_PARAMS,\n" +
           "       REVISION_ID\n" +
           "FROM PARAGRAPHS\n" +
           "  WHERE UUID = :UUID;";
@@ -149,8 +136,6 @@ public class ParagraphDAO {
           "       UPDATED,\n" +
           "       POSITION,\n" +
           "       JOB_ID,\n" +
-          "       CONFIG,\n" +
-          "       FORM_PARAMS,\n" +
           "       REVISION_ID\n" +
           "FROM PARAGRAPHS\n" +
           "WHERE NOTE_ID = :NOTE_ID\n" +
@@ -168,8 +153,6 @@ public class ParagraphDAO {
           "       UPDATED,\n" +
           "       POSITION,\n" +
           "       JOB_ID,\n" +
-          "       CONFIG,\n" +
-          "       FORM_PARAMS,\n" +
           "       REVISION_ID\n" +
           "FROM PARAGRAPHS\n" +
           "WHERE REVISION_ID = :REVISION_ID\n" +
@@ -206,8 +189,8 @@ public class ParagraphDAO {
             ? resultSet.getLong("JOB_ID")
             : null;
 
-    final Map<String, Object> config = gson.fromJson(resultSet.getString("CONFIG"), configType);
-    final Map<String, Object> formParams = gson.fromJson(resultSet.getString("FORM_PARAMS"), configType);
+    final Map<String, Object> config = new HashMap<>();
+    final Map<String, Object> formParams = new HashMap<>();
     final Long revisionId =  null != resultSet.getString("REVISION_ID")
             ? resultSet.getLong("REVISION_ID")
             : null;
@@ -240,8 +223,6 @@ public class ParagraphDAO {
             .addValue("UPDATED", toTimestamp(paragraph.getUpdated()))
             .addValue("POSITION", paragraph.getPosition())
             .addValue("JOB_ID", paragraph.getJobId())
-            .addValue("CONFIG", generatePGjson(paragraph.getConfig()))
-            .addValue("FORM_PARAMS", generatePGjson(paragraph.getFormParams()))
             .addValue("REVISION_ID", paragraph.getRevisionId());
     jdbcTemplate.update(PERSIST_PARAGRAPH, parameters, holder);
 
@@ -260,8 +241,6 @@ public class ParagraphDAO {
             .addValue("UPDATED", toTimestamp(paragraph.getUpdated()))
             .addValue("POSITION", paragraph.getPosition())
             .addValue("JOB_ID", paragraph.getJobId())
-            .addValue("CONFIG", generatePGjson(paragraph.getConfig()))
-            .addValue("FORM_PARAMS", generatePGjson(paragraph.getFormParams()))
             .addValue("REVISION_ID", paragraph.getRevisionId())
             .addValue("ID", paragraph.getId());
     jdbcTemplate.update(UPDATE_PARAGRAPH, parameters);

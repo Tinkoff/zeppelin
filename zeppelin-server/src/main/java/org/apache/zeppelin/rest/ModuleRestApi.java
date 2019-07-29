@@ -661,7 +661,7 @@ public class ModuleRestApi {
         return true;
       }
     }
-    return false;
+    return true;
   }
 
 }

@@ -17,7 +17,13 @@
 
 package ru.tinkoff.zeppelin.storage;
 
-import com.google.gson.Gson;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -26,10 +32,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.ModuleConfiguration;
 import ru.tinkoff.zeppelin.core.configuration.interpreter.option.Permissions;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
 
 @Component
 public class ModuleConfigurationDAO {
@@ -46,7 +48,6 @@ public class ModuleConfigurationDAO {
       "       CONCURRENT_TASKS,\n" +
       "       CONFIG_ID,\n" +
       "       SOURCE_ID,\n" +
-      "       PERMISSIONS,\n" +
       "       IS_ENABLED\n" +
       "FROM MODULE_CONFIGURATION;";
 
@@ -61,7 +62,6 @@ public class ModuleConfigurationDAO {
       "       SCHEDULED_TTL,\n" +
       "       CONFIG_ID,\n" +
       "       SOURCE_ID,\n" +
-      "       PERMISSIONS,\n" +
       "       IS_ENABLED\n" +
       "FROM MODULE_CONFIGURATION\n" +
       "WHERE ID = :ID;";
@@ -77,11 +77,42 @@ public class ModuleConfigurationDAO {
       "       SCHEDULED_TTL,\n" +
       "       CONFIG_ID,\n" +
       "       SOURCE_ID,\n" +
-      "       PERMISSIONS,\n" +
       "       IS_ENABLED\n" +
       "FROM MODULE_CONFIGURATION\n" +
       "WHERE SHEBANG = :SHEBANG;";
 
+  private static final String PERSIST_MODULE_PERMISSION = "" +
+      "INSERT INTO MODULE_CONFIGURATION_PERMISSION(IS_ENABLED,\n" +
+      "                                            MODULE_CONFIGURATION_ID)\n" +
+      "VALUES (:IS_ENABLED,\n" +
+      "        :MODULE_CONFIGURATION_ID);";
+
+  private static final String UPDATE_MODULE_PERMISSION = "" +
+      "UPDATE MODULE_CONFIGURATION_PERMISSION\n" +
+      "SET IS_ENABLED = :IS_ENABLED\n" +
+      "WHERE MODULE_CONFIGURATION_ID = :MODULE_CONFIGURATION_ID;";
+
+  private static final String PERSIST_MODULE_OWNER = "" +
+      "INSERT INTO MODULE_CONFIGURATION_OWNER(NAME,\n" +
+      "                                       MODULE_CONFIGURATION_PERMISSION_ID)\n" +
+      "VALUES (:NAME,\n" +
+      "        :MODULE_CONFIGURATION_PERMISSION_ID);";
+
+  private static final String DELETE_MODULE_OWNER = "" +
+      "DELETE FROM MODULE_CONFIGURATION_OWNER\n" +
+      "WHERE NAME = :NAME\n" +
+      "      AND MODULE_CONFIGURATION_PERMISSION_ID = :MODULE_CONFIGURATION_PERMISSION_ID;";
+
+  private static final String GET_MODULE_PERMISSION = "" +
+      "SELECT ID,\n" +
+      "       IS_ENABLED\n" +
+      "FROM MODULE_CONFIGURATION_PERMISSION\n" +
+      "WHERE MODULE_CONFIGURATION_ID = :MODULE_CONFIGURATION_ID;";
+
+  private static final String GET_MODULE_OWNERS = "" +
+      "SELECT NAME\n" +
+      "FROM MODULE_CONFIGURATION_OWNER\n" +
+      "WHERE MODULE_CONFIGURATION_PERMISSION_ID = :MODULE_CONFIGURATION_PERMISSION_ID;";
 
   private static final String PERSIST = "" +
       "INSERT INTO MODULE_CONFIGURATION (SHEBANG,\n" +
@@ -93,7 +124,6 @@ public class ModuleConfigurationDAO {
       "                                  SCHEDULED_TTL,\n" +
       "                                  CONFIG_ID,\n" +
       "                                  SOURCE_ID,\n" +
-      "                                  PERMISSIONS,\n" +
       "                                  IS_ENABLED)\n" +
       "VALUES (:SHEBANG,\n" +
       "        :HUMAN_READABLE_NAME,\n" +
@@ -104,7 +134,6 @@ public class ModuleConfigurationDAO {
       "        :SCHEDULED_TTL,\n" +
       "        :CONFIG_ID,\n" +
       "        :SOURCE_ID,\n" +
-      "        :PERMISSIONS,\n" +
       "        :IS_ENABLED);";
 
   private static final String UPDATE = "" +
@@ -118,7 +147,6 @@ public class ModuleConfigurationDAO {
       "    SCHEDULED_TTL       = :SCHEDULED_TTL,\n" +
       "    CONFIG_ID           = :CONFIG_ID,\n" +
       "    SOURCE_ID           = :SOURCE_ID,\n" +
-      "    PERMISSIONS         = :PERMISSIONS,\n" +
       "    IS_ENABLED          = :IS_ENABLED\n" +
       "WHERE ID = :ID;";
 
@@ -146,9 +174,92 @@ public class ModuleConfigurationDAO {
         resultSet.getInt("SCHEDULED_TTL"),
         resultSet.getLong("CONFIG_ID"),
         resultSet.getLong("SOURCE_ID"),
-        new Gson().fromJson(resultSet.getString("PERMISSIONS"), Permissions.class),
+        new Permissions(),
         resultSet.getBoolean("IS_ENABLED")
     );
+  }
+
+  private void createPermissions(final ModuleConfiguration configuration) {
+    final MapSqlParameterSource parameters = new MapSqlParameterSource()
+        .addValue("IS_ENABLED", configuration.getPermissions().isEnabled())
+        .addValue("MODULE_CONFIGURATION_ID", configuration.getId());
+    namedParameterJdbcTemplate.update(PERSIST_MODULE_PERMISSION, parameters);
+  }
+
+  private void persistOwner(final String name, final long permissionId) {
+    final MapSqlParameterSource parameters = new MapSqlParameterSource()
+        .addValue("NAME", name)
+        .addValue("MODULE_CONFIGURATION_PERMISSION_ID", permissionId);
+    namedParameterJdbcTemplate.update(PERSIST_MODULE_OWNER, parameters);
+  }
+
+  private void deleteOwner(final String name, final long permissionId) {
+    final MapSqlParameterSource parameters = new MapSqlParameterSource()
+        .addValue("NAME", name)
+        .addValue("MODULE_CONFIGURATION_PERMISSION_ID", permissionId);
+    namedParameterJdbcTemplate.update(DELETE_MODULE_OWNER, parameters);
+  }
+
+  private void updatePermissions(final boolean isEnabled, final long configurationId) {
+    final MapSqlParameterSource parameters = new MapSqlParameterSource()
+        .addValue("IS_ENABLED", isEnabled)
+        .addValue("MODULE_CONFIGURATION_ID", configurationId);
+    namedParameterJdbcTemplate.update(UPDATE_MODULE_PERMISSION, parameters);
+  }
+
+  private void processPermissions(final ModuleConfiguration configuration) {
+    updatePermissions(configuration.getPermissions().isEnabled(), configuration.getId());
+    final long permissionId = getStoredPermission(configuration).databaseId;
+    final Permissions storedPermissions = getPermissions(configuration);
+    final List<String> newOwners = new ArrayList<>(configuration.getPermissions().getOwners());
+    newOwners.removeAll(storedPermissions.getOwners());
+    newOwners.forEach(o -> persistOwner(o, permissionId));
+
+    final List<String> deletedOwners = new ArrayList<>(storedPermissions.getOwners());
+    deletedOwners.removeAll(configuration.getPermissions().getOwners());
+    deletedOwners.forEach(o -> deleteOwner(o, permissionId));
+  }
+
+  private static class PermissionsDTO {
+    long databaseId;
+    Boolean isEnabled;
+  }
+
+  private PermissionsDTO getStoredPermission(final ModuleConfiguration configuration) {
+    final RowMapper<PermissionsDTO> rowMapper = (rs, rowNum) -> {
+      final PermissionsDTO p = new PermissionsDTO();
+      p.isEnabled = rs.getBoolean("IS_ENABLED");
+      p.databaseId = rs.getLong("ID");
+      return p;
+    };
+
+    final PermissionsDTO permissions =
+        namedParameterJdbcTemplate.query(
+            GET_MODULE_PERMISSION,
+            new MapSqlParameterSource().addValue("MODULE_CONFIGURATION_ID", configuration.getId()),
+            rowMapper)
+            .stream()
+            .findFirst()
+            .orElse(null);
+    if (permissions == null) {
+      throw new IllegalStateException("Permission doesn't exit, moduleId = " + configuration.getId());
+    }
+    return permissions;
+  }
+
+  private Permissions getPermissions(final ModuleConfiguration configuration) {
+    final PermissionsDTO permissions = getStoredPermission(configuration);
+    final RowMapper<String> ownerMapper = ((rs, rowNum) -> rs.getString("NAME"));
+    final List<String> owners =
+        new ArrayList<>(
+            namedParameterJdbcTemplate.query(
+                GET_MODULE_OWNERS,
+                new MapSqlParameterSource()
+                    .addValue("MODULE_CONFIGURATION_PERMISSION_ID", permissions.databaseId),
+                ownerMapper
+            )
+        );
+    return new Permissions(owners, permissions.isEnabled);
   }
 
   public List<ModuleConfiguration> getAll() {
@@ -158,8 +269,10 @@ public class ModuleConfigurationDAO {
     return namedParameterJdbcTemplate.query(
         GET_ALL,
         parameters,
-        ModuleConfigurationDAO::mapRow
-    );
+        ModuleConfigurationDAO::mapRow)
+        .stream()
+        .peek(c -> c.setPermissions(getPermissions(c)))
+        .collect(Collectors.toList());
   }
 
   public ModuleConfiguration getById(final long id) {
@@ -167,13 +280,14 @@ public class ModuleConfigurationDAO {
     final SqlParameterSource parameters = new MapSqlParameterSource()
         .addValue("ID", id);
 
-    return namedParameterJdbcTemplate.query(
+    final Optional<ModuleConfiguration> result = namedParameterJdbcTemplate.query(
         GET_BY_ID,
         parameters,
         ModuleConfigurationDAO::mapRow)
         .stream()
-        .findFirst()
-        .orElse(null);
+        .findFirst();
+    result.ifPresent(c -> c.setPermissions(getPermissions(c)));
+    return result.orElse(null);
   }
 
   public ModuleConfiguration getByShebang(final String shebang) {
@@ -181,13 +295,14 @@ public class ModuleConfigurationDAO {
     final SqlParameterSource parameters = new MapSqlParameterSource()
         .addValue("SHEBANG", shebang);
 
-    return namedParameterJdbcTemplate.query(
+    final Optional<ModuleConfiguration> result = namedParameterJdbcTemplate.query(
         GET_BY_SHEBANG,
         parameters,
         ModuleConfigurationDAO::mapRow)
         .stream()
-        .findFirst()
-        .orElse(null);
+        .findFirst();
+    result.ifPresent(c -> c.setPermissions(getPermissions(c)));
+    return result.orElse(null);
   }
 
   public ModuleConfiguration persist(final ModuleConfiguration config) {
@@ -203,11 +318,12 @@ public class ModuleConfigurationDAO {
         .addValue("SCHEDULED_TTL", config.getScheduledTTL())
         .addValue("CONFIG_ID", config.getModuleInnerConfigId())
         .addValue("SOURCE_ID", config.getModuleSourceId())
-        .addValue("PERMISSIONS", Utils.generatePGjson(config.getPermissions()))
         .addValue("IS_ENABLED", config.isEnabled());
     namedParameterJdbcTemplate.update(PERSIST, parameters, holder);
 
     config.setId((Long) holder.getKeys().get("id"));
+    createPermissions(config);
+    processPermissions(config);
     return config;
   }
 
@@ -224,11 +340,10 @@ public class ModuleConfigurationDAO {
         .addValue("SCHEDULED_TTL", config.getScheduledTTL())
         .addValue("CONFIG_ID", config.getModuleInnerConfigId())
         .addValue("SOURCE_ID", config.getModuleSourceId())
-        .addValue("PERMISSIONS", Utils.generatePGjson(config.getPermissions()))
         .addValue("IS_ENABLED", config.isEnabled())
         .addValue("ID", config.getId());
     namedParameterJdbcTemplate.update(UPDATE, parameters);
-
+    processPermissions(config);
     return config;
   }
 
